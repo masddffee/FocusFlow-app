@@ -11,10 +11,18 @@ import { testTasks, testTimeouts, testApiResponses } from './fixtures/test-data'
 test.describe('Task Management Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    try {
+      await page.evaluate(() => {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.clear();
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
   });
 
   test('should display empty state when no tasks exist', async ({ page }) => {

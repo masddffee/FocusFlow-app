@@ -11,11 +11,19 @@ import { testTasks, testSessions, testTimeouts } from './fixtures/test-data';
 
 test.describe('Focus Timer Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear storage before each test
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    // Clear storage before each test (with error handling)
+    try {
+      await page.evaluate(() => {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.clear();
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
   });
 
   test('should display initial timer state correctly', async ({ page }) => {

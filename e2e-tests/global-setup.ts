@@ -15,11 +15,12 @@ async function globalSetup(config: FullConfig) {
   try {
     // Wait for backend to be ready
     console.log('⏳ Waiting for backend server...');
+    await page.goto('http://localhost:8080/health');
     await page.waitForLoadState('networkidle');
     
     // Wait for frontend to be ready
     console.log('⏳ Waiting for frontend server...');
-    await page.goto('/');
+    await page.goto('http://localhost:8081/');
     await page.waitForLoadState('networkidle');
     
     // Check if the app is properly loaded
@@ -27,10 +28,18 @@ async function globalSetup(config: FullConfig) {
     console.log(`✅ App loaded successfully with title: ${title}`);
     
     // Clear any existing data
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    try {
+      await page.evaluate(() => {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.clear();
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
     
     console.log('🧹 Cleared browser storage');
     

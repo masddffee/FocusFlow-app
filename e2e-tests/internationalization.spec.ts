@@ -12,10 +12,18 @@ import { testTimeouts } from './fixtures/test-data';
 test.describe('Internationalization Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    try {
+      await page.evaluate(() => {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.clear();
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
   });
 
   test('should default to English language', async ({ page }) => {
@@ -357,10 +365,16 @@ test.describe('Internationalization Tests', () => {
     await page.waitForTimeout(testTimeouts.medium);
     
     // Simulate app restart by clearing session storage but keeping localStorage
-    await page.evaluate(() => {
-      sessionStorage.clear();
-      // Keep localStorage to simulate app restart
-    });
+    try {
+      await page.evaluate(() => {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+        // Keep localStorage to simulate app restart
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
     
     // Navigate to app again
     await homePage.navigate();

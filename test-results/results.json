@@ -1,0 +1,488 @@
+{
+  "config": {
+    "configFile": "/Users/wetom/Desktop/FocusFlow/playwright.config.ts",
+    "rootDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/Users/wetom/Desktop/FocusFlow/e2e-tests/global-setup.ts",
+    "globalTeardown": "/Users/wetom/Desktop/FocusFlow/e2e-tests/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/wetom/Desktop/FocusFlow/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium-desktop",
+        "name": "chromium-desktop",
+        "testDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/wetom/Desktop/FocusFlow/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/wetom/Desktop/FocusFlow/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "tablet-chrome",
+        "name": "tablet-chrome",
+        "testDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "improved-app-debug.spec.ts",
+      "file": "improved-app-debug.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "App Debug Analysis",
+          "file": "improved-app-debug.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should analyze React bundle loading",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1433,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Bundle script elements: \u001b[33m1\u001b[39m\n"
+                        },
+                        {
+                          "text": "React globally available: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "Expo modules available: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "Metro require function available: \u001b[33mtrue\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:32.694Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-6c39e7cd8882309cc52e",
+              "file": "improved-app-debug.spec.ts",
+              "line": 30,
+              "column": 7
+            },
+            {
+              "title": "should analyze font loading issues",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1383,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Font-related errors: []\n"
+                        },
+                        {
+                          "text": "Font faces loaded: \u001b[33m0\u001b[39m\n"
+                        },
+                        {
+                          "text": "FontAwesome available: \u001b[33mfalse\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:32.691Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-48914c31a015ac41df06",
+              "file": "improved-app-debug.spec.ts",
+              "line": 59,
+              "column": 7
+            },
+            {
+              "title": "should analyze splash screen behavior",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 4045,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Initial body content length: \u001b[33m480\u001b[39m\n"
+                        },
+                        {
+                          "text": "Splash screen elements: \u001b[33m0\u001b[39m\n"
+                        },
+                        {
+                          "text": "App root content length: \u001b[33m0\u001b[39m\n"
+                        },
+                        {
+                          "text": "Expo splash screen module available: \u001b[33mfalse\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:32.694Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-00938ed3a51c3952715f",
+              "file": "improved-app-debug.spec.ts",
+              "line": 83,
+              "column": 7
+            },
+            {
+              "title": "should analyze React component mounting",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1386,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "React root analysis: { exists: \u001b[33mtrue\u001b[39m, hasChildren: \u001b[33mfalse\u001b[39m, innerHTML: \u001b[32m''\u001b[39m, childNodes: \u001b[33m0\u001b[39m }\n"
+                        },
+                        {
+                          "text": "React-related errors: []\n"
+                        },
+                        {
+                          "text": "React components mounted: \u001b[33mfalse\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:32.697Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-ab7f48846fb93ad9e431",
+              "file": "improved-app-debug.spec.ts",
+              "line": 108,
+              "column": 7
+            },
+            {
+              "title": "should analyze JavaScript execution flow",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 925,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "All console logs: [\n  \u001b[32m'[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold'\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "All JavaScript errors: [\n  \u001b[32m\"Page Error: Cannot read properties of undefined (reading 'default')\"\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "Undefined-related errors: [\n  \u001b[32m\"Page Error: Cannot read properties of undefined (reading 'default')\"\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "Module loading errors: []\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:34.249Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-2f36b1773d8ed790ae23",
+              "file": "improved-app-debug.spec.ts",
+              "line": 150,
+              "column": 7
+            },
+            {
+              "title": "should analyze network requests",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 930,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Network requests: [\n  \u001b[32m'GET http://localhost:8081/'\u001b[39m,\n  \u001b[32m'GET http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable'\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "Network responses: [\n  \u001b[32m'200 http://localhost:8081/'\u001b[39m,\n  \u001b[32m'200 http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable'\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "Failed requests: []\n"
+                        },
+                        {
+                          "text": "Bundle requests: [\n  \u001b[32m'GET http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable'\u001b[39m\n]\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:34.250Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-1a69d9dd00f894a381bd",
+              "file": "improved-app-debug.spec.ts",
+              "line": 175,
+              "column": 7
+            },
+            {
+              "title": "should analyze development vs production behavior",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 891,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Development mode: \u001b[33mtrue\u001b[39m\n"
+                        },
+                        {
+                          "text": "Metro bundler info: { bundleStartTime: \u001b[33m1752764554614\u001b[39m, devMode: \u001b[33mtrue\u001b[39m, metroPrefix: \u001b[32m''\u001b[39m }\n"
+                        },
+                        {
+                          "text": "HMR available: \u001b[33mtrue\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:34.304Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-39e420a18038be0013f4",
+              "file": "improved-app-debug.spec.ts",
+              "line": 206,
+              "column": 7
+            },
+            {
+              "title": "should provide fix recommendations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 753,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Recommendations: [ \u001b[32m'Fix undefined property access - likely module import issue'\u001b[39m ]\n"
+                        },
+                        {
+                          "text": "Final recommendations: [\n  \u001b[32m'Fix undefined property access - likely module import issue'\u001b[39m,\n  \u001b[32m'React root is empty - check component mounting and initialization'\u001b[39m\n]\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-17T15:02:35.178Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "bceaaef5073ab8f909ae-6f6d8364139c05575b84",
+              "file": "improved-app-debug.spec.ts",
+              "line": 235,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-07-17T15:02:29.976Z",
+    "duration": 6951.743,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

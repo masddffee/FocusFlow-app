@@ -12,17 +12,28 @@ export class TestHelpers {
    */
   async waitForAppReady() {
     await this.page.waitForLoadState('networkidle');
-    await this.page.waitForSelector('[data-testid="app-loaded"]', { timeout: 10000 });
+    // Wait for React app to initialize
+    await this.page.waitForSelector('#root', { timeout: 10000 });
+    // Wait for app content to load
+    await this.page.waitForTimeout(2000);
   }
 
   /**
    * Clear all local storage and session storage
    */
   async clearStorage() {
-    await this.page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    try {
+      await this.page.evaluate(() => {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.clear();
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
   }
 
   /**

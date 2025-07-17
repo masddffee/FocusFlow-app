@@ -12,10 +12,18 @@ import { testTimeouts } from './fixtures/test-data';
 test.describe('Navigation Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Clear storage before each test
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    try {
+      await page.evaluate(() => {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.clear();
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
   });
 
   test('should navigate to home page and display welcome message', async ({ page }) => {
@@ -199,10 +207,16 @@ test.describe('Navigation Tests', () => {
     const currentUrl = page.url();
     
     // Simulate app restart by clearing page and navigating again
-    await page.evaluate(() => {
-      // Don't clear localStorage to simulate app restart
-      sessionStorage.clear();
-    });
+    try {
+      await page.evaluate(() => {
+        // Don't clear localStorage to simulate app restart
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+        }
+      });
+    } catch (error) {
+      console.log('Storage clearing skipped due to security restrictions');
+    }
     
     await page.goto(currentUrl);
     await tasksPage.waitForLoad();
