@@ -29,7 +29,9 @@ import Button from "@/components/Button";
 import { useTimerStore } from "@/store/timerStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useStatsStore } from "@/store/statsStore";
-import { generateLearningQuestions, compileMarkdownNotes } from "@/utils/ai";
+import { compileMarkdownNotes } from "@/utils/ai";
+import { generateLearningQuestionsSafely } from "@/utils/api";
+import { useSettingsStore } from "@/store/settingsStore";
 
 interface LearningSession {
   taskId: string;
@@ -88,21 +90,37 @@ export default function LearningFeedbackScreen() {
     setIsGeneratingQuestions(true);
     
     try {
-      const generatedQuestions = await generateLearningQuestions(summary);
-      setQuestions(generatedQuestions);
+      // 🔐 使用安全的學習問題生成
+      const currentLanguage = useSettingsStore.getState().language;
+      const questionsResponse = await generateLearningQuestionsSafely(summary, currentLanguage);
+      
+      if (questionsResponse.questions && questionsResponse.questions.length > 0) {
+        setQuestions(questionsResponse.questions);
       
       // Initialize answers object
       const initialAnswers: Record<string, string> = {};
-      generatedQuestions.forEach((_, index) => {
+        questionsResponse.questions.forEach((_, index) => {
         initialAnswers[index.toString()] = "";
       });
       setAnswers(initialAnswers);
       
+        if (questionsResponse.fallback) {
+          Alert.alert(
+            "Questions Generated",
+            `Generated ${questionsResponse.questions.length} review questions using fallback method due to network issues.`
+          );
+        } else {
       Alert.alert(
         "Questions Generated",
-        `Generated ${generatedQuestions.length} review questions to help reinforce your learning.`
+            `Generated ${questionsResponse.questions.length} review questions to help reinforce your learning.`
       );
+        }
+      } else {
+        Alert.alert("Error", "No questions could be generated. Please try a more detailed summary.");
+      }
+      
     } catch (error) {
+      console.error("Error generating questions:", error);
       Alert.alert("Error", "Failed to generate questions. Please try again later.");
     } finally {
       setIsGeneratingQuestions(false);

@@ -1,4 +1,5 @@
-import { ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel, LearningPace, DynamicRangeCalculation, TaskDifficulty, ReviewStatus, LearningPhase } from "@/types/task";
+import { Task, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel, LearningPace, DynamicRangeCalculation, TaskDifficulty, ReviewStatus, LearningPhase } from "@/types/task";
+import { DayTimeSlots, TimeSlot } from "@/types/timeSlot";
 import { initializeSpacedRepetition } from "@/utils/spacedRepetition";
 
 interface QualityEvaluation {
@@ -21,9 +22,18 @@ interface CoreMessage {
   content: string;
 }
 
+// ⚠️ SECURITY WARNING: Direct API URL exposure
+// This constant should be removed in production
 const AI_API_URL = "https://toolkit.rork.com/text/llm/";
 
+/**
+ * @deprecated SECURITY RISK: Direct LLM API calls expose API keys in frontend
+ * Use backend API endpoints from utils/api.ts instead.
+ * This function will be removed in the next version.
+ */
 async function makeAIRequest(messages: CoreMessage[]): Promise<string> {
+  console.warn('⚠️ DEPRECATED: makeAIRequest() exposes API keys. Use backend APIs instead.');
+  
   try {
     const response = await fetch(AI_API_URL, {
       method: 'POST',
@@ -390,187 +400,170 @@ function getBalancedPriorityFocus(taskType: string): string[] {
   return balancedFocus[taskType as keyof typeof balancedFocus] || balancedFocus.general;
 }
 
-export async function evaluateInputQuality(title: string, description: string): Promise<QualityEvaluation> {
-  const messages: CoreMessage[] = [
-    {
-      role: 'system',
-      content: `You are an expert task analysis assistant. Evaluate if the given task title and description provide enough information to generate specific, actionable subtasks with appropriate proficiency-aware progression.
-
-Return a JSON object with:
-- isSufficient: boolean (true if the input is detailed enough for smart subtask generation)
-- reasons: string[] (list of specific issues if insufficient)
-
-Consider insufficient if:
-- Title is too vague (e.g., "Learn English", "Study math", "Work on project")
-- Missing specific goals, outcomes, or target proficiency level
-- No context about current level, experience, or starting point
-- Too short or generic without actionable direction
-- Missing deadlines or timeframes for learning/skill development tasks
-- No mention of specific skills, topics, or areas to focus on
-- Lacks clarity on what "completion" or "success" looks like
-
-Consider sufficient if:
-- Clear, specific goal with measurable outcome
-- Adequate context about scope and requirements
-- Sufficient detail to understand the task complexity
-- Clear enough to generate meaningful subtasks
-
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or extra text.`
-    },
-    {
-      role: 'user',
-      content: `Task Title: "${title}"
-Description: "${description || 'No description provided'}"
-
-Evaluate this task input and return the assessment as JSON.`
-    }
-  ];
-
-  try {
-    const response = await makeAIRequest(messages);
-    const parsed = parseAIResponse(response);
+/**
+ * @deprecated SECURITY RISK: Direct LLM API calls expose API keys in frontend
+ * 
+ * 🚨 MIGRATION REQUIRED:
+ * Replace with: generateUnifiedLearningPlan() from utils/api.ts
+ * 
+ * Example:
+ * // ❌ Old (unsafe)
+ * const quality = await evaluateInputQuality(title, description);
+ * 
+ * // ✅ New (secure)
+ * const result = await generateUnifiedLearningPlan({ title, description });
+ * 
+ * This function will be removed in the next version.
+ */
+export async function evaluateInputQuality(
+  title: string,
+  description: string,
+  language: "en" | "zh" = "zh"
+): Promise<{
+  isSufficient: boolean;
+  reasons?: string[];
+}> {
+  console.error("🚨 安全警告：evaluateInputQuality() 已棄用！請使用 evaluateInputQualitySafely()");
+  console.error("💡 遷移指南：import { evaluateInputQualitySafely } from '@/utils/api'");
+  
+  // Minimal fallback to prevent app crashes
     return {
-      isSufficient: parsed.isSufficient || false,
-      reasons: parsed.reasons || []
-    };
-  } catch (error) {
-    console.error('Failed to evaluate input quality:', error);
-    return {
-      isSufficient: true, // Default to sufficient to avoid blocking users
-      reasons: []
-    };
-  }
+    isSufficient: title.length > 5 && description.length > 10,
+    reasons: title.length <= 5 || description.length <= 10 
+      ? ["Please provide more detailed information for better AI assistance"]
+      : []
+  };
 }
 
+/**
+ * @deprecated SECURITY RISK: Direct LLM API calls expose API keys in frontend
+ * Use getDynamicQuestions() from utils/api.ts instead.
+ * This function will be removed in the next version.
+ */
 export async function analyzeTaskForClarification(title: string, description: string): Promise<TaskAnalysis> {
-  const messages: CoreMessage[] = [
-    {
-      role: 'system',
-      content: `You are an AI task categorization expert that automatically identifies task types and generates personalized clarifying questions with enhanced proficiency assessment. Based on the task title and description, automatically categorize the task and generate specific questions to understand the user's goals, current proficiency level, and target outcomes.
-
-AUTOMATIC TASK TYPE DETECTION:
-
-1. EXAM PREPARATION:
-   - Keywords: exam, test, quiz, certification, assessment, midterm, final, SAT, GRE, GMAT, AP, IELTS, TOEFL, board exam, entrance test, licensing exam
-   - Phrases: "prepare for", "study for exam", "pass the test", "get certified", "exam prep"
-   - Time-bound with specific exam dates
-   - Focus on scoring, passing, or achieving specific grades
-
-2. SKILL LEARNING:
-   - Keywords: learn, master, understand, develop skills, improve at, get better at
-   - Phrases: "learn to code", "master photography", "understand concepts", "develop expertise"
-   - Focus on long-term skill development, understanding concepts
-   - Building competency in a domain or technology
-
-3. PROJECT COMPLETION:
-   - Keywords: build, create, develop, design, implement, complete, finish, deliver
-   - Phrases: "build an app", "create a website", "design a system", "complete the project"
-   - Focus on delivering specific outputs or products
-   - Has clear deliverables and milestones
-
-4. HABIT BUILDING:
-   - Keywords: daily, weekly, routine, habit, practice, maintain, consistent, regular
-   - Phrases: "exercise daily", "read every day", "practice meditation", "maintain a routine"
-   - Focus on consistency and repetition over time
-   - Building sustainable behaviors
-
-5. CHALLENGE:
-   - Keywords: challenge, competition, contest, achieve, accomplish, goal, target
-   - Phrases: "30-day challenge", "fitness challenge", "coding challenge", "personal goal"
-   - Time-bound with specific achievement targets
-   - Focus on pushing limits or achieving specific metrics
-
-6. GENERAL:
-   - Everything else that doesn't fit the above categories
-   - Work tasks, meetings, administrative tasks, one-time activities
-
-ENHANCED PROFICIENCY LEVEL DETECTION:
-- complete_beginner: Never done this before, no prior knowledge or experience
-- beginner: Some basic exposure, limited experience, knows fundamentals
-- intermediate: Comfortable with basics, some practical experience, can work independently
-- advanced: Strong foundation, can handle complex tasks, teaches others
-- expert: Deep expertise, innovates in the field, recognized authority
-
-INTELLIGENT CLARIFICATION STRATEGY:
-Generate questions that will enable dynamic range calculation:
-
-1. CURRENT PROFICIENCY ASSESSMENT (Required):
-   - Specific experience level with the subject/skill
-   - Previous related experience or background
-   - Current capabilities and comfort level
-
-2. TARGET PROFICIENCY/GOAL CLARITY (Required):
-   - Specific desired outcome or proficiency level
-   - Success criteria and measurable goals
-   - Intended application or use case
-
-3. TIME AND CONSTRAINT ANALYSIS:
-   - Available time per day/week for this task
-   - Specific deadlines or time pressures
-   - Other commitments or constraints
-
-4. LEARNING PREFERENCES AND CONTEXT:
-   - Preferred learning style or approach
-   - Available resources and tools
-   - Previous successful learning experiences
-
-5. SCOPE AND PRIORITY CLARIFICATION:
-   - Most important aspects to focus on
-   - Areas that can be skipped if time is limited
-   - Specific topics or skills of highest priority
-
-Return a JSON object with:
-- needsClarification: boolean (true if questions would significantly improve subtask generation)
-- taskType: "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general"
-- currentProficiency: "complete_beginner" | "beginner" | "intermediate" | "advanced" | "expert" (best guess based on input)
-- targetProficiency: "complete_beginner" | "beginner" | "intermediate" | "advanced" | "expert" (inferred target)
-- proficiencyGap: "minimal" | "moderate" | "significant" | "major"
-- recommendedPace: "relaxed" | "moderate" | "intensive" | "accelerated" | "emergency"
-- questions: array of question objects with:
-  - id: string (unique identifier)
-  - question: string (the clarifying question)
-  - type: "text" | "choice" (input type)
-  - options: string[] (for choice type only)
-  - category: "goal" | "level" | "timeline" | "resources" | "context" | "proficiency"
-  - required: boolean
-
-IMPORTANT: Return ONLY the JSON object, no markdown formatting or extra text.`
-    },
-    {
-      role: 'user',
-      content: `Task Title: "${title}"
-Description: "${description || 'No description provided'}"
-
-Analyze this task, automatically detect the task type and proficiency levels, and generate appropriate clarifying questions for dynamic range calculation. Return as JSON.`
-    }
-  ];
-
-  try {
-    const response = await makeAIRequest(messages);
-    const parsed = parseAIResponse(response);
+  console.warn('⚠️ DEPRECATED: analyzeTaskForClarification() exposes API keys. Use getDynamicQuestions() from utils/api.ts instead.');
+  console.warn('🔗 Migration guide: Replace with backend API calls for security.');
+  
+  // Minimal fallback to prevent app crashes
+  const detectedType = title.toLowerCase().includes('exam') || title.toLowerCase().includes('test') 
+    ? 'exam_preparation' 
+    : title.toLowerCase().includes('learn') || title.toLowerCase().includes('study')
+    ? 'skill_learning'
+    : 'general';
+    
     return {
-      needsClarification: parsed.needsClarification || false,
-      questions: parsed.questions || [],
-      taskType: parsed.taskType || "general",
-      currentProficiency: parsed.currentProficiency || "beginner",
-      targetProficiency: parsed.targetProficiency || "intermediate",
-      proficiencyGap: parsed.proficiencyGap || "moderate",
-      recommendedPace: parsed.recommendedPace || "moderate"
-    };
-  } catch (error) {
-    console.error('Failed to analyze task for clarification:', error);
-    return {
-      needsClarification: false,
+    needsClarification: description.length < 20,
       questions: [],
-      taskType: "general",
-      currentProficiency: "beginner",
-      targetProficiency: "intermediate",
-      proficiencyGap: "moderate",
-      recommendedPace: "moderate"
-    };
-  }
+    taskType: detectedType,
+    currentProficiency: 'beginner',
+    targetProficiency: 'intermediate'
+  };
 }
 
+/**
+ * Get task-type specific prompting instructions for LLM
+ * @param taskType - The type of task being generated
+ * @param language - Output language preference
+ * @returns Task-specific prompting instructions
+ */
+function getTaskTypeSpecificPrompt(taskType: string, language: "en" | "zh"): string {
+  const prompts = {
+    en: {
+      exam_preparation: `Focus on exam success strategies:
+- Diagnostic assessment and gap analysis
+- High-yield topic prioritization  
+- Timed practice and test-taking strategies
+- Performance analysis and improvement
+- Final review and confidence building`,
+      skill_learning: `Focus on comprehensive skill development:
+- Foundational knowledge building
+- Progressive skill practice
+- Real-world application projects
+- Mastery verification through challenges
+- Continuous improvement and refinement`,
+      project_completion: `Focus on project delivery:
+- Requirements analysis and planning
+- Iterative development and testing
+- Quality assurance and refinement
+- Documentation and presentation
+- Deployment and maintenance`,
+      habit_building: `Focus on sustainable behavior change:
+- Habit loop identification and design
+- Progressive difficulty and consistency
+- Environmental and social triggers
+- Progress tracking and adjustment
+- Long-term maintenance strategies`,
+      challenge: `Focus on goal achievement:
+- Clear milestone definition
+- Strategic approach development  
+- Skill gap identification and filling
+- Performance optimization
+- Success measurement and celebration`,
+      general: `Focus on comprehensive learning:
+- Structured knowledge acquisition
+- Practical skill development
+- Application and implementation
+- Reflection and improvement
+- Knowledge consolidation`
+    },
+    zh: {
+      exam_preparation: `專注於考試成功策略：
+- 診斷評估和差距分析
+- 高產值主題優先排序
+- 計時練習和應試策略
+- 表現分析和改進
+- 最終複習和信心建立`,
+      skill_learning: `專注於全面技能發展：
+- 基礎知識建構
+- 漸進式技能練習
+- 真實世界應用項目
+- 通過挑戰驗證熟練度
+- 持續改進和精煉`,
+      project_completion: `專注於項目交付：
+- 需求分析和規劃
+- 迭代開發和測試
+- 質量保證和精煉
+- 文檔和演示
+- 部署和維護`,
+      habit_building: `專注於可持續行為改變：
+- 習慣循環識別和設計
+- 漸進難度和一致性
+- 環境和社會觸發因素
+- 進度追蹤和調整
+- 長期維護策略`,
+      challenge: `專注於目標達成：
+- 明確里程碑定義
+- 策略方法開發
+- 技能差距識別和填補
+- 表現優化
+- 成功測量和慶祝`,
+      general: `專注於全面學習：
+- 結構化知識獲取
+- 實用技能發展
+- 應用和實施
+- 反思和改進
+- 知識鞏固`
+    }
+  } as const;
+  
+  type TaskTypeKey = keyof typeof prompts.en;
+  const taskKey = taskType as TaskTypeKey;
+  
+  return prompts[language][taskKey] || prompts[language].general;
+}
+
+/**
+ * Generate enhanced subtasks using LLM-powered intelligent analysis
+ * @param title - Task title
+ * @param description - Task description
+ * @param clarificationResponses - User's personalization responses
+ * @param dueDate - Task deadline
+ * @param taskType - Type of task for specialized prompting
+ * @param currentProficiency - User's current skill level
+ * @param targetProficiency - Target skill level to achieve
+ * @param language - Output language preference
+ * @returns Promise<EnhancedSubtask[]> - AI-generated subtasks with realistic durations and phases
+ */
 export async function generateEnhancedSubtasks(
   title: string, 
   description: string, 
@@ -578,18 +571,43 @@ export async function generateEnhancedSubtasks(
   dueDate?: string,
   taskType?: "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general",
   currentProficiency?: ProficiencyLevel,
-  targetProficiency?: ProficiencyLevel
+  targetProficiency?: ProficiencyLevel,
+  language?: "en" | "zh"
 ): Promise<EnhancedSubtask[]> {
-  let contextualInfo = `Task Goal: ${title}
-Description: ${description}`;
+  console.warn('⚠️ DEPRECATED: generateEnhancedSubtasks() exposes API keys. Use backend APIs instead.');
+  
+  // Get current language from params or default
+  const currentLanguage = language || "en";
+  
+  // Define language-specific prompts
+  const languagePrompts = {
+    en: {
+      systemPrompt: "You are an expert educational curriculum designer and learning strategist.",
+      taskGeneration: "Generate detailed subtasks in English",
+      phaseDescriptions: {
+        knowledge: "Knowledge Input - Research and foundational learning",
+        practice: "Practice - Hands-on exercises and skill building", 
+        application: "Application - Real-world implementation",
+        reflection: "Reflection - Self-assessment and review",
+        output: "Output - Final deliverables and presentation",
+        review: "Review - Spaced repetition and mastery verification"
+      }
+    },
+    zh: {
+      systemPrompt: "您是一位專業的教育課程設計師和學習策略專家。",
+      taskGeneration: "用繁體中文生成詳細的子任務",
+      phaseDescriptions: {
+        knowledge: "知識輸入 - 研究和基礎學習",
+        practice: "實作練習 - 動手練習和技能建構",
+        application: "實際應用 - 真實世界的實施",
+        reflection: "反思評估 - 自我評估和複習",
+        output: "成果產出 - 最終交付物和展示",
+        review: "複習鞏固 - 間隔重複和熟練度驗證"
+      }
+    }
+  };
 
-  if (clarificationResponses && Object.keys(clarificationResponses).length > 0) {
-    const additionalContext = Object.entries(clarificationResponses)
-      .map(([question, answer]) => `${question}: ${answer}`)
-      .join('\n');
-    
-    contextualInfo += `\n\nAdditional Context:\n${additionalContext}`;
-  }
+  const prompts = languagePrompts[currentLanguage];
 
   // Calculate available time if due date is provided
   let timeContext = "";
@@ -600,83 +618,22 @@ Description: ${description}`;
     availableDays = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     
     if (availableDays > 0) {
-      timeContext = `\n\nTime Constraint: ${availableDays} days available until ${dueDate}. Plan accordingly with realistic daily time commitments and appropriate learning pace.`;
+      timeContext = `Available time: ${availableDays} days until ${dueDate}. Plan with realistic daily commitments.`;
     } else if (availableDays <= 0) {
-      timeContext = `\n\nURGENT Timeline: Due date is today or has passed. Focus on high-impact, time-efficient tasks that can be completed quickly.`;
+      timeContext = `URGENT: Due date is today or has passed. Focus on high-impact, time-efficient tasks.`;
     }
   }
 
   // Auto-detect task type if not explicitly provided
   if (!taskType) {
-    const titleLower = title.toLowerCase();
-    const descLower = description.toLowerCase();
-    
-    // Exam preparation detection
-    const examKeywords = ['exam', 'test', 'quiz', 'certification', 'assessment', 'midterm', 'final', 'sat', 'gre', 'gmat', 'ap', 'ielts', 'toefl'];
-    if (examKeywords.some(keyword => titleLower.includes(keyword) || descLower.includes(keyword))) {
-      taskType = "exam_preparation";
-    }
-    // Skill learning detection
-    else if (titleLower.includes('learn') || titleLower.includes('master') || titleLower.includes('understand') || 
-             descLower.includes('learn') || descLower.includes('skill') || descLower.includes('develop')) {
-      taskType = "skill_learning";
-    }
-    // Project completion detection
-    else if (titleLower.includes('build') || titleLower.includes('create') || titleLower.includes('develop') ||
-             titleLower.includes('design') || titleLower.includes('implement') || titleLower.includes('project')) {
-      taskType = "project_completion";
-    }
-    // Habit building detection
-    else if (titleLower.includes('daily') || titleLower.includes('habit') || titleLower.includes('routine') ||
-             titleLower.includes('practice') || titleLower.includes('every day')) {
-      taskType = "habit_building";
-    }
-    // Challenge detection
-    else if (titleLower.includes('challenge') || titleLower.includes('goal') || titleLower.includes('achieve')) {
-      taskType = "challenge";
-    }
-    else {
-      taskType = "general";
-    }
+    taskType = detectTaskType(title, description);
   }
 
   // Extract proficiency levels from clarification responses if not provided
   if (!currentProficiency || !targetProficiency) {
-    const proficiencyKeywords = {
-      complete_beginner: ['never', 'no experience', 'complete beginner', 'starting from scratch'],
-      beginner: ['beginner', 'basic', 'just started', 'learning basics'],
-      intermediate: ['intermediate', 'some experience', 'comfortable with basics'],
-      advanced: ['advanced', 'experienced', 'proficient', 'strong foundation'],
-      expert: ['expert', 'professional', 'master', 'teach others']
-    };
-
-    if (!currentProficiency) {
-      currentProficiency = "beginner"; // Default
-      if (clarificationResponses) {
-        for (const [level, keywords] of Object.entries(proficiencyKeywords)) {
-          if (Object.values(clarificationResponses).some(response => 
-            keywords.some(keyword => response.toLowerCase().includes(keyword))
-          )) {
-            currentProficiency = level as ProficiencyLevel;
-            break;
-          }
-        }
-      }
-    }
-
-    if (!targetProficiency) {
-      targetProficiency = "intermediate"; // Default
-      if (clarificationResponses) {
-        for (const [level, keywords] of Object.entries(proficiencyKeywords)) {
-          if (Object.values(clarificationResponses).some(response => 
-            keywords.some(keyword => response.toLowerCase().includes(keyword))
-          )) {
-            targetProficiency = level as ProficiencyLevel;
-            break;
-          }
-        }
-      }
-    }
+    const extracted = extractProficiencyFromResponses(clarificationResponses);
+    currentProficiency = currentProficiency || extracted.current;
+    targetProficiency = targetProficiency || extracted.target;
   }
 
   // Calculate advanced dynamic range based on proficiency gap and time constraints
@@ -689,361 +646,107 @@ Description: ${description}`;
     clarificationResponses?.constraints
   );
 
+  // Construct comprehensive LLM prompt with all context
   const messages: CoreMessage[] = [
     {
       role: 'system',
-      content: `You are an expert task breakdown specialist with deep knowledge of educational psychology, project management, and behavioral science. Generate a comprehensive, detailed action plan with subtasks following proven methodologies and ADVANCED DYNAMIC RANGE CALCULATION with SPACED REPETITION INTEGRATION.
+      content: `${prompts.systemPrompt}
 
-CRITICAL REQUIREMENTS:
+You are creating an intelligent, adaptive learning curriculum. Generate ${prompts.taskGeneration} following modern educational principles and methodologies.
 
-1. ADVANCED DYNAMIC RANGE CALCULATION - PROFICIENCY-BASED ADAPTATION:
+## Task Type: ${taskType.toUpperCase()}
+${getTaskTypeSpecificPrompt(taskType, currentLanguage)}
 
-Current Proficiency: ${currentProficiency}
-Target Proficiency: ${targetProficiency}
-Proficiency Gap: ${dynamicRange.proficiencyGap}
-Recommended Pace: ${dynamicRange.recommendedPace}
-Available Days: ${availableDays}
+## Proficiency Context:
+- Current Level: ${currentProficiency} 
+- Target Level: ${targetProficiency}
+- Proficiency Gap: ${dynamicRange.proficiencyGap}
+- Recommended Pace: ${dynamicRange.recommendedPace}
 
-SUBTASK COUNT RANGE (Dynamically Calculated):
-- Minimum: ${dynamicRange.subtaskCount.minimum} subtasks
-- Optimal: ${dynamicRange.subtaskCount.optimal} subtasks  
-- Maximum: ${dynamicRange.subtaskCount.maximum} subtasks
+## Time Context:
+${timeContext || 'No specific deadline provided - plan for comprehensive mastery'}
 
-DIFFICULTY DISTRIBUTION (Adaptive):
-- Easy: ${dynamicRange.difficultyDistribution.easy}% (${Math.round(dynamicRange.subtaskCount.optimal * dynamicRange.difficultyDistribution.easy / 100)} tasks)
-- Medium: ${dynamicRange.difficultyDistribution.medium}% (${Math.round(dynamicRange.subtaskCount.optimal * dynamicRange.difficultyDistribution.medium / 100)} tasks)
-- Hard: ${dynamicRange.difficultyDistribution.hard}% (${Math.round(dynamicRange.subtaskCount.optimal * dynamicRange.difficultyDistribution.hard / 100)} tasks)
+## Learning Phase Distribution (follow this allocation):
+${Object.entries(dynamicRange.phaseAdjustments).map(([phase, adjustment]) => 
+  `- ${prompts.phaseDescriptions[phase as keyof typeof prompts.phaseDescriptions]}: ${Math.round(adjustment)}%`
+).join('\n')}
 
-TIME ALLOCATION (Optimized):
-- Daily Hours: ${dynamicRange.timeAllocation.dailyHours}
-- Total Hours Needed: ${dynamicRange.timeAllocation.totalHours}
+## Priority Focus Areas:
+${dynamicRange.priorityFocus.map(focus => `- ${focus}`).join('\n')}
 
-PRIORITY FOCUS: ${dynamicRange.priorityFocus.join(', ')}
-${dynamicRange.skipTopics ? `SKIP TOPICS: ${dynamicRange.skipTopics.join(', ')}` : ''}
+${dynamicRange.skipTopics?.length ? `## Topics to Skip (due to time constraints):\n${dynamicRange.skipTopics.map(topic => `- ${topic}`).join('\n')}\n` : ''}
 
-SPACED REPETITION INTEGRATION:
-- Review Strategy Enabled: ${dynamicRange.reviewStrategy.enabled}
-- Initial Review Interval: ${dynamicRange.reviewStrategy.initialInterval} days
-- Review Percentage: ${dynamicRange.reviewStrategy.reviewPercentage}%
+## Duration Guidelines:
+- Total estimated time: ${dynamicRange.timeAllocation.totalHours} hours
+- Daily time commitment: ${dynamicRange.timeAllocation.dailyHours} hours
+- Generate ${dynamicRange.subtaskCount.optimal} subtasks (range: ${dynamicRange.subtaskCount.minimum}-${dynamicRange.subtaskCount.maximum})
 
-2. TASK TYPE ADAPTATION - Detected Type: ${taskType?.toUpperCase()}:
+## Difficulty Distribution:
+- Easy tasks: ${dynamicRange.difficultyDistribution.easy}%
+- Medium tasks: ${dynamicRange.difficultyDistribution.medium}%  
+- Hard tasks: ${dynamicRange.difficultyDistribution.hard}%
 
-   ${taskType === "exam_preparation" ? `
-   EXAM PREPARATION MODE - Focus on:
-   - Diagnostic assessments and baseline evaluation with spaced repetition
-   - Intensive practice problems with review scheduling
-   - Timed practice sessions and exam simulations
-   - Error analysis and weakness remediation with follow-up reviews
-   - Test-taking strategies and time management
-   - Review and memorization techniques with spaced intervals
-   - Mock exams and performance analysis
-   - Score improvement strategies with targeted reviews
-   ` : taskType === "skill_learning" ? `
-   SKILL LEARNING MODE - Focus on:
-   - Comprehensive knowledge building with spaced review
-   - Hands-on practice with progressive difficulty and review cycles
-   - Real-world projects and applications with reflection reviews
-   - Portfolio development and creation with iterative reviews
-   - Collaborative learning and peer interaction
-   - Creative problem-solving with spaced practice
-   - Professional skill development with mastery tracking
-   - Industry-standard practices with review integration
-   ` : taskType === "project_completion" ? `
-   PROJECT COMPLETION MODE - Focus on:
-   - Project planning and requirement analysis with review checkpoints
-   - Design and architecture phases with iterative reviews
-   - Implementation and development tasks with code reviews
-   - Testing and quality assurance with review cycles
-   - Integration and deployment with post-implementation reviews
-   - Documentation and handover with knowledge retention
-   - Stakeholder communication with feedback reviews
-   - Risk management with periodic assessments
-   ` : taskType === "habit_building" ? `
-   HABIT BUILDING MODE - Focus on:
-   - Habit stacking and trigger identification with review tracking
-   - Progressive difficulty and consistency with spaced reinforcement
-   - Tracking and measurement systems with review analytics
-   - Obstacle identification and solutions with review cycles
-   - Reward systems and motivation with spaced rewards
-   - Environmental design and cues with periodic optimization
-   - Accountability and support systems with review check-ins
-   - Long-term sustainability planning with spaced evaluations
-   ` : taskType === "challenge" ? `
-   CHALLENGE MODE - Focus on:
-   - Baseline measurement and goal setting with review milestones
-   - Progressive milestones and checkpoints with spaced assessments
-   - Performance tracking and metrics with review analytics
-   - Skill development and improvement with spaced practice
-   - Competition strategies and tactics with review optimization
-   - Recovery and optimization with spaced recovery reviews
-   - Final push and achievement with performance reviews
-   - Celebration and reflection with spaced reflection
-   ` : `
-   GENERAL MODE - Focus on:
-   - Task analysis and requirement gathering with review checkpoints
-   - Planning and preparation phases with spaced planning reviews
-   - Execution and implementation with progress reviews
-   - Quality control and review with spaced quality checks
-   - Completion and delivery with final reviews
-   - Documentation and follow-up with knowledge retention
-   `}
+${currentLanguage === 'zh' ? `
+## 繁體中文輸出要求：
+- 所有任務標題都使用繁體中文
+- 任務描述要詳細且使用繁體中文
+- 推薦資源要包含中文資源（如適用）
+- 技能名稱使用繁體中文
 
-3. ENHANCED 6-PHASE METHODOLOGY WITH SPACED REPETITION - Structure subtasks using these phases with dynamic adjustments:
+範例格式：
+{
+  "title": "完成數學基礎概念研究和學習",
+  "text": "深入研究代數基礎概念，包括方程式求解、函數圖形分析等核心主題。閱讀相關教材章節並完成基礎練習題。",
+  "aiEstimatedDuration": 90,
+  "difficulty": "medium",
+  "phase": "knowledge",
+  "skills": ["代數運算", "問題解決", "數學推理"],
+  "recommendedResources": ["代數教科書第1-3章", "線上練習平台", "教學影片"]
+}
+` : `
+## English Output Requirements:
+- All task titles in English
+- Detailed descriptions in English  
+- Recommended resources in English
+- Skill names in English
 
-   Phase 1: KNOWLEDGE INPUT (${20 + dynamicRange.phaseAdjustments.knowledge}% of tasks)
-   - START WITH PROFICIENCY-APPROPRIATE DIAGNOSTIC ASSESSMENT
-   - Research and information gathering from authoritative sources
-   - Foundational concept understanding and theoretical framework
-   - Resource identification, setup, and environment preparation
-   - Core terminology and vocabulary mastery
-   - Prerequisite knowledge verification and reinforcement
-   
-   Phase 2: PRACTICE/HANDS-ON EXERCISES (${40 + dynamicRange.phaseAdjustments.practice}% of tasks)
-   ${taskType === "exam_preparation" ? `
-   - Diagnostic practice tests and baseline assessment
-   - Topic-specific practice problems with progressive difficulty
-   - Timed practice sessions for speed and accuracy
-   - Error pattern analysis and targeted remediation
-   - Weak area intensive drilling and repetition
-   - Formula memorization and quick recall practice
-   - Problem-solving strategy development and application
-   ` : taskType === "habit_building" ? `
-   - Initial habit implementation and trigger setup
-   - Daily/weekly practice sessions with tracking
-   - Progressive difficulty and consistency building
-   - Obstacle identification and solution development
-   - Environmental modification and cue placement
-   - Accountability system establishment
-   ` : `
-   - Guided practice exercises with progressive difficulty (easy → medium → hard)
-   - Skill-building activities, drills, and repetitive practice
-   - Interactive learning and hands-on experimentation
-   - Problem-solving practice with immediate feedback
-   - Technique refinement and muscle memory development
-   - Error analysis and correction exercises
-   - Timed practice sessions for skill automation
-   `}
-   
-   Phase 3: REAL-WORLD APPLICATION (${25 + dynamicRange.phaseAdjustments.application}% of tasks)
-   ${taskType === "exam_preparation" ? `
-   - Full-length practice exams under timed conditions
-   - Exam strategy development and optimization
-   - Time management technique practice
-   - Stress management and test anxiety reduction
-   - Review of past exam papers and question patterns
-   - Final intensive review and cramming strategies
-   ` : taskType === "project_completion" ? `
-   - Core project implementation and development
-   - Integration testing and system validation
-   - User testing and feedback incorporation
-   - Performance optimization and refinement
-   - Documentation and deployment preparation
-   ` : taskType === "habit_building" ? `
-   - Habit integration into daily routine
-   - Real-world application and adaptation
-   - Social integration and accountability
-   - Long-term sustainability planning
-   ` : `
-   - Project-based learning with authentic scenarios
-   - Practical implementation of learned concepts
-   - Creative application and innovation challenges
-   - Integration with existing knowledge and skills
-   - Collaborative projects and peer learning
-   - Industry-standard practice and professional scenarios
-   `}
-   
-   Phase 4: REFLECTION AND REVIEW (${10 + dynamicRange.phaseAdjustments.reflection}% of tasks)
-   ${taskType === "exam_preparation" ? `
-   - Performance analysis and score improvement strategies
-   - Mistake pattern identification and correction
-   - Final review using spaced repetition principles
-   - Confidence building and mental preparation
-   - Last-minute review and summary creation
-   ` : `
-   - Self-assessment and progress evaluation
-   - Knowledge consolidation and synthesis
-   - Spaced repetition based on forgetting curve principles
-   - Peer feedback, discussion, and knowledge sharing
-   - Metacognitive reflection on learning process
-   - Weakness identification and targeted improvement
-   `}
-   
-   Phase 5: OUTPUT AND PRESENTATION (${5 + dynamicRange.phaseAdjustments.output}% of tasks)
-   ${taskType === "exam_preparation" ? `
-   - FINAL EXAM SIMULATION with complete exam conditions
-   - Post-exam analysis and performance evaluation
-   - Score prediction and readiness assessment
-   ` : taskType === "skill_learning" ? `
-   - COMPREHENSIVE PROJECT CREATION or PORTFOLIO DEVELOPMENT
-   - Professional presentation and knowledge demonstration
-   - Teaching others or presenting knowledge to demonstrate mastery
-   ` : taskType === "project_completion" ? `
-   - FINAL PROJECT DELIVERY and stakeholder presentation
-   - Documentation completion and handover
-   - Project retrospective and lessons learned
-   ` : taskType === "habit_building" ? `
-   - HABIT MASTERY DEMONSTRATION and tracking review
-   - Long-term maintenance plan creation
-   - Success celebration and reflection
-   ` : taskType === "challenge" ? `
-   - FINAL CHALLENGE ATTEMPT and performance measurement
-   - Achievement documentation and celebration
-   - Reflection and future goal setting
-   ` : `
-   - FINAL DELIVERABLE COMPLETION and presentation
-   - Knowledge sharing with community or professional network
-   - Documentation and process improvement
-   `}
+Example format:
+{
+  "title": "Complete Mathematics Fundamentals Research and Learning",
+  "text": "Research algebraic fundamentals including equation solving, function analysis, and core mathematical concepts. Read relevant textbook chapters and complete basic practice exercises.",
+  "aiEstimatedDuration": 90,
+  "difficulty": "medium", 
+  "phase": "knowledge",
+  "skills": ["algebraic operations", "problem solving", "mathematical reasoning"],
+  "recommendedResources": ["Algebra textbook chapters 1-3", "Online practice platform", "Educational videos"]
+}
+`}
 
-   Phase 6: SPACED REPETITION REVIEW (${dynamicRange.phaseAdjustments.review}% of tasks - NEW)
-   - Scheduled review sessions for completed subtasks
-   - Active recall exercises for key concepts
-   - Spaced practice of critical skills
-   - Long-term retention verification
-   - Mastery level assessment and adjustment
-
-4. PROFICIENCY-AWARE DIFFICULTY AND TIME DISTRIBUTION:
-   - Easy tasks (${dynamicRange.difficultyDistribution.easy}%): 15-90 minutes - Setup, basic research, simple exercises, quick reviews
-   - Medium tasks (${dynamicRange.difficultyDistribution.medium}%): 30-240 minutes - Practice sessions, analysis, moderate projects, skill application
-   - Hard tasks (${dynamicRange.difficultyDistribution.hard}%): 60-480 minutes - Complex creation, advanced problem-solving, comprehensive projects, mastery challenges
-
-5. PROFICIENCY-APPROPRIATE TASK COMPLEXITY:
-   Current Level (${currentProficiency}) → Target Level (${targetProficiency}):
-   ${currentProficiency === "complete_beginner" ? `
-   - Start with absolute basics and foundational concepts
-   - Include extensive setup and orientation tasks
-   - Focus on building confidence and basic vocabulary
-   - Provide step-by-step guidance for every task
-   - Include frequent review and reinforcement
-   ` : currentProficiency === "beginner" ? `
-   - Build on basic knowledge with structured practice
-   - Include guided exercises with clear instructions
-   - Focus on skill building and confidence development
-   - Gradually introduce intermediate concepts
-   - Include spaced review of fundamentals
-   ` : currentProficiency === "intermediate" ? `
-   - Challenge with complex problems and real-world scenarios
-   - Include independent research and problem-solving
-   - Focus on advanced techniques and optimization
-   - Prepare for professional-level work
-   - Include mastery-level review cycles
-   ` : currentProficiency === "advanced" ? `
-   - Focus on mastery and expertise development
-   - Include teaching and mentoring opportunities
-   - Challenge with cutting-edge techniques and innovation
-   - Prepare for leadership and expert-level contributions
-   - Include peer review and knowledge sharing
-   ` : `
-   - Focus on innovation and thought leadership
-   - Include research and development opportunities
-   - Challenge with unsolved problems and new frontiers
-   - Prepare for industry-leading contributions
-   - Include expert-level review and validation
-   `}
-
-6. ENHANCED SUBTASK STRUCTURE WITH SPACED REPETITION:
-   Each subtask must include:
-   - title: string (goal-focused, specific title with clear action verb)
-   - text: string (detailed task description with specific topics, chapters, problem types, or exact activities)
-   - recommendedResources: string[] (specific, high-quality, publicly accessible resources)
-   - aiEstimatedDuration: number (realistic minutes based on complexity and proficiency level)
-   - difficulty: "easy" | "medium" | "hard" (following the calculated distribution)
+Return ONLY a valid JSON array of subtask objects with these exact fields:
+- title: string (specific, actionable title)
+- text: string (detailed description with specific learning objectives)
+- aiEstimatedDuration: number (realistic minutes based on difficulty and proficiency gap)
+- difficulty: "easy" | "medium" | "hard" (follow distribution guidelines)
+- phase: "${currentLanguage === 'zh' ? 'knowledge" | "practice" | "application" | "reflection" | "output" | "review' : 'knowledge" | "practice" | "application" | "reflection" | "output" | "review'}"
    - skills: string[] (specific skills developed)
-   - prerequisites: string[] (other subtasks that should be completed first)
-   - phase: string ("knowledge", "practice", "application", "reflection", "output", "review")
-   - proficiencyLevel: string (required proficiency level for this subtask)
-   - targetProficiency: string (proficiency level this subtask helps achieve)
-   - learningPace: string (${dynamicRange.recommendedPace})
-
-7. TIME-AWARE AND PACE-AWARE SCHEDULING:
-   ${dynamicRange.recommendedPace === "emergency" ? `
-   EMERGENCY PACE (${availableDays} days): Ultra-focused, high-impact tasks only:
-   - Skip all non-essential topics and advanced concepts
-   - Focus exclusively on core requirements and immediate needs
-   - Combine related tasks where possible
-   - Emphasize rapid skill acquisition over deep understanding
-   - Include only critical practice and essential validation
-   - Minimal review cycles, focus on immediate application
-   ` : dynamicRange.recommendedPace === "accelerated" ? `
-   ACCELERATED PACE (${availableDays} days): Fast-track approach:
-   - Prioritize high-impact, time-efficient tasks
-   - Focus on core concepts and essential skills only
-   - Reduce practice time but maintain quality
-   - Combine related tasks where possible
-   - Emphasize practical application over theoretical depth
-   - Include rapid assessment and focused review
-   - Limited spaced repetition, focus on immediate retention
-   ` : dynamicRange.recommendedPace === "intensive" ? `
-   INTENSIVE PACE (${availableDays} days): Focused and efficient approach:
-   - Include comprehensive knowledge building
-   - Adequate practice time with progressive difficulty
-   - Focus on practical application
-   - Include some reflection and review
-   - Create achievable daily goals (${dynamicRange.timeAllocation.dailyHours} hours per day)
-   - Implement basic spaced repetition for key concepts
-   ` : dynamicRange.recommendedPace === "moderate" ? `
-   MODERATE PACE (${availableDays} days): Balanced approach:
-   - Include comprehensive knowledge building
-   - Extensive practice time with progressive difficulty
-   - Focus on practical application and real-world projects
-   - Include thorough reflection and review
-   - Create sustainable daily goals (${dynamicRange.timeAllocation.dailyHours} hours per day)
-   - Implement full spaced repetition system
-   ` : `
-   RELAXED PACE (${availableDays} days): Comprehensive mastery approach:
-   - Deep theoretical understanding and extensive research
-   - Extensive practice and skill development
-   - Multiple real-world projects and applications
-   - Thorough reflection and spaced repetition
-   - Advanced topics and specialization
-   - Professional-level depth and expertise development
-   - Full spaced repetition with mastery tracking
-   `}
-
-Return a JSON array of subtask objects with:
-- id: string (unique identifier)
-- title: string (specific, goal-focused title with action verb)
-- text: string (detailed description specifying exact topics, chapters, problem types, or activities)
 - recommendedResources: string[] (specific, high-quality resources)
-- aiEstimatedDuration: number (realistic minutes based on complexity, proficiency level, and pace)
-- difficulty: "easy" | "medium" | "hard" (following calculated distribution)
-- order: number (sequence order within the learning progression)
-- completed: boolean (always false)
-- skills: string[] (specific skills developed/required)
-- prerequisites: string[] (other subtasks that should be completed first)
-- phase: string ("knowledge", "practice", "application", "reflection", "output", "review")
-- proficiencyLevel: string (required proficiency level for this subtask)
-- targetProficiency: string (proficiency level this subtask helps achieve)
-- learningPace: string (${dynamicRange.recommendedPace})
-
-CRITICAL GENERATION RULES:
-- Generate ${dynamicRange.subtaskCount.optimal} subtasks total with realistic distribution across the 6 phases (including review)
-- Each subtask must be HIGHLY SPECIFIC with concrete actions, exact topics, and measurable deliverables
-- Include specific textbook chapters, online course modules, YouTube playlists, and practice problem sets
-- Ensure LOGICAL PROGRESSION from current proficiency to target proficiency with clear prerequisites
-- Create realistic time estimates that reflect true complexity and current proficiency level
-- Make tasks challenging but achievable within the estimated timeframe and proficiency level
-- Include industry-standard practices and proficiency-appropriate depth
-- Vary difficulty levels appropriately across phases following the calculated distribution
-- Consider the available timeline and proficiency gap for intelligent task prioritization and pacing
-- Focus on priority topics: ${dynamicRange.priorityFocus.join(', ')}
-${dynamicRange.skipTopics ? `- Skip these topics due to time constraints: ${dynamicRange.skipTopics.join(', ')}` : ''}
-- Include spaced repetition tasks for knowledge retention and mastery verification
-
-IMPORTANT: Return ONLY the JSON array of subtasks, no markdown formatting or extra text.`
+- prerequisites?: string[] (other subtask titles that must be completed first)`
     },
     {
       role: 'user',
-      content: `${contextualInfo}${timeContext}
+      content: `Task Title: "${title}"
+Description: "${description || 'No description provided'}"
+${clarificationResponses && Object.keys(clarificationResponses).length > 0 
+  ? `\nPersonalization Context:\n${Object.entries(clarificationResponses)
+      .map(([question, answer]) => `${question}: ${answer}`)
+      .join('\n')}`
+  : ''}
 
-Generate a comprehensive, proficiency-aware action plan with detailed subtasks following the advanced dynamic range calculation and enhanced 6-phase methodology with spaced repetition integration for:
-- Task type: ${taskType}
-- Current proficiency: ${currentProficiency}
-- Target proficiency: ${targetProficiency}
-- Learning pace: ${dynamicRange.recommendedPace}
-- Available time: ${availableDays} days
+${currentLanguage === 'zh' 
+  ? `請根據上述任務用繁體中文生成詳細的學習子任務，遵循6階段學習方法論。確保所有內容都使用繁體中文。`
+  : `Generate detailed learning subtasks in English following the 6-phase learning methodology. Ensure all content is in English.`}
 
-Each subtask must include specific titles, detailed descriptions, and recommended resources. Focus on creating actionable tasks that will bridge the proficiency gap effectively within the time constraint while incorporating spaced repetition for long-term retention. Return as JSON array.`
+Return as JSON array only.`
     }
   ];
 
@@ -1053,36 +756,129 @@ Each subtask must include specific titles, detailed descriptions, and recommende
     
     if (Array.isArray(parsed)) {
       return parsed.map((subtask, index) => ({
-        id: `subtask_${Date.now()}_${index}`,
+        id: `llm_subtask_${Date.now()}_${index}`,
         title: subtask.title || `Task ${index + 1}`,
         text: subtask.text || `Subtask ${index + 1}`,
         recommendedResources: subtask.recommendedResources || [],
         aiEstimatedDuration: subtask.aiEstimatedDuration || 60,
         difficulty: (subtask.difficulty as TaskDifficulty) || 'medium',
-        order: subtask.order || index + 1,
+        order: index + 1,
         completed: false,
         skills: subtask.skills || [],
         prerequisites: subtask.prerequisites || [],
         phase: (subtask.phase as LearningPhase) || 'practice',
         taskType: taskType as "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general",
-        proficiencyLevel: subtask.proficiencyLevel || currentProficiency,
-        targetProficiency: subtask.targetProficiency || targetProficiency,
-        learningPace: subtask.learningPace || dynamicRange.recommendedPace,
+        proficiencyLevel: currentProficiency,
+        targetProficiency: targetProficiency,
+        learningPace: dynamicRange.recommendedPace,
         reviewStatus: "not_started" as ReviewStatus,
         spacedRepetition: dynamicRange.reviewStrategy.enabled ? initializeSpacedRepetition() : undefined,
         isReviewTask: subtask.phase === "review",
+        // 🔧 Enhanced tracking fields - 使用原始AI預估時長初始化
+        timeSpent: 0,
+        remainingTime: subtask.aiEstimatedDuration || 60,
+        totalDuration: subtask.aiEstimatedDuration || 60,
+        progressPercentage: 0,
+        sessionHistory: [],
+        canBeSplit: (subtask.aiEstimatedDuration || 60) > 60, // Can split if longer than 1 hour
+        minSessionDuration: 25,
+        maxSessionDuration: 120,
       }));
     }
     
     // Fallback: Generate comprehensive subtasks if AI fails
+    console.warn('LLM returned invalid format, falling back to template-based generation');
     return generateComprehensiveSubtasks(title, description, availableDays, taskType, currentProficiency, targetProficiency);
   } catch (error) {
-    console.error('Failed to generate enhanced subtasks:', error);
+    console.error('Failed to generate enhanced subtasks via LLM:', error);
     // Return comprehensive fallback subtasks instead of basic ones
     return generateComprehensiveSubtasks(title, description, availableDays, taskType, currentProficiency, targetProficiency);
   }
 }
 
+/**
+ * Auto-detect task type from title and description
+ * @param title - Task title
+ * @param description - Task description  
+ * @returns Detected task type
+ */
+function detectTaskType(title: string, description: string): "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general" {
+  const titleLower = title.toLowerCase();
+  const descLower = description.toLowerCase();
+  
+  // Exam preparation detection
+  const examKeywords = ['exam', 'test', 'quiz', 'certification', 'assessment', 'midterm', 'final', 'sat', 'gre', 'gmat', 'ap', 'ielts', 'toefl'];
+  if (examKeywords.some(keyword => titleLower.includes(keyword) || descLower.includes(keyword))) {
+    return "exam_preparation";
+  }
+  // Skill learning detection
+  else if (titleLower.includes('learn') || titleLower.includes('master') || titleLower.includes('understand') || 
+           descLower.includes('learn') || descLower.includes('skill') || descLower.includes('develop')) {
+    return "skill_learning";
+  }
+  // Project completion detection
+  else if (titleLower.includes('build') || titleLower.includes('create') || titleLower.includes('develop') ||
+           titleLower.includes('design') || titleLower.includes('implement') || titleLower.includes('project')) {
+    return "project_completion";
+  }
+  // Habit building detection
+  else if (titleLower.includes('daily') || titleLower.includes('habit') || titleLower.includes('routine') ||
+           titleLower.includes('practice') || titleLower.includes('every day')) {
+    return "habit_building";
+  }
+  // Challenge detection
+  else if (titleLower.includes('challenge') || titleLower.includes('goal') || titleLower.includes('achieve')) {
+    return "challenge";
+  }
+  else {
+    return "general";
+  }
+}
+
+/**
+ * Extract proficiency levels from clarification responses
+ * @param clarificationResponses - User's responses to personalization questions
+ * @returns Extracted proficiency levels
+ */
+function extractProficiencyFromResponses(clarificationResponses?: Record<string, string>): {
+  current: ProficiencyLevel;
+  target: ProficiencyLevel;
+} {
+  const proficiencyKeywords = {
+    complete_beginner: ['never', 'no experience', 'complete beginner', 'starting from scratch'],
+    beginner: ['beginner', 'basic', 'just started', 'learning basics'],
+    intermediate: ['intermediate', 'some experience', 'comfortable with basics'],
+    advanced: ['advanced', 'experienced', 'proficient', 'strong foundation'],
+    expert: ['expert', 'professional', 'master', 'teach others']
+  };
+
+  let currentProficiency: ProficiencyLevel = "beginner"; // Default
+  let targetProficiency: ProficiencyLevel = "intermediate"; // Default
+  
+  if (clarificationResponses) {
+    for (const [level, keywords] of Object.entries(proficiencyKeywords)) {
+      if (Object.values(clarificationResponses).some(response => 
+        keywords.some(keyword => response.toLowerCase().includes(keyword))
+      )) {
+        currentProficiency = level as ProficiencyLevel;
+        break;
+      }
+    }
+    
+    // Target is typically one level higher than current
+    const levels: ProficiencyLevel[] = ["complete_beginner", "beginner", "intermediate", "advanced", "expert"];
+    const currentIndex = levels.indexOf(currentProficiency);
+    targetProficiency = levels[Math.min(currentIndex + 1, levels.length - 1)];
+  }
+  
+  return { current: currentProficiency, target: targetProficiency };
+}
+
+/**
+ * DEPRECATED: Legacy rule-based subtask generation functions
+ * These functions are preserved for fallback purposes but should not be used for new features.
+ * They will be removed in a future version once LLM-based generation is fully stable.
+ */
 function generateComprehensiveSubtasks(
   title: string, 
   description: string, 
@@ -1091,6 +887,9 @@ function generateComprehensiveSubtasks(
   currentProficiency: ProficiencyLevel = "beginner",
   targetProficiency: ProficiencyLevel = "intermediate"
 ): EnhancedSubtask[] {
+  // DEPRECATED: This function uses hard-coded rules and should be replaced by LLM generation
+  console.warn('Using deprecated rule-based subtask generation as fallback');
+  
   const dynamicRange = calculateAdvancedDynamicRange(currentProficiency, targetProficiency, availableDays, taskType);
   const isUrgent = dynamicRange.recommendedPace === "emergency" || dynamicRange.recommendedPace === "accelerated";
   
@@ -1110,6 +909,10 @@ function generateComprehensiveSubtasks(
   }
 }
 
+/**
+ * DEPRECATED: Hard-coded exam preparation subtask generation
+ * @deprecated Use LLM-powered generateEnhancedSubtasks instead
+ */
 function generateExamPrepSubtasks(
   title: string, 
   description: string, 
@@ -2086,243 +1889,229 @@ function generateGeneralSubtasks(
   ];
 }
 
+/**
+ * Generate intelligent, personalized learning plan using LLM-powered analysis
+ * Replaces hard-coded action plan logic with adaptive, context-driven planning
+ * @param title - Task title
+ * @param description - Task description
+ * @param clarificationResponses - User's personalization responses
+ * @param dueDate - Optional deadline for time-aware planning
+ * @param currentProficiency - User's current skill level
+ * @param targetProficiency - Target skill level to achieve
+ * @param language - Output language preference
+ * @returns Promise<LearningPlan | null> - AI-generated personalized action plan
+ */
 export async function generateLearningPlan(
   title: string, 
   description: string, 
-  clarificationResponses?: Record<string, string>
+  clarificationResponses?: Record<string, string>,
+  dueDate?: string,
+  currentProficiency?: ProficiencyLevel,
+  targetProficiency?: ProficiencyLevel,
+  language: "en" | "zh" = "en"
 ): Promise<LearningPlan | null> {
-  let contextualInfo = `Learning Goal: ${title}
-Description: ${description}`;
-
-  if (clarificationResponses && Object.keys(clarificationResponses).length > 0) {
-    const learnerContext = Object.entries(clarificationResponses)
-      .map(([question, answer]) => `${question}: ${answer}`)
-      .join('\n');
+  console.warn('⚠️ DEPRECATED: generateLearningPlan() exposes API keys. Use backend APIs instead.');
+  
+  try {
+    // Auto-detect task type using enhanced detection
+    const taskType = detectTaskType(title, description);
     
-    contextualInfo += `\n\nLearner Context:\n${learnerContext}`;
-  }
+    // Extract proficiency levels if not provided
+    let proficiencyContext = { current: currentProficiency, target: targetProficiency };
+    if (!currentProficiency || !targetProficiency) {
+      const extracted = extractProficiencyFromResponses(clarificationResponses);
+      proficiencyContext.current = currentProficiency || extracted.current;
+      proficiencyContext.target = targetProficiency || extracted.target;
+    }
 
-  // Auto-detect task type
-  const titleLower = title.toLowerCase();
-  const descLower = description.toLowerCase();
-  
-  let taskType: "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general" = "general";
-  
-  // Exam preparation detection
-  const examKeywords = ['exam', 'test', 'quiz', 'certification', 'assessment', 'midterm', 'final', 'sat', 'gre', 'gmat', 'ap', 'ielts', 'toefl'];
-  if (examKeywords.some(keyword => titleLower.includes(keyword) || descLower.includes(keyword))) {
-    taskType = "exam_preparation";
-  }
-  // Skill learning detection
-  else if (titleLower.includes('learn') || titleLower.includes('master') || titleLower.includes('understand') || 
-           descLower.includes('learn') || descLower.includes('skill') || descLower.includes('develop')) {
-    taskType = "skill_learning";
-  }
-  // Project completion detection
-  else if (titleLower.includes('build') || titleLower.includes('create') || titleLower.includes('develop') ||
-           titleLower.includes('design') || titleLower.includes('implement') || titleLower.includes('project')) {
-    taskType = "project_completion";
-  }
-  // Habit building detection
-  else if (titleLower.includes('daily') || titleLower.includes('habit') || titleLower.includes('routine') ||
-           titleLower.includes('practice') || titleLower.includes('every day')) {
-    taskType = "habit_building";
-  }
-  // Challenge detection
-  else if (titleLower.includes('challenge') || titleLower.includes('goal') || titleLower.includes('achieve')) {
-    taskType = "challenge";
-  }
+    // Calculate time context and constraints
+    let timeContext = "";
+    let availableDays = 0;
+    if (dueDate) {
+      const today = new Date();
+      const targetDate = new Date(dueDate);
+      availableDays = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (availableDays > 0) {
+        timeContext = `Time available: ${availableDays} days until ${dueDate}`;
+      } else {
+        timeContext = `URGENT: Due date is today or has passed`;
+      }
+    }
+
+    // Calculate dynamic range for intelligent planning
+    const dynamicRange = calculateAdvancedDynamicRange(
+      proficiencyContext.current!,
+      proficiencyContext.target!,
+      availableDays,
+      taskType,
+      clarificationResponses?.goal,
+      clarificationResponses?.constraints
+    );
+
+    // Construct personalization context
+    const personalizationContext = clarificationResponses && Object.keys(clarificationResponses).length > 0
+      ? Object.entries(clarificationResponses)
+          .map(([question, answer]) => `${question}: ${answer}`)
+          .join('\n')
+      : 'No specific personalization context provided';
+
+    const systemPrompts = {
+      en: {
+        role: "You are an expert learning consultant and curriculum designer who creates highly personalized, effective learning experiences.",
+        instruction: "Create a comprehensive, intelligent learning plan",
+        focus: getTaskTypeSpecificPrompt(taskType, language)
+      },
+      zh: {
+        role: "您是一位專業的學習顧問和課程設計師，專門創建高度個人化、有效的學習體驗。",
+        instruction: "創建一個全面、智慧的學習計劃",
+        focus: getTaskTypeSpecificPrompt(taskType, language)
+      }
+    };
+
+    const prompts = systemPrompts[language];
 
   const messages: CoreMessage[] = [
     {
       role: 'system',
-      content: `You are an expert learning designer and curriculum specialist. Create a comprehensive, professional-level learning plan with structured subtasks following proven educational methodologies, proficiency-aware design, and spaced repetition integration.
+        content: `${prompts.role}
 
-Return a JSON object with:
-- achievableGoal: string (single, focused goal achievable within the specified timeframe - focus on depth over breadth)
-- recommendedTools: string[] (specific tools, platforms, software, resources)
-- checkpoints: string[] (measurable milestones to track progress and maintain motivation)
-- skillBreakdown: array of objects with:
-  - skill: string (specific skill name)
-  - currentLevel: "complete_beginner" | "beginner" | "intermediate" | "advanced" | "expert"
-  - targetLevel: "complete_beginner" | "beginner" | "intermediate" | "advanced" | "expert"
-- subtasks: array of enhanced subtask objects following the 6-phase learning methodology with spaced repetition
-- taskType: "${taskType}" (automatically detected)
-- currentProficiency: "complete_beginner" | "beginner" | "intermediate" | "advanced" | "expert"
-- targetProficiency: "complete_beginner" | "beginner" | "intermediate" | "advanced" | "expert"
-- learningPace: "relaxed" | "moderate" | "intensive" | "accelerated" | "emergency"
-- timeConstraint: "urgent" | "moderate" | "extended" | "none"
-- proficiencyGap: "minimal" | "moderate" | "significant" | "major"
-- reviewSchedule: object with:
-  - enabled: boolean (true for educational tasks)
-  - frequency: "daily" | "weekly" | "biweekly" | "monthly"
-  - reviewPercentage: number (percentage of completed subtasks to review)
+${prompts.instruction} that leverages all available context for maximum personalization and effectiveness.
 
-FOCUS ON ACHIEVABLE GOALS:
-Instead of generic short-term and medium-term goals, identify the MOST ACHIEVABLE and IMPACTFUL goal within the user's timeframe. Focus on depth over breadth and practical mastery.
+## Task Analysis:
+- Task Type: ${taskType.toUpperCase()}
+- ${prompts.focus}
 
-AUTOMATIC TASK TYPE DETECTION: ${taskType?.toUpperCase()}
-${taskType === "exam_preparation" ? `
-Focus on:
-- Diagnostic assessments and performance tracking with spaced review
-- Intensive practice problems and test simulations with review cycles
-- Time management and test-taking strategies with spaced practice
-- Error analysis and weakness remediation with follow-up reviews
-- Score improvement and exam readiness with retention verification
-` : taskType === "skill_learning" ? `
-Focus on:
-- Comprehensive knowledge building with spaced review integration
-- Hands-on practice and real-world application with review cycles
-- Project-based learning and portfolio development with iterative reviews
-- Creative problem-solving with spaced practice sessions
-- Professional skill development with mastery tracking and reviews
-` : taskType === "project_completion" ? `
-Focus on:
-- Project planning and requirement analysis with review checkpoints
-- Implementation and development phases with code/design reviews
-- Testing and quality assurance with review cycles
-- Integration and deployment with post-implementation reviews
-- Documentation and delivery with knowledge retention reviews
-` : taskType === "habit_building" ? `
-Focus on:
-- Habit design and trigger identification with review tracking
-- Consistency building with spaced reinforcement and reviews
-- Obstacle navigation with review-based optimization
-- Social accountability with review check-ins
-- Long-term sustainability with spaced evaluation reviews
-` : taskType === "challenge" ? `
-Focus on:
-- Challenge analysis and strategy with review milestones
-- Skill development and training with spaced practice reviews
-- Performance testing with review-based optimization
-- Challenge execution with performance reviews
-- Achievement documentation with spaced reflection reviews
+## Proficiency Assessment:
+- Current Level: ${proficiencyContext.current}
+- Target Level: ${proficiencyContext.target}
+- Proficiency Gap: ${dynamicRange.proficiencyGap}
+- Recommended Learning Pace: ${dynamicRange.recommendedPace}
+
+## Time & Priority Context:
+${timeContext || 'No specific deadline - focus on comprehensive mastery'}
+
+## Intelligent Adaptations:
+- Priority Focus Areas: ${dynamicRange.priorityFocus.join(', ')}
+- Total Learning Hours: ${dynamicRange.timeAllocation.totalHours}
+- Daily Time Commitment: ${dynamicRange.timeAllocation.dailyHours} hours
+- Optimal Subtask Count: ${dynamicRange.subtaskCount.optimal}
+${dynamicRange.skipTopics?.length ? `- Skip Topics (time constraints): ${dynamicRange.skipTopics.join(', ')}` : ''}
+
+## Phase Distribution (follow precisely):
+${Object.entries(dynamicRange.phaseAdjustments).map(([phase, percentage]) => 
+  `- ${phase.charAt(0).toUpperCase() + phase.slice(1)}: ${Math.round(percentage)}%`
+).join('\n')}
+
+## Difficulty Distribution:
+- Easy tasks: ${dynamicRange.difficultyDistribution.easy}%
+- Medium tasks: ${dynamicRange.difficultyDistribution.medium}%  
+- Hard tasks: ${dynamicRange.difficultyDistribution.hard}%
+
+${language === 'zh' ? `
+## 繁體中文輸出格式要求：
+返回包含以下欄位的JSON物件：
+- achievableGoal: string（可達成的具體目標）
+- recommendedTools: string[]（推薦工具和資源）
+- checkpoints: string[]（可測量的里程碑）
+- skillBreakdown: object[]（技能分解）
+- estimatedTimeToCompletion: number（預估完成時間，小時）
+- taskType: "${taskType}"
+- currentProficiency: "${proficiencyContext.current}"
+- targetProficiency: "${proficiencyContext.target}"
+- learningPace: "${dynamicRange.recommendedPace}"
+- timeConstraint: string
+- proficiencyGap: "${dynamicRange.proficiencyGap}"
+- reviewSchedule: object（複習排程設定）
+
+確保所有內容都使用繁體中文。
 ` : `
-Focus on:
-- Task analysis and planning with review checkpoints
-- Implementation and execution with progress reviews
-- Quality assurance with spaced quality checks
-- Completion and delivery with final reviews
-- Documentation with knowledge retention reviews
+## English Output Format Requirements:
+Return a JSON object with these fields:
+- achievableGoal: string (specific, achievable goal)
+- recommendedTools: string[] (specific tools and resources)
+- checkpoints: string[] (measurable milestones)
+- skillBreakdown: object[] (skill breakdown with current/target levels)
+- estimatedTimeToCompletion: number (estimated hours to completion)
+- taskType: "${taskType}"
+- currentProficiency: "${proficiencyContext.current}"
+- targetProficiency: "${proficiencyContext.target}"
+- learningPace: "${dynamicRange.recommendedPace}"
+- timeConstraint: string
+- proficiencyGap: "${dynamicRange.proficiencyGap}"
+- reviewSchedule: object (review schedule configuration)
+
+Ensure all content is in English.
 `}
 
-PROFICIENCY-AWARE SUBTASK GENERATION WITH SPACED REPETITION:
-Generate 15-40 detailed subtasks following this enhanced structure:
+## Critical Requirements:
+1. Create ONE focused, achievable goal (not multiple goals)
+2. Recommend 3-5 specific, high-quality tools/resources
+3. Define 3-7 measurable checkpoints for progress tracking
+4. Include realistic time estimates based on proficiency gap
+5. Adapt complexity and approach to the user's current level
+6. Integrate spaced repetition strategy for retention
+7. Account for available time and constraints
 
-PHASE 1: KNOWLEDGE INPUT (20% - 3-8 tasks)
-- START WITH PROFICIENCY-APPROPRIATE DIAGNOSTIC ASSESSMENT
-- Research and resource gathering
-- Foundational theory and concepts with spaced review integration
-- Tool setup and environment preparation
-
-PHASE 2: PRACTICE/HANDS-ON EXERCISES (40% - 6-16 tasks)
-- Guided practice with increasing complexity and review cycles
-- Skill-building exercises with spaced repetition
-- Interactive learning with feedback loops and reviews
-- Problem-solving with spaced practice sessions
-
-PHASE 3: REAL-WORLD APPLICATION (25% - 4-10 tasks)
-- Project-based learning with review milestones
-- Practical implementation with iterative reviews
-- Creative application with spaced practice
-- Integration with existing knowledge and review cycles
-
-PHASE 4: REFLECTION AND REVIEW (10% - 2-4 tasks)
-- Self-assessment with spaced evaluation
-- Knowledge consolidation with systematic review
-- Spaced repetition based on forgetting curve principles
-- Peer feedback and community engagement with reviews
-
-PHASE 5: OUTPUT AND PRESENTATION (5% - 1-2 tasks)
-- Portfolio creation with review cycles
-- Teaching others with spaced knowledge sharing
-- Professional presentation with review feedback
-- Certification with mastery verification
-
-PHASE 6: SPACED REPETITION REVIEW (Variable - 1-5 tasks)
-- Scheduled review sessions for completed subtasks
-- Active recall exercises for key concepts
-- Spaced practice of critical skills
-- Long-term retention verification and mastery tracking
-
-Each subtask must have:
-- id: string
-- title: string (specific, goal-focused title)
-- text: string (detailed description with specific topics, chapters, or activities)
-- recommendedResources: string[] (specific resources like textbook chapters, online courses, tools)
-- aiEstimatedDuration: number (realistic minutes: 30-600 based on complexity and proficiency)
-- difficulty: "easy" | "medium" | "hard"
-- order: number
-- completed: boolean (false)
-- skills: string[] (specific skills developed)
-- prerequisites: string[] (dependencies on other subtasks)
-- phase: string ("knowledge" | "practice" | "application" | "reflection" | "output" | "review")
-- proficiencyLevel: string (required proficiency level for this subtask)
-- targetProficiency: string (proficiency level this subtask helps achieve)
-- learningPace: string (recommended pace for this subtask)
-
-CRITICAL REQUIREMENTS:
-- Generate professional-depth subtasks with spaced repetition integration
-- Each subtask must be CONCRETE and SPECIFIC with clear deliverables
-- Include industry-standard practices and tools
-- Create logical progression from current to target proficiency
-- Ensure realistic time estimates based on complexity and proficiency level
-- Include specific resources, tools, and methodologies
-- Adapt difficulty and complexity to proficiency gap
-- Integrate spaced repetition for long-term retention
-
-IMPORTANT: Ensure subtasks have VARIED difficulties, realistic durations, follow the 6-phase learning methodology with spaced repetition, and are proficiency-aware. Return ONLY the JSON object, no markdown formatting or extra text.`
+IMPORTANT: Return ONLY the JSON object, no markdown formatting or extra text.`
     },
     {
       role: 'user',
-      content: `${contextualInfo}
+        content: `Task: "${title}"
+Description: "${description}"
 
-Create a comprehensive, professional learning plan with detailed subtasks following the enhanced 6-phase methodology with spaced repetition integration for task type: ${taskType}. Focus on the most achievable goal within the timeframe and include proficiency-aware progression with long-term retention strategies. Return as JSON.`
-    }
-  ];
+## Personalization Context:
+${personalizationContext}
 
-  try {
+${language === 'zh' 
+  ? `請基於上述背景資訊創建一個高度個人化的學習計劃。重點關注可實現的目標和實際的進度安排。`
+  : `Create a highly personalized learning plan based on the above context. Focus on achievable goals and practical progression.`}
+
+Return as JSON object only.`
+      }
+    ];
+
     const response = await makeAIRequest(messages);
     const parsed = parseAIResponse(response);
     
-    // Ensure subtasks have proper structure with spaced repetition
-    if (parsed.subtasks && Array.isArray(parsed.subtasks)) {
-      parsed.subtasks = parsed.subtasks.map((subtask: any, index: number) => ({
-        id: `subtask_${Date.now()}_${index}`,
-        title: subtask.title || `Learning task ${index + 1}`,
-        text: subtask.text || `Learning task ${index + 1}`,
-        recommendedResources: subtask.recommendedResources || [],
-        aiEstimatedDuration: subtask.aiEstimatedDuration || 60,
-        difficulty: (subtask.difficulty as TaskDifficulty) || 'medium',
-        order: subtask.order || index + 1,
-        completed: false,
-        skills: subtask.skills || [],
-        prerequisites: subtask.prerequisites || [],
-        phase: (subtask.phase as LearningPhase) || 'practice',
-        taskType: taskType as "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general",
-        proficiencyLevel: subtask.proficiencyLevel || "beginner",
-        targetProficiency: subtask.targetProficiency || "intermediate",
-        learningPace: subtask.learningPace || "moderate",
-        reviewStatus: "not_started" as ReviewStatus,
-        spacedRepetition: (taskType === "skill_learning" || taskType === "exam_preparation") ? initializeSpacedRepetition() : undefined,
-        isReviewTask: subtask.phase === "review",
-      }));
+    // Enhance the parsed plan with additional intelligent fields
+    if (parsed) {
+      // Set intelligent defaults based on analysis
+      parsed.taskType = taskType;
+      parsed.currentProficiency = proficiencyContext.current;
+      parsed.targetProficiency = proficiencyContext.target;
+      parsed.learningPace = dynamicRange.recommendedPace;
+      parsed.proficiencyGap = dynamicRange.proficiencyGap;
+      
+      // Set time constraint level
+      if (availableDays <= 7) {
+        parsed.timeConstraint = "urgent";
+      } else if (availableDays <= 30) {
+        parsed.timeConstraint = "moderate";
+      } else if (availableDays <= 90) {
+        parsed.timeConstraint = "extended";
     } else {
-      // Generate comprehensive fallback subtasks if AI doesn't provide them
-      parsed.subtasks = generateComprehensiveSubtasks(title, description, 0, taskType);
+        parsed.timeConstraint = "none";
     }
     
-    // Set task type and review schedule based on detection
-    parsed.taskType = taskType;
+      // Configure intelligent review schedule
     parsed.reviewSchedule = {
       enabled: taskType === "skill_learning" || taskType === "exam_preparation",
-      frequency: "weekly",
-      reviewPercentage: 20
-    };
+        frequency: dynamicRange.reviewStrategy.enabled ? 
+          (availableDays <= 14 ? "daily" : availableDays <= 60 ? "weekly" : "biweekly") : "weekly",
+        reviewPercentage: dynamicRange.reviewStrategy.reviewPercentage || 20
+      };
+      
+      // Add phase distribution for reference
+      parsed.phaseDistribution = dynamicRange.phaseAdjustments;
+      
+      // Ensure estimated time is realistic
+      parsed.estimatedTimeToCompletion = parsed.estimatedTimeToCompletion || dynamicRange.timeAllocation.totalHours;
+    }
     
     return parsed;
   } catch (error) {
-    console.error('Failed to generate learning plan:', error);
+    console.error('Failed to generate intelligent learning plan:', error);
     return null;
   }
 }
@@ -2534,4 +2323,844 @@ ${qa.answer}
 *Generated by FocusFlow Learning Assistant*`;
 
   return markdown;
+}
+
+// Add translation functionality for existing tasks
+export async function translateTaskContent(
+  tasks: Task[],
+  targetLanguage: "en" | "zh"
+): Promise<Task[]> {
+  const languagePrompts = {
+    en: {
+      systemPrompt: "You are a professional translator specializing in educational content translation. Translate the following task content to English while preserving the original meaning, structure, and educational value.",
+      instruction: "Translate all task content to English"
+    },
+    zh: {
+      systemPrompt: "您是一位專業的教育內容翻譯專家。請將以下任務內容翻譯成繁體中文，同時保持原文的含義、結構和教育價值。",
+      instruction: "將所有任務內容翻譯成繁體中文"
+    }
+  };
+
+  const prompts = languagePrompts[targetLanguage];
+
+  const translatedTasks: Task[] = [];
+
+  for (const task of tasks) {
+    try {
+      // Skip translation if no subtasks or already in target language
+      if (!task.subtasks || task.subtasks.length === 0) {
+        translatedTasks.push(task);
+        continue;
+      }
+
+      // Prepare content for translation
+      const contentToTranslate = {
+        title: task.title,
+        description: task.description,
+        subtasks: task.subtasks.map(subtask => ({
+          id: subtask.id,
+          title: subtask.title,
+          text: subtask.text,
+          skills: subtask.skills,
+          recommendedResources: subtask.recommendedResources,
+          phase: subtask.phase
+        }))
+      };
+
+      const messages: CoreMessage[] = [
+        {
+          role: 'system',
+          content: `${prompts.systemPrompt}
+
+${prompts.instruction}. Return the translated content as JSON with the exact same structure as the input.
+
+CRITICAL REQUIREMENTS:
+- Maintain the exact same JSON structure
+- Translate titles, descriptions, and text content
+- Translate skill names appropriately
+- Translate phase names to: ${targetLanguage === 'zh' ? '"知識", "練習", "應用", "反思", "產出", "複習"' : '"knowledge", "practice", "application", "reflection", "output", "review"'}
+- Keep all IDs unchanged
+- Preserve educational terminology and accuracy
+- Keep recommended resources (translate descriptions if needed)
+
+Return ONLY the JSON object, no markdown formatting.`
+        },
+        {
+          role: 'user',
+          content: `${targetLanguage === 'zh' 
+            ? `請將以下任務內容翻譯成繁體中文：\n\n${JSON.stringify(contentToTranslate, null, 2)}`
+            : `Please translate the following task content to English:\n\n${JSON.stringify(contentToTranslate, null, 2)}`}`
+        }
+      ];
+
+      const response = await makeAIRequest(messages);
+      const translatedContent = parseAIResponse(response);
+
+      // Update the task with translated content
+      const translatedTask: Task = {
+        ...task,
+        title: translatedContent.title || task.title,
+        description: translatedContent.description || task.description,
+        subtasks: task.subtasks.map((originalSubtask, index) => {
+          const translatedSubtask = translatedContent.subtasks?.[index];
+          return {
+            ...originalSubtask,
+            title: translatedSubtask?.title || originalSubtask.title,
+            text: translatedSubtask?.text || originalSubtask.text,
+            skills: translatedSubtask?.skills || originalSubtask.skills,
+            recommendedResources: translatedSubtask?.recommendedResources || originalSubtask.recommendedResources,
+            phase: translatedSubtask?.phase || originalSubtask.phase
+          };
+        })
+      };
+
+      translatedTasks.push(translatedTask);
+    } catch (error) {
+      console.error(`Failed to translate task ${task.id}:`, error);
+      // Return original task if translation fails
+      translatedTasks.push(task);
+    }
+  }
+
+  return translatedTasks;
+}
+
+// Translate individual subtasks
+export async function translateSubtasks(
+  subtasks: EnhancedSubtask[],
+  targetLanguage: "en" | "zh"
+): Promise<EnhancedSubtask[]> {
+  const languagePrompts = {
+    en: {
+      systemPrompt: "Translate the following subtask content to English while preserving educational value and structure.",
+      instruction: "Translate to English"
+    },
+    zh: {
+      systemPrompt: "將以下子任務內容翻譯成繁體中文，同時保持教育價值和結構。",
+      instruction: "翻譯成繁體中文"
+    }
+  };
+
+  const prompts = languagePrompts[targetLanguage];
+
+  try {
+    const contentToTranslate = subtasks.map(subtask => ({
+      id: subtask.id,
+      title: subtask.title,
+      text: subtask.text,
+      skills: subtask.skills,
+      recommendedResources: subtask.recommendedResources,
+      phase: subtask.phase
+    }));
+
+    const messages: CoreMessage[] = [
+      {
+        role: 'system',
+        content: `${prompts.systemPrompt}
+
+${prompts.instruction}. Return as JSON array with same structure.
+
+Translate:
+- titles and text content
+- skill names
+- phase names to: ${targetLanguage === 'zh' ? '"知識", "練習", "應用", "反思", "產出", "複習"' : '"knowledge", "practice", "application", "reflection", "output", "review"'}
+
+Keep IDs unchanged. Return ONLY JSON array.`
+      },
+      {
+        role: 'user',
+        content: JSON.stringify(contentToTranslate, null, 2)
+      }
+    ];
+
+    const response = await makeAIRequest(messages);
+    const translatedContent = parseAIResponse(response);
+
+    return subtasks.map((originalSubtask, index) => {
+      const translated = translatedContent[index];
+      return {
+        ...originalSubtask,
+        title: translated?.title || originalSubtask.title,
+        text: translated?.text || originalSubtask.text,
+        skills: translated?.skills || originalSubtask.skills,
+        recommendedResources: translated?.recommendedResources || originalSubtask.recommendedResources,
+        phase: translated?.phase || originalSubtask.phase
+      };
+    });
+  } catch (error) {
+    console.error('Failed to translate subtasks:', error);
+    return subtasks;
+  }
+}
+
+// 商業級任務生成相關接口
+export interface CommercialSubtask extends EnhancedSubtask {
+  // 階層結構
+  level: number; // 1=主要階段, 2=詳細任務, 3=操作步驟
+  parentId?: string;
+  childrenIds: string[];
+  
+  // 商業化增強字段
+  deliverables: string[]; // 明確的交付物
+  acceptanceCriteria: string[]; // 驗收標準
+  dependencies: string[]; // 依賴的其他子任務ID
+  risks: string[]; // 潛在風險
+  mitigation: string[]; // 風險緩解措施
+  requiredTools: string[]; // 必需的工具/軟件
+  resourceLinks: string[]; // 具體的資源鏈接
+  
+  // 時間分配建議
+  suggestedTimeSlots: string[]; // 建議的時間段類型 (morning/afternoon/evening)
+  optimalDuration: number; // 最佳學習時長
+  breakFrequency: number; // 建議的休息頻率（分鐘）
+  
+  // 商業指標
+  businessValue: number; // 1-10，業務價值評分
+  learningCurve: "steep" | "moderate" | "gentle"; // 學習曲線
+  practicalApplication: string; // 實際應用場景
+}
+
+export interface TaskHierarchy {
+  phases: CommercialSubtask[]; // 第1層：主要階段
+  detailedTasks: CommercialSubtask[]; // 第2層：詳細任務
+  operationalSteps: CommercialSubtask[]; // 第3層：操作步驟
+}
+
+export interface SchedulingSuggestion {
+  subtaskId: string;
+  recommendedDate: string;
+  recommendedTimeSlot: TimeSlot;
+  reasoning: string;
+  alternativeSlots: Array<{
+    date: string;
+    timeSlot: TimeSlot;
+    preference: "optimal" | "good" | "acceptable";
+  }>;
+  warnings?: string[];
+}
+
+export interface TimeConstraintAnalysis {
+  totalAvailableHours: number;
+  weeklyAvailableHours: number;
+  dailyAverageHours: number;
+  availableDays: number;
+  urgencyLevel: "critical" | "high" | "moderate" | "relaxed";
+  feasibilityScore: number; // 0-1, 可行性評分
+  timeDistribution: {
+    morning: number;   // 早上可用小時數
+    afternoon: number; // 下午可用小時數
+    evening: number;   // 晚上可用小時數
+  };
+  recommendations: string[];
+  warnings: string[];
+}
+
+export interface CommercialTaskContext {
+  title: string;
+  description: string;
+  dueDate?: string;
+  availableTimeSlots: DayTimeSlots;
+  userProficiency: ProficiencyLevel;
+  targetProficiency: ProficiencyLevel;
+  focusAreas?: string[];
+  businessContext?: string;
+  successMetrics?: string[];
+  constraints?: string[];
+  language: "en" | "zh";
+}
+
+export interface CommercialGenerationResult {
+  hierarchy: TaskHierarchy;
+  schedulingSuggestions: SchedulingSuggestion[];
+  timeAnalysis: TimeConstraintAnalysis;
+  totalEstimatedHours: number;
+  feasibilityReport: string;
+  metadata: {
+    totalSubtasks: number;
+    estimatedTotalHours: number;
+    feasibilityAssessment: string;
+    timeConstraintWarnings: string[];
+    schedulingRecommendations: string[];
+  };
+}
+
+/**
+ * Generate contextual dynamic personalization questions using LLM analysis
+ * This replaces the static question approach with intelligent, task-specific inquiry
+ * @param title - Task title for context
+ * @param description - Task description for context analysis
+ * @param taskType - Detected or specified task type
+ * @param language - Output language preference
+ * @returns Promise<ClarifyingQuestion[]> - AI-generated personalized questions
+ */
+/**
+ * @deprecated Use backend API getDynamicQuestions() from utils/api.ts instead.
+ * This function will be removed in the next version.
+ */
+export async function generateDynamicPersonalizationQuestions(
+  title: string,
+  description: string,
+  taskType?: "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general",
+  language: "en" | "zh" = "en"
+): Promise<ClarifyingQuestion[]> {
+  try {
+    // Auto-detect task type if not provided
+    const detectedTaskType = taskType || detectTaskType(title, description);
+    
+    const systemPrompts = {
+      en: {
+        role: "You are an expert learning consultant who specializes in creating personalized educational experiences.",
+        instruction: "Generate 1 highly targeted personalization question",
+        format: "Return as JSON array"
+      },
+      zh: {
+        role: "您是一位專精於創建個人化教育體驗的專業學習顧問。",
+        instruction: "生成1個高度針對性的個人化問題",
+        format: "以JSON陣列格式返回"
+      }
+    };
+
+    const taskTypePrompts = {
+      en: {
+        exam_preparation: "Focus on exam strategy, timeline urgency, weakness identification, and study preferences.",
+        skill_learning: "Focus on learning style, current experience level, practical application goals, and time availability.",
+        project_completion: "Focus on technical requirements, team collaboration, complexity assessment, and delivery constraints.",
+        habit_building: "Focus on motivation, current routines, environmental factors, and consistency challenges.",
+        challenge: "Focus on personal motivation, previous attempts, support systems, and success metrics.",
+        general: "Focus on learning preferences, time constraints, specific goals, and current knowledge level."
+      },
+      zh: {
+        exam_preparation: "專注於考試策略、時間緊迫性、弱點識別和學習偏好。",
+        skill_learning: "專注於學習風格、當前經驗水平、實際應用目標和時間可用性。",
+        project_completion: "專注於技術要求、團隊協作、複雜性評估和交付限制。",
+        habit_building: "專注於動機、當前例行程序、環境因素和一致性挑戰。",
+        challenge: "專注於個人動機、先前嘗試、支持系統和成功指標。",
+        general: "專注於學習偏好、時間限制、具體目標和當前知識水平。"
+      }
+    };
+
+    const prompts = systemPrompts[language];
+    const taskPrompts = taskTypePrompts[language];
+
+    const messages: CoreMessage[] = [
+      {
+        role: 'system',
+        content: `${prompts.role}
+
+${prompts.instruction} that will most significantly improve the learning plan for this specific task.
+
+## Task Analysis Context:
+- Task Type: ${detectedTaskType.toUpperCase()}
+- Focus Areas: ${taskPrompts[detectedTaskType as keyof typeof taskPrompts]}
+
+## Question Generation Guidelines:
+1. Generate EXACTLY 1 question that addresses the most critical personalization factor
+2. Make the question specific to the task context and type
+3. Focus on information that will dramatically change the approach or priorities
+4. Avoid generic questions - be highly contextual and insightful
+
+## Question Types Available:
+- "choice": Multiple choice with specific options
+- "text": Open-ended text response
+- "scale": Numeric scale (1-5 or 1-10)
+
+${language === 'zh' ? `
+## 繁體中文輸出格式：
+返回格式必須是包含以下欄位的JSON陣列：
+{
+  "id": "question_1",
+  "question": "問題文本（繁體中文）",
+  "type": "choice|text|scale",
+  "options": ["選項1", "選項2", "選項3"], // 僅當type為"choice"時
+  "required": true,
+  "category": "goal|level|method|timeline|resources|context|proficiency"
+}
+
+範例：
+[
+  {
+    "id": "exam_strategy_focus",
+    "question": "考慮到您的考試時間緊迫，您最擔心的是以下哪個方面？",
+    "type": "choice",
+    "options": ["記憶大量內容", "理解複雜概念", "應試技巧和時間管理", "克服考試焦慮"],
+    "required": true,
+    "category": "method"
+  }
+]
+` : `
+## English Output Format:
+Return as JSON array with these fields:
+{
+  "id": "question_1", 
+  "question": "Question text in English",
+  "type": "choice|text|scale",
+  "options": ["Option 1", "Option 2", "Option 3"], // Only if type is "choice"
+  "required": true,
+  "category": "goal|level|method|timeline|resources|context|proficiency"
+}
+
+Example:
+[
+  {
+    "id": "exam_strategy_focus",
+    "question": "Given your tight exam timeline, which aspect are you most concerned about?",
+    "type": "choice", 
+    "options": ["Memorizing large amounts of content", "Understanding complex concepts", "Test-taking skills and time management", "Overcoming exam anxiety"],
+    "required": true,
+    "category": "method"
+  }
+]
+`}
+
+Generate the single most impactful personalization question for this specific task.`
+      },
+      {
+        role: 'user',
+        content: `Task: "${title}"
+Description: "${description}"
+
+${language === 'zh' 
+  ? '請為這個特定任務生成1個最有影響力的個人化問題。'
+  : 'Generate 1 most impactful personalization question for this specific task.'}
+
+Return JSON array only.`
+      }
+    ];
+
+    const response = await makeAIRequest(messages);
+    const parsed = parseAIResponse(response);
+
+    if (Array.isArray(parsed)) {
+      return parsed.map((q, index) => ({
+        id: q.id || `dynamic_q_${Date.now()}_${index}`,
+        question: q.question || `Question ${index + 1}`,
+        type: (q.type as "text" | "choice" | "scale") || "text",
+        options: q.options || undefined,
+        required: q.required !== false, // Default to true
+        category: (q.category as "goal" | "level" | "method" | "timeline" | "resources" | "context" | "proficiency") || "context"
+      }));
+    }
+
+    // Fallback to static question if LLM fails
+    console.warn('LLM failed to generate dynamic questions, using static fallback');
+    return generateStaticFallbackQuestion(detectedTaskType, language);
+
+  } catch (error) {
+    console.error('Failed to generate dynamic personalization questions:', error);
+    // Return static fallback question
+    return generateStaticFallbackQuestion(taskType || "general", language);
+  }
+}
+
+/**
+ * DEPRECATED: Static fallback question generation
+ * @deprecated Use LLM-powered generateDynamicPersonalizationQuestions instead
+ */
+function generateStaticFallbackQuestion(
+  taskType: string, 
+  language: "en" | "zh"
+): ClarifyingQuestion[] {
+  // DEPRECATED: This provides a basic fallback when LLM fails
+  console.warn('Using deprecated static question generation as fallback');
+  
+  const staticQuestions = {
+    en: {
+      exam_preparation: {
+        id: "exam_main_concern",
+        question: "What is your biggest concern about this exam?",
+        type: "choice" as const,
+        options: ["Not enough time to study", "Difficulty understanding concepts", "Test anxiety", "Memorizing information"],
+        required: true,
+        category: "goal" as const
+      },
+      skill_learning: {
+        id: "learning_experience",
+        question: "How would you describe your current experience with this skill?",
+        type: "choice" as const,
+        options: ["Complete beginner", "Some basic knowledge", "Intermediate level", "Advanced but want to improve"],
+        required: true,
+        category: "level" as const
+      },
+      general: {
+        id: "main_goal",
+        question: "What is your primary goal for this task?",
+        type: "text" as const,
+        required: true,
+        category: "goal" as const
+      }
+    },
+    zh: {
+      exam_preparation: {
+        id: "exam_main_concern",
+        question: "您對這個考試最大的擔憂是什麼？",
+        type: "choice" as const,
+        options: ["學習時間不足", "理解概念困難", "考試焦慮", "記憶資訊困難"],
+        required: true,
+        category: "goal" as const
+      },
+      skill_learning: {
+        id: "learning_experience",
+        question: "您如何描述您目前對這項技能的經驗？",
+        type: "choice" as const,
+        options: ["完全初學者", "有一些基礎知識", "中級水平", "進階但想要改進"],
+        required: true,
+        category: "level" as const
+      },
+      general: {
+        id: "main_goal",
+        question: "您對這項任務的主要目標是什麼？",
+        type: "text" as const,
+        required: true,
+        category: "goal" as const
+      }
+    }
+  };
+
+  const questionKey = taskType as keyof typeof staticQuestions.en;
+  const fallbackQuestion = staticQuestions[language][questionKey] || staticQuestions[language].general;
+  
+  return [fallbackQuestion];
+}
+
+// Commercial task generation functions removed - features were unused and overly complex for target users
+
+/**
+ * 時間約束分析工具函數
+ */
+export function analyzeTimeConstraints(
+  availableTimeSlots: DayTimeSlots,
+  dueDate?: string
+): TimeConstraintAnalysis {
+  const timeToMinutes = (timeStr: string): number => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  let totalWeeklyMinutes = 0;
+  const timeDistribution = { morning: 0, afternoon: 0, evening: 0 };
+  
+  // 計算總可用時間
+  Object.values(availableTimeSlots).forEach(daySlots => {
+    daySlots.forEach((slot: TimeSlot) => {
+      const duration = timeToMinutes(slot.end) - timeToMinutes(slot.start);
+      totalWeeklyMinutes += duration;
+      
+      // 時段分類
+      const startHour = parseInt(slot.start.split(':')[0]);
+      if (startHour < 12) {
+        timeDistribution.morning += duration / 60;
+      } else if (startHour < 18) {
+        timeDistribution.afternoon += duration / 60;
+      } else {
+        timeDistribution.evening += duration / 60;
+      }
+    });
+  });
+  
+  const weeklyAvailableHours = totalWeeklyMinutes / 60;
+  const dailyAverageHours = weeklyAvailableHours / 7;
+  
+  // 計算到期天數和緊急程度
+  let availableDays = 90; // 默認90天
+  let urgencyLevel: "critical" | "high" | "moderate" | "relaxed" = "moderate";
+  
+  if (dueDate) {
+    const today = new Date();
+    const deadline = new Date(dueDate);
+    availableDays = Math.max(0, Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    if (availableDays <= 3) urgencyLevel = "critical";
+    else if (availableDays <= 7) urgencyLevel = "high";
+    else if (availableDays <= 30) urgencyLevel = "moderate";
+    else urgencyLevel = "relaxed";
+  }
+  
+  // 計算可行性評分
+  const totalAvailableHours = (weeklyAvailableHours / 7) * availableDays;
+  const feasibilityScore = Math.min(1, totalAvailableHours / 50); // 假設50小時為基準
+  
+  // 生成建議和警告
+  const recommendations: string[] = [];
+  const warnings: string[] = [];
+  
+  if (dailyAverageHours < 1) {
+    warnings.push("每日可用時間不足1小時，建議增加學習時間分配");
+    recommendations.push("考慮調整日程安排，每天至少分配1-2小時用於學習");
+  }
+  
+  if (urgencyLevel === "critical") {
+    warnings.push("截止日期非常緊迫，建議考慮延期或精簡任務範圍");
+    recommendations.push("專注於最核心的20%內容，應用80/20法則");
+  }
+  
+  if (timeDistribution.morning === 0) {
+    recommendations.push("考慮安排一些早晨時間學習，這是大腦最清醒的時段");
+  }
+  
+  return {
+    totalAvailableHours,
+    weeklyAvailableHours,
+    dailyAverageHours,
+    availableDays,
+    urgencyLevel,
+    feasibilityScore,
+    timeDistribution,
+    recommendations,
+    warnings
+  };
+}
+
+/**
+ * 商業級後備方案生成
+ */
+async function generateCommercialFallback(
+  context: CommercialTaskContext
+): Promise<CommercialGenerationResult> {
+  console.log('🔄 Generating commercial fallback...');
+  
+  const timeAnalysis = analyzeTimeConstraints(context.availableTimeSlots, context.dueDate);
+  const fallbackTasks = generateBasicCommercialFallback(
+    context.title, 
+    context.description, 
+    context.language
+  );
+  
+  // 轉換為階層結構
+  const hierarchy: TaskHierarchy = {
+    phases: fallbackTasks.filter(task => task.level === 1),
+    detailedTasks: fallbackTasks.filter(task => task.level === 2),
+    operationalSteps: fallbackTasks.filter(task => task.level === 3)
+  };
+  
+  // 生成基本排程建議
+  const schedulingSuggestions: SchedulingSuggestion[] = fallbackTasks.map((task, index) => ({
+    subtaskId: task.id,
+    recommendedDate: getRecommendedDate(index, timeAnalysis.urgencyLevel),
+    recommendedTimeSlot: { start: "09:00", end: "11:00" },
+    reasoning: "Based on task complexity and urgency level",
+    alternativeSlots: []
+  }));
+  
+  const totalEstimatedHours = fallbackTasks.reduce((sum, task) => sum + ((task.aiEstimatedDuration || 0) / 60), 0);
+  
+  return {
+    hierarchy,
+    schedulingSuggestions,
+    timeAnalysis,
+    totalEstimatedHours,
+    feasibilityReport: generateFallbackFeasibilityReport(timeAnalysis, totalEstimatedHours, context.language),
+    metadata: {
+      totalSubtasks: fallbackTasks.length,
+      estimatedTotalHours: totalEstimatedHours,
+      feasibilityAssessment: timeAnalysis.feasibilityScore > 0.6 ? 'Good' : timeAnalysis.feasibilityScore > 0.3 ? 'Challenging' : 'Critical',
+      timeConstraintWarnings: timeAnalysis.warnings,
+      schedulingRecommendations: timeAnalysis.recommendations
+    }
+  };
+}
+
+/**
+ * 基本商業任務後備生成
+ */
+function generateBasicCommercialFallback(
+  title: string,
+  description: string,
+  language: "en" | "zh"
+): CommercialSubtask[] {
+  const isZh = language === 'zh';
+  
+  const baseTemplate: Partial<CommercialSubtask> = {
+    aiEstimatedDuration: 120,
+    difficulty: 'medium',
+    completed: false,
+    order: 1,
+    skills: [],
+    recommendedResources: [],
+    phase: 'knowledge',
+    deliverables: [],
+    acceptanceCriteria: [],
+    dependencies: [],
+    risks: [],
+    mitigation: [],
+    requiredTools: [],
+    resourceLinks: [],
+    childrenIds: [],
+    suggestedTimeSlots: ['morning'],
+    optimalDuration: 90,
+    breakFrequency: 25,
+    businessValue: 5,
+    learningCurve: 'moderate',
+    practicalApplication: ''
+  };
+  
+  const tasks: CommercialSubtask[] = [
+    {
+      ...baseTemplate,
+      id: 'commercial_phase_1',
+      title: isZh ? '需求分析與規劃' : 'Requirements Analysis & Planning',
+      text: isZh ? '深入分析任務需求，制定詳細的執行計劃和時間表' : 'Thoroughly analyze task requirements and develop detailed execution plan and timeline',
+      level: 1,
+      aiEstimatedDuration: 180,
+      deliverables: isZh ? ['需求文件', '執行計劃', '風險評估'] : ['Requirements document', 'Execution plan', 'Risk assessment'],
+      acceptanceCriteria: isZh ? ['完整的需求清單', '可執行的時間表', '已識別的風險點'] : ['Complete requirements list', 'Executable timeline', 'Identified risk points'],
+      requiredTools: isZh ? ['文字處理軟體', '專案管理工具'] : ['Word processor', 'Project management tool'],
+      practicalApplication: isZh ? '為後續執行階段提供明確指導' : 'Provide clear guidance for subsequent execution phases'
+    } as CommercialSubtask,
+    
+    {
+      ...baseTemplate,
+      id: 'commercial_phase_2',
+      title: isZh ? '知識基礎建立' : 'Knowledge Foundation Building',
+      text: isZh ? '建立核心概念理解和理論基礎，為實際應用做準備' : 'Establish core concept understanding and theoretical foundation for practical application',
+      level: 1,
+      aiEstimatedDuration: 240,
+      deliverables: isZh ? ['核心概念筆記', '理論框架圖', '知識檢測結果'] : ['Core concept notes', 'Theoretical framework diagram', 'Knowledge assessment results'],
+      acceptanceCriteria: isZh ? ['能夠解釋主要概念', '通過基礎知識測試', '建立完整的知識架構'] : ['Can explain main concepts', 'Pass basic knowledge test', 'Establish complete knowledge structure'],
+      suggestedTimeSlots: ['morning', 'afternoon'],
+      businessValue: 8,
+      practicalApplication: isZh ? '為高級技能發展奠定堅實基礎' : 'Lay solid foundation for advanced skill development'
+    } as CommercialSubtask,
+    
+    {
+      ...baseTemplate,
+      id: 'commercial_task_1',
+      title: isZh ? '實踐技能發展' : 'Practical Skill Development',
+      text: isZh ? '通過具體練習和案例研究發展實際操作能力' : 'Develop practical operational capabilities through specific exercises and case studies',
+      level: 2,
+      parentId: 'commercial_phase_2',
+      aiEstimatedDuration: 300,
+      deliverables: isZh ? ['練習成果', '案例分析報告', '技能演示'] : ['Practice results', 'Case analysis report', 'Skill demonstration'],
+      acceptanceCriteria: isZh ? ['完成所有練習', '案例分析正確率80%以上', '能夠獨立演示技能'] : ['Complete all exercises', 'Case analysis accuracy above 80%', 'Can independently demonstrate skills'],
+      requiredTools: isZh ? ['練習平台', '案例資料庫'] : ['Practice platform', 'Case database'],
+      businessValue: 9,
+      practicalApplication: isZh ? '直接應用於實際工作場景' : 'Direct application to real work scenarios'
+    } as CommercialSubtask
+  ];
+  
+  // 為每個任務設置正確的order
+  tasks.forEach((task, index) => {
+    task.order = index + 1;
+  });
+  
+  return tasks;
+}
+
+/**
+ * 輔助函數：獲取建議日期
+ */
+function getRecommendedDate(index: number, urgencyLevel: string): string {
+  const today = new Date();
+  const daysToAdd = urgencyLevel === 'critical' ? index : index * 2;
+  const recommendedDate = new Date(today.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+  return recommendedDate.toISOString().split('T')[0];
+}
+
+/**
+ * 生成後備可行性報告
+ */
+function generateFallbackFeasibilityReport(
+  timeAnalysis: TimeConstraintAnalysis,
+  totalEstimatedHours: number,
+  language: "en" | "zh"
+): string {
+  const feasibilityPercentage = (timeAnalysis.totalAvailableHours / totalEstimatedHours * 100).toFixed(0);
+  
+  if (language === "zh") {
+    return `
+**可行性分析報告（後備版本）**
+
+總學習時間需求：${totalEstimatedHours.toFixed(1)} 小時
+總可用時間：${timeAnalysis.totalAvailableHours.toFixed(1)} 小時
+可行性：${feasibilityPercentage}%
+
+**建議：**
+${timeAnalysis.recommendations.join("\n")}
+
+**警告：**
+${timeAnalysis.warnings.join("\n")}
+
+**備註：**
+這是系統生成的後備方案，建議聯繫支援以獲得完整的商業級分析。
+    `;
+  } else {
+    return `
+**Feasibility Analysis Report (Fallback Version)**
+
+Total Learning Time Required: ${totalEstimatedHours.toFixed(1)} hours
+Total Available Time: ${timeAnalysis.totalAvailableHours.toFixed(1)} hours
+Feasibility: ${feasibilityPercentage}%
+
+**Recommendations:**
+${timeAnalysis.recommendations.join("\n")}
+
+**Warnings:**
+${timeAnalysis.warnings.join("\n")}
+
+**Note:**
+This is a system-generated fallback plan. Contact support for full commercial-grade analysis.
+    `;
+  }
+}
+
+/**
+ * 轉換增強子任務為商業子任務
+ */
+export function convertToCommercialSubtasks(
+  subtasks: EnhancedSubtask[],
+  language: "en" | "zh" = "zh"
+): CommercialSubtask[] {
+  return subtasks.map((subtask, index) => ({
+    ...subtask,
+    level: 2, // 默認為詳細任務層級
+    childrenIds: [],
+    deliverables: [language === "zh" ? "任務完成確認" : "Task completion confirmation"],
+    acceptanceCriteria: [language === "zh" ? "滿足任務要求" : "Meet task requirements"],
+    dependencies: [],
+    risks: [language === "zh" ? "時間不足" : "Insufficient time"],
+    mitigation: [language === "zh" ? "合理安排時間" : "Proper time management"],
+    requiredTools: [],
+    resourceLinks: [],
+    suggestedTimeSlots: ["morning"],
+    optimalDuration: subtask.aiEstimatedDuration || 90,
+    breakFrequency: 25,
+    businessValue: 5,
+    learningCurve: "moderate",
+    practicalApplication: language === "zh" ? "實際應用場景" : "Practical application scenario"
+  }));
+}
+
+/**
+ * 商業級任務驗證
+ */
+export function validateCommercialTasks(tasks: CommercialSubtask[]): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  tasks.forEach((task, index) => {
+    if (!task.deliverables || task.deliverables.length === 0) {
+      errors.push(`Task ${index + 1}: Missing deliverables`);
+    }
+    
+    if (!task.acceptanceCriteria || task.acceptanceCriteria.length === 0) {
+      errors.push(`Task ${index + 1}: Missing acceptance criteria`);
+    }
+    
+    if (!task.businessValue || task.businessValue < 1 || task.businessValue > 10) {
+      warnings.push(`Task ${index + 1}: Business value should be between 1-10`);
+    }
+    
+    if (!task.level || task.level < 1 || task.level > 3) {
+      errors.push(`Task ${index + 1}: Invalid level (should be 1, 2, or 3)`);
+    }
+  });
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
 }

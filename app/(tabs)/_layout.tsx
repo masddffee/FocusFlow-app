@@ -1,9 +1,12 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Home, ListTodo, BarChart2, User } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import Colors from "@/constants/colors";
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+  
   return (
     <Tabs
       screenOptions={{
@@ -23,7 +26,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t('tabs.home'),
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
@@ -31,7 +34,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: "Tasks",
+          title: t('tabs.tasks'),
           tabBarIcon: ({ color, size }) => <ListTodo size={size} color={color} />,
         }}
       />
@@ -39,7 +42,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="stats"
         options={{
-          title: "Stats",
+          title: t('tabs.stats'),
           tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
         }}
       />
@@ -47,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />

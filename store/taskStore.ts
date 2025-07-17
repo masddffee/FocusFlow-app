@@ -9,6 +9,8 @@ import {
   getSubtasksDueForReview,
   getReviewStatistics 
 } from "@/utils/spacedRepetition";
+import { Platform } from 'react-native';
+import { translateTaskContent } from '@/utils/ai';
 
 interface LearningNote {
   id: string;
@@ -35,6 +37,11 @@ interface TaskState {
   toggleSubtaskCompletion: (taskId: string, subtaskId: string) => void;
   updateSubtaskDuration: (taskId: string, subtaskId: string, duration: number) => void;
   
+  // 🆕 子任務進度追蹤
+  updateSubtaskProgress: (taskId: string, subtaskId: string, sessionDuration: number, notes?: string) => void;
+  getSubtaskRemainingTime: (taskId: string, subtaskId: string) => number;
+  initializeSubtaskProgress: (subtask: EnhancedSubtask) => EnhancedSubtask;
+  
   // Task queries
   getTodayTasks: () => Task[];
   getUpcomingTasks: () => Task[];
@@ -46,6 +53,10 @@ interface TaskState {
   removeScheduledTask: (taskId: string) => void;
   updateScheduledTasks: (scheduledTasks: ScheduledTask[]) => void;
   getScheduledTasksForDate: (date: string) => ScheduledTask[];
+  
+  // 🆕 排程記錄清理和維護
+  cleanupOrphanedScheduledTasks: () => void;
+  validateScheduledTasks: () => { valid: ScheduledTask[]; orphaned: ScheduledTask[] };
   
   // Learning notes
   saveLearningNote: (note: Omit<LearningNote, "id" | "createdAt" | "updatedAt">) => void;
@@ -61,6 +72,11 @@ interface TaskState {
   updateSubtaskReview: (taskId: string, subtaskId: string, reviewQuality: number) => void;
   getSubtasksDueForReview: (taskId: string) => EnhancedSubtask[];
   scheduleAutomaticReviews: () => void;
+
+  // Add translation method
+  translateAllTasks: (targetLanguage: "en" | "zh") => Promise<boolean>;
+  // 🆕 動態重建可用時段索引，確保所有佔用狀態與 scheduledTasks 一致
+  rebuildTimeAvailabilityIndex: () => void;
 }
 
 export const useTaskStore = create<TaskState>()(
@@ -412,6 +428,11 @@ export const useTaskStore = create<TaskState>()(
           set((state) => ({
             tasks: [...state.tasks, newTask],
           }));
+          
+          // 🆕 新增任務後清理無效的排程記錄
+          setTimeout(() => {
+            get().cleanupOrphanedScheduledTasks();
+          }, 100);
         } catch (error) {
           console.error("Add task error:", error);
           throw error;
@@ -441,10 +462,13 @@ export const useTaskStore = create<TaskState>()(
         try {
           set((state) => ({
             tasks: state.tasks.filter((task) => task.id !== id),
-            scheduledTasks: state.scheduledTasks.filter((st) => st.taskId !== id),
-            learningNotes: state.learningNotes.filter((note) => note.taskId !== id),
-            reviewTasks: state.reviewTasks.filter((rt) => rt.originalSubtaskId?.split('_')[0] !== id),
           }));
+          // 🆕 同步移除所有相關的排程記錄（含子任務/片段）
+          get().removeScheduledTask(id);
+          // 🆕 重新建立可用時段索引，確保時段釋放
+          if (typeof get().rebuildTimeAvailabilityIndex === 'function') {
+            get().rebuildTimeAvailabilityIndex();
+          }
         } catch (error) {
           console.error("Delete task error:", error);
           throw error;
@@ -542,6 +566,68 @@ export const useTaskStore = create<TaskState>()(
           throw error;
         }
       },
+
+      // 🆕 子任務進度追蹤方法實現
+      updateSubtaskProgress: (taskId: string, subtaskId: string, sessionDuration: number, notes?: string) => {
+        try {
+          set((state) => ({
+            tasks: state.tasks.map((task) => 
+              task.id === taskId 
+                ? {
+                    ...task,
+                    subtasks: task.subtasks?.map((subtask) => {
+                      if (subtask.id === subtaskId) {
+                        // 🔧 導入並使用安全的時長更新函數
+                        const { updateSubtaskProgress } = require('@/utils/subtaskProgress');
+                        const updatedSubtask = updateSubtaskProgress(subtask, Math.floor(sessionDuration / 60), notes);
+                        
+                        return {
+                          ...updatedSubtask,
+                          lastStudiedAt: new Date().toISOString(),
+                          studyNotes: notes ? [...(subtask.studyNotes || []), notes] : subtask.studyNotes
+                        };
+                      }
+                      return subtask;
+                    }),
+                    updatedAt: new Date().toISOString()
+                  }
+                : task
+            ),
+          }));
+        } catch (error) {
+          console.error("Update subtask progress error:", error);
+          throw error;
+        }
+      },
+
+      getSubtaskRemainingTime: (taskId: string, subtaskId: string) => {
+        try {
+          const state = get();
+          const task = state.tasks.find(t => t.id === taskId);
+          if (!task || !task.subtasks) return 0;
+          
+          const subtask = task.subtasks.find(s => s.id === subtaskId);
+          if (!subtask) return 0;
+          
+          // 🔧 使用安全的時長獲取函數
+          const { getSubtaskRemainingTime } = require('@/utils/subtaskProgress');
+          return getSubtaskRemainingTime(subtask);
+        } catch (error) {
+          console.error("Get subtask remaining time error:", error);
+          return 0;
+        }
+      },
+
+      initializeSubtaskProgress: (subtask: EnhancedSubtask) => {
+        try {
+          // 🔧 使用新的初始化函數
+          const { initializeSubtaskProgress } = require('@/utils/subtaskProgress');
+          return initializeSubtaskProgress(subtask);
+        } catch (error) {
+          console.error("Initialize subtask progress error:", error);
+          return subtask;
+        }
+      },
       
       getTodayTasks: () => {
         try {
@@ -623,7 +709,24 @@ export const useTaskStore = create<TaskState>()(
       removeScheduledTask: (taskId) => {
         try {
           set((state) => ({
-            scheduledTasks: state.scheduledTasks.filter((st) => st.taskId !== taskId),
+            // 🆕 修正：支援移除所有相關的排程記錄，包括子任務和片段
+            scheduledTasks: state.scheduledTasks.filter((st) => {
+              // 精確匹配
+              if (st.taskId === taskId) return false;
+              
+              // 如果提供的 taskId 是主任務ID，清理所有相關子任務
+              if (st.taskId.includes('_') && st.taskId.split('_')[0] === taskId) return false;
+              
+              // 如果提供的 taskId 是子任務ID，清理對應的片段
+              if (taskId.includes('_') && st.taskId.includes(taskId)) {
+                // 檢查是否為該子任務的片段
+                if (st.taskId.startsWith(`${taskId}_segment_`) || st.taskId === taskId) {
+                  return false;
+                }
+              }
+              
+              return true;
+            }),
           }));
         } catch (error) {
           console.error("Remove scheduled task error:", error);
@@ -835,6 +938,106 @@ export const useTaskStore = create<TaskState>()(
           console.error("Schedule automatic reviews error:", error);
         }
       },
+
+             // 🆕 排程記錄清理和維護
+       cleanupOrphanedScheduledTasks: () => {
+         try {
+           const state = get();
+           const today = new Date().toISOString().split('T')[0];
+           
+           // 保留：1. 未完成的任務，2. 未過截止日期的任務
+           const validTaskIds = new Set(state.tasks
+             .filter(task => !task.completed || (task.dueDate && task.dueDate >= today))
+             .map(task => task.id)
+           );
+           
+           // 過濾掉無效的排程記錄：
+           // 1. 主任務不存在
+           // 2. 子任務的主任務不存在
+           // 3. 片段任務的主任務不存在
+           const validScheduledTasks = state.scheduledTasks.filter(st => {
+             // 提取主任務 ID
+             const mainTaskId = st.taskId.includes('_') ? st.taskId.split('_')[0] : st.taskId;
+             return validTaskIds.has(mainTaskId);
+           });
+           
+           if (validScheduledTasks.length !== state.scheduledTasks.length) {
+             const cleanedCount = state.scheduledTasks.length - validScheduledTasks.length;
+             console.log(`Cleaned up ${cleanedCount} orphaned scheduled task records`);
+             set({ scheduledTasks: validScheduledTasks });
+           }
+         } catch (error) {
+           console.error("Cleanup orphaned scheduled tasks error:", error);
+         }
+       },
+
+       validateScheduledTasks: () => {
+         try {
+           const state = get();
+           const today = new Date().toISOString().split('T')[0];
+           
+           const validTaskIds = new Set(state.tasks
+             .filter(task => !task.completed || (task.dueDate && task.dueDate >= today))
+             .map(task => task.id)
+           );
+           
+           const validScheduledTasks = state.scheduledTasks.filter(st => {
+             const mainTaskId = st.taskId.includes('_') ? st.taskId.split('_')[0] : st.taskId;
+             return validTaskIds.has(mainTaskId);
+           });
+           
+           const orphanedTasks = state.scheduledTasks.filter(st => {
+             const mainTaskId = st.taskId.includes('_') ? st.taskId.split('_')[0] : st.taskId;
+             return !validTaskIds.has(mainTaskId);
+           });
+           
+           return { valid: validScheduledTasks, orphaned: orphanedTasks };
+         } catch (error) {
+           console.error("Validate scheduled tasks error:", error);
+           return { valid: [], orphaned: [] };
+        }
+      },
+
+      // Add translation method
+      translateAllTasks: async (targetLanguage: "en" | "zh") => {
+        try {
+          const currentTasks = get().tasks;
+          const translatedTasks = await translateTaskContent(currentTasks, targetLanguage);
+          
+          set({ 
+            tasks: translatedTasks
+          });
+          
+          return true;
+        } catch (error) {
+          console.error("Failed to translate tasks:", error);
+          return false;
+        }
+      },
+      // 🆕 動態重建可用時段索引，確保所有佔用狀態與 scheduledTasks 一致
+      rebuildTimeAvailabilityIndex: () => {
+        try {
+          // 取得所有已排程任務
+          const scheduledTasks = get().scheduledTasks;
+          // 動態計算所有被佔用的時段
+          const { getTrueOccupiedTimeSlots } = require('@/utils/scheduling');
+          const occupied = getTrueOccupiedTimeSlots(scheduledTasks);
+          // 若有 useSettingsStore，則同步 blockedTimeSlots 或 availableTimeSlots
+          try {
+            const { useSettingsStore } = require('@/store/settingsStore');
+            if (useSettingsStore && typeof useSettingsStore.getState === 'function') {
+              // 假設有 setBlockedTimeSlots 或 setAvailableTimeSlots 方法
+              // 這裡僅作為佔位，實際根據你的 store 結構調整
+              // useSettingsStore.getState().setBlockedTimeSlots?.(occupied);
+              // 或根據 occupied 計算新的 availableTimeSlots 再 setAvailableTimeSlots
+            }
+          } catch (e) {
+            // 無法同步到 settingsStore 時忽略
+          }
+        } catch (error) {
+          console.error("Rebuild time availability index error:", error);
+        }
+      },
     }),
     {
       name: "task-storage",
@@ -842,3 +1045,74 @@ export const useTaskStore = create<TaskState>()(
     }
   )
 );
+
+// 跨平台事件管理器
+class CrossPlatformEventManager {
+  private listeners: { [key: string]: Function[] } = {};
+
+  addEventListener(eventName: string, callback: Function) {
+    if (!this.listeners[eventName]) {
+      this.listeners[eventName] = [];
+    }
+    this.listeners[eventName].push(callback);
+  }
+
+  removeEventListener(eventName: string, callback: Function) {
+    if (this.listeners[eventName]) {
+      this.listeners[eventName] = this.listeners[eventName].filter(cb => cb !== callback);
+    }
+  }
+
+  dispatchEvent(eventName: string, detail: any) {
+    if (this.listeners[eventName]) {
+      this.listeners[eventName].forEach(callback => {
+        try {
+          callback({ detail });
+        } catch (error) {
+          console.error('Event callback error:', error);
+        }
+      });
+    }
+  }
+}
+
+// 創建全局事件管理器
+const globalEventManager = new CrossPlatformEventManager();
+
+// 設置全局引用供 TimerStore 使用 - 跨平台兼容
+(globalThis as any).__taskStore = {
+  getSubtaskRemainingTime: (taskId: string, subtaskId: string) => {
+    return useTaskStore.getState().getSubtaskRemainingTime(taskId, subtaskId);
+  }
+};
+
+// 設置全局事件管理器
+(globalThis as any).__eventManager = globalEventManager;
+
+// 監聽來自 TimerStore 的進度更新請求 - React Native 兼容
+globalEventManager.addEventListener('updateSubtaskProgress', (event: any) => {
+  const { taskId, subtaskId, sessionDuration, notes } = event.detail;
+  try {
+    useTaskStore.getState().updateSubtaskProgress(taskId, subtaskId, sessionDuration, notes);
+  } catch (error) {
+    console.error('Subtask progress update error:', error);
+  }
+});
+
+// 🆕 在應用啟動時自動清理無效的排程記錄
+setTimeout(() => {
+  try {
+    const taskStore = useTaskStore.getState();
+    const { valid, orphaned } = taskStore.validateScheduledTasks();
+    
+    if (orphaned.length > 0) {
+      console.log(`Found ${orphaned.length} orphaned scheduled task records on startup`);
+      taskStore.cleanupOrphanedScheduledTasks();
+      console.log(`Cleaned up orphaned scheduled tasks on startup`);
+    } else {
+      console.log(`All ${valid.length} scheduled task records are valid`);
+    }
+  } catch (error) {
+    console.error('Initial scheduled tasks cleanup error:', error);
+  }
+}, 500); // 延遲執行，確保 Store 完全初始化

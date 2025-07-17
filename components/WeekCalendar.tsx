@@ -2,13 +2,15 @@ import React from "react";
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from "react-native";
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
+import { ScheduledTask } from "@/types/timeSlot";
 
 interface WeekCalendarProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
+  scheduledTasks?: ScheduledTask[];
 }
 
-export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalendarProps) {
+export default function WeekCalendar({ selectedDate, onDateSelect, scheduledTasks = [] }: WeekCalendarProps) {
   const getWeekDays = () => {
     const startOfWeek = new Date(selectedDate);
     const day = startOfWeek.getDay();
@@ -34,6 +36,18 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
   
   const isToday = (date: Date) => {
     return date.toDateString() === new Date().toDateString();
+  };
+  
+  // 🆕 檢查某日期是否有排程
+  const hasScheduledTasks = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return scheduledTasks.some(task => task.date === dateStr);
+  };
+  
+  // 🆕 獲取某日期的排程任務數量
+  const getScheduledTaskCount = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return scheduledTasks.filter(task => task.date === dateStr).length;
   };
   
   return (
@@ -70,6 +84,15 @@ export default function WeekCalendar({ selectedDate, onDateSelect }: WeekCalenda
             >
               {date.getDate()}
             </Text>
+            
+            {/* 🆕 排程指示器 */}
+            {hasScheduledTasks(date) && (
+              <View style={styles.scheduleIndicator}>
+                <Text style={styles.scheduleIndicatorText}>
+                  {getScheduledTaskCount(date)}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -121,5 +144,18 @@ const styles = StyleSheet.create({
   },
   todayNumber: {
     color: Colors.light.primary,
+  },
+  scheduleIndicator: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 10,
+    padding: 2,
+  },
+  scheduleIndicatorText: {
+    fontSize: Theme.typography.sizes.xs,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });

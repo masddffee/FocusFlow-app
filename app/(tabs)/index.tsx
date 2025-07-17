@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Stack, router } from "expo-router";
 import { Plus, Calendar, Clock, ChevronRight } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
 import Button from "@/components/Button";
@@ -21,6 +22,7 @@ import { formatDuration } from "@/utils/timeUtils";
 import { Task } from "@/types/task";
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const { tasks, getTodayTasks, scheduledTasks } = useTaskStore();
   const { getTotalFocusTime } = useStatsStore();
   const { hasCompletedOnboarding, setHasCompletedOnboarding } = useSettingsStore();
@@ -95,22 +97,22 @@ export default function HomeScreen() {
               <Text style={styles.statValue}>
                 {formatDuration(totalFocusTimeToday)}
               </Text>
-              <Text style={styles.statLabel}>Focus Time Today</Text>
+              <Text style={styles.statLabel}>{t('stats.focusTime')} {t('schedule.today')}</Text>
             </View>
             
             <View style={styles.statCard}>
               <Text style={styles.statValue}>
                 {tasks.filter(task => task.completed).length}
               </Text>
-              <Text style={styles.statLabel}>Tasks Completed</Text>
+              <Text style={styles.statLabel}>{t('stats.tasksCompleted')}</Text>
             </View>
           </View>
           
           {upcomingTasks.length > 0 ? (
             <View style={styles.focusContainer}>
-              <Text style={styles.focusTitle}>Ready to focus?</Text>
+              <Text style={styles.focusTitle}>{t('home.welcome')}</Text>
               <Button
-                title="Start Focus Session"
+                title={t('taskDetail.startFocus')}
                 onPress={() => handleStartFocus(upcomingTasks[0])}
                 variant="primary"
                 size="large"
@@ -124,12 +126,12 @@ export default function HomeScreen() {
                 style={styles.emptyImage}
                 resizeMode="contain"
               />
-              <Text style={styles.emptyTitle}>No tasks yet</Text>
+              <Text style={styles.emptyTitle}>{t('tasks.noTasks')}</Text>
               <Text style={styles.emptyText}>
-                Add your first task to get started with your productivity journey
+                {t('tasks.createFirst')}
               </Text>
               <Button
-                title="Add Your First Task"
+                title={t('home.addFirstTask')}
                 onPress={handleAddTask}
                 variant="primary"
                 size="medium"
@@ -141,9 +143,9 @@ export default function HomeScreen() {
         
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Today's Schedule</Text>
+            <Text style={styles.sectionTitle}>{t('home.title')}</Text>
             <TouchableOpacity onPress={handleViewAllTasks} style={styles.viewAllButton}>
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={styles.viewAllText}>{t('tasks.allTasks')}</Text>
               <ChevronRight size={16} color={Colors.light.primary} />
             </TouchableOpacity>
           </View>
@@ -160,16 +162,16 @@ export default function HomeScreen() {
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No tasks scheduled for today</Text>
+              <Text style={styles.emptyText}>{t('home.noTasks')}</Text>
             </View>
           )}
         </View>
         
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Upcoming Tasks</Text>
+            <Text style={styles.sectionTitle}>{t('home.upcomingTasks')}</Text>
             <TouchableOpacity onPress={handleViewAllTasks} style={styles.viewAllButton}>
-              <Text style={styles.viewAllText}>View All</Text>
+              <Text style={styles.viewAllText}>{t('tasks.allTasks')}</Text>
               <ChevronRight size={16} color={Colors.light.primary} />
             </TouchableOpacity>
           </View>
@@ -185,27 +187,27 @@ export default function HomeScreen() {
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No upcoming tasks</Text>
+              <Text style={styles.emptyText}>{t('tasks.noTasks')}</Text>
             </View>
           )}
         </View>
         
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Focus Tips</Text>
+            <Text style={styles.sectionTitle}>{t('stats.productivityTips')}</Text>
           </View>
           
           <View style={styles.tipCard}>
             <Text style={styles.tipTitle}>Pomodoro Technique</Text>
             <Text style={styles.tipText}>
-              Work for 25 minutes, then take a 5-minute break. After 4 cycles, take a longer 15-30 minute break.
+              Work for 25 minutes, then take a 5-minute break. This helps maintain focus and prevents burnout.
             </Text>
           </View>
           
           <View style={styles.tipCard}>
-            <Text style={styles.tipTitle}>Two-Minute Rule</Text>
+            <Text style={styles.tipTitle}>Time Blocking</Text>
             <Text style={styles.tipText}>
-              If a task takes less than two minutes to complete, do it immediately instead of scheduling it for later.
+              Schedule specific time blocks for different types of work to improve productivity and reduce distractions.
             </Text>
           </View>
         </View>

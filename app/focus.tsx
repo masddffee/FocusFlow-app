@@ -9,14 +9,15 @@ import {
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Play, Pause, Square, RotateCcw, Settings } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
-import Button from "@/components/Button";
 import FocusTimer from "@/components/FocusTimer";
 import CompanionView from "@/components/CompanionView";
 import { useTimerStore } from "@/store/timerStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useStatsStore } from "@/store/statsStore";
+import { getSubtaskRemainingTime, getSubtaskTotalDuration } from "@/utils/subtaskProgress";
 
 // Import Haptics for vibration with web compatibility
 let Haptics: any = null;
@@ -29,21 +30,13 @@ if (Platform.OS !== 'web') {
 }
 
 export default function FocusScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ taskId?: string; duration?: string }>();
   const taskId = typeof params.taskId === 'string' ? params.taskId : undefined;
   
-  // Ensure duration is properly parsed as a number
-  let duration = 25 * 60; // Default 25 minutes in seconds
-  if (params.duration) {
-    const durationParam = typeof params.duration === 'string' ? params.duration : params.duration[0];
-    const parsedDuration = parseInt(durationParam, 10);
-    if (!isNaN(parsedDuration) && parsedDuration > 0) {
-      duration = parsedDuration;
-    }
-  }
-  
   const [showCompanion, setShowCompanion] = useState(true);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [taskInfo, setTaskInfo] = useState<any>(null);
+  const intervalRef = useRef<number | null>(null);
   
   const {
     isRunning,
@@ -60,36 +53,187 @@ export default function FocusScreen() {
     lastSession,
   } = useTimerStore();
   
-  const { tasks } = useTaskStore();
+  const { tasks, getSubtaskRemainingTime: getSubtaskRemainingTimeFromStore } = useTaskStore();
   const { addSession } = useStatsStore();
   
-  const currentTask = taskId ? tasks.find(t => t.id === taskId) : null;
+  // 🆕 智能獲取任務信息和計算正確的時長
+  const calculateTaskInfo = React.useCallback(() => {
+    if (!taskId) return null;
+    
+    console.log(`🔍 Focus: Analyzing taskId: ${taskId}`);
+    
+    // 檢查是否為子任務（包含下劃線）
+    if (taskId.includes('_')) {
+      // 解析子任務 ID
+      const parts = taskId.split('_');
+      let mainTaskId: string;
+      let subtaskId: string;
+      let isSegmented = false;
+      let segmentIndex: string | null = null;
+      
+      // 🔧 智能解析子任務 ID 格式
+      if (parts.length === 2) {
+        // 簡單格式: mainTaskId_subtaskId
+        [mainTaskId, subtaskId] = parts;
+      } else if (parts.includes('segment')) {
+        // 分段格式: mainTaskId_subtaskId_segment_index
+        const segmentPos = parts.indexOf('segment');
+        mainTaskId = parts[0];
+        subtaskId = parts.slice(1, segmentPos).join('_');
+        isSegmented = true;
+        segmentIndex = parts[segmentPos + 1];
+      } else {
+        // 複雜格式: 取第一個作為主任務ID，其餘組合為子任務ID
+        mainTaskId = parts[0];
+        subtaskId = parts.slice(1).join('_');
+      }
+      
+      console.log(`📝 Focus: Parsed - Main: ${mainTaskId}, Sub: ${subtaskId}, Segmented: ${isSegmented}, Segment: ${segmentIndex}`);
+      
+      const mainTask = tasks.find(t => t.id === mainTaskId);
+      if (!mainTask || !mainTask.subtasks) {
+        console.warn(`⚠️ Focus: Main task or subtasks not found for ${mainTaskId}`);
+        return null;
+      }
+      
+      const subtask = mainTask.subtasks.find(s => s.id === subtaskId);
+      if (!subtask) {
+        console.warn(`⚠️ Focus: Subtask not found: ${subtaskId}`);
+        console.warn('Available subtasks:', mainTask.subtasks.map(s => s.id));
+        return null;
+      }
+      
+      // 🆕 計算準確的剩餘時間和總時長
+      const totalDuration = getSubtaskTotalDuration(subtask); // 分鐘
+      const remainingTime = getSubtaskRemainingTime(subtask); // 分鐘
+      const timeSpent = subtask.timeSpent || 0; // 分鐘
+      const progressPercentage = totalDuration > 0 ? Math.min(100, Math.round((timeSpent / totalDuration) * 100)) : 0;
+      
+      // 🆕 計算本次學習建議時長
+      let suggestedDuration = remainingTime;
+      
+      // 如果有 URL 參數指定時長，使用較小值
+      if (params.duration) {
+        const urlDuration = parseInt(params.duration, 10);
+        if (!isNaN(urlDuration) && urlDuration > 0) {
+          suggestedDuration = Math.min(remainingTime, Math.floor(urlDuration / 60)); // 轉換秒到分鐘
+        }
+      }
+      
+      // 如果沒有剩餘時間，但允許額外學習
+      if (remainingTime <= 0) {
+        suggestedDuration = 25; // 預設 25 分鐘額外學習
+        console.log(`📚 Focus: Subtask completed, allowing additional study time: ${suggestedDuration}min`);
+      } else {
+        console.log(`⏱️ Focus: Remaining time: ${remainingTime}min, suggested: ${suggestedDuration}min`);
+      }
+      
+      const subtaskTitle = subtask.title || subtask.text?.substring(0, 50) || `子任務 ${subtask.order || ''}`;
+      let displayTitle = `${mainTask.title}: ${subtaskTitle}`;
+      
+      if (isSegmented && segmentIndex) {
+        displayTitle += ` (${t('common.part')} ${segmentIndex})`;
+      }
+      
+      return {
+        id: taskId,
+        title: displayTitle,
+        description: subtask.text || subtask.title,
+        isSubtask: true,
+        isSegmented,
+        segmentIndex,
+        mainTaskId,
+        subtaskId,
+        mainTaskTitle: mainTask.title,
+        subtaskTitle,
+        phase: subtask.phase,
+        difficulty: subtask.difficulty,
+        totalDuration, // 分鐘
+        remainingTime, // 分鐘
+        timeSpent, // 分鐘
+        progressPercentage,
+        suggestedDuration, // 分鐘
+        // 用於 timer 的秒數
+        suggestedDurationSeconds: suggestedDuration * 60,
+        completed: subtask.completed || false,
+        lastSessionTime: subtask.lastSessionTime || 0,
+        sessionHistory: subtask.sessionHistory || [],
+      };
+    } else {
+      // 一般任務
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        console.warn(`⚠️ Focus: Task not found: ${taskId}`);
+        return null;
+      }
+      
+      // 計算任務建議時長
+      let suggestedDuration = task.duration || 25; // 預設分鐘
+      
+      if (params.duration) {
+        const urlDuration = parseInt(params.duration, 10);
+        if (!isNaN(urlDuration) && urlDuration > 0) {
+          suggestedDuration = Math.floor(urlDuration / 60); // 轉換秒到分鐘
+        }
+      }
+      
+      console.log(`📋 Focus: Regular task - Duration: ${suggestedDuration}min`);
+      
+      return {
+        ...task,
+        isSubtask: false,
+        suggestedDuration, // 分鐘
+        suggestedDurationSeconds: suggestedDuration * 60,
+        totalDuration: suggestedDuration,
+        remainingTime: suggestedDuration,
+        timeSpent: 0,
+        progressPercentage: 0,
+      };
+    }
+  }, [taskId, tasks, params.duration, t]);
 
+  // 🆕 初始化任務信息
   useEffect(() => {
-    if (taskId && !isRunning && !currentTaskId) {
-      // Auto-start timer when entering focus mode with a task
+    const info = calculateTaskInfo();
+    setTaskInfo(info);
+    
+    if (info) {
+      console.log(`✅ Focus: Task info initialized:`, {
+        title: info.title,
+        isSubtask: info.isSubtask,
+        suggestedDuration: info.suggestedDuration,
+        remainingTime: info.remainingTime,
+        progressPercentage: info.progressPercentage
+      });
+    }
+  }, [calculateTaskInfo]);
+
+  // 🆕 智能啟動 timer
+  useEffect(() => {
+    if (taskInfo && !isRunning && !currentTaskId) {
+      console.log(`🚀 Focus: Auto-starting timer for ${taskInfo.isSubtask ? 'subtask' : 'task'}: ${taskInfo.title}`);
+      console.log(`⏱️ Focus: Duration: ${taskInfo.suggestedDuration}min (${taskInfo.suggestedDurationSeconds}s)`);
+      
       try {
-        startTimer(taskId, duration);
+        startTimer(taskId!, taskInfo.suggestedDurationSeconds);
       } catch (error) {
-        console.error("Failed to start timer:", error);
-        Alert.alert("Error", "Failed to start focus session. Please try again.");
+        console.error("❌ Focus: Failed to start timer:", error);
+        Alert.alert(
+          t('errors.timerStartFailed'),
+          t('errors.timerStartFailedMessage'),
+          [
+            { text: t('alerts.ok'), onPress: () => router.back() }
+          ]
+        );
       }
     }
-  }, [taskId, duration, isRunning, currentTaskId, startTimer]);
+  }, [taskInfo, isRunning, currentTaskId, taskId, startTimer]);
 
+  // Timer tick effect
   useEffect(() => {
     if (isRunning && !isPaused) {
-      intervalRef.current = setInterval(() => {
-        try {
+      intervalRef.current = window.setInterval(() => {
           tick();
-        } catch (error) {
-          console.error("Timer tick error:", error);
-          // Stop the interval if there's an error
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-        }
       }, 1000);
     } else {
       if (intervalRef.current) {
@@ -101,19 +245,16 @@ export default function FocusScreen() {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isRunning, isPaused, tick]);
 
-  useEffect(() => {
-    // Check if session was just completed
-    if (lastSession && currentTime === 0 && !isRunning) {
-      handleSessionComplete();
-    }
-  }, [lastSession, currentTime, isRunning]);
-
-  const handleSessionComplete = () => {
+  // 🆕 Session 完成處理 - 包含子任務進度更新
+  const handleSessionComplete = React.useCallback(() => {
     try {
+      console.log(`🎉 Focus: Session completed for ${taskInfo?.isSubtask ? 'subtask' : 'task'}: ${taskInfo?.title}`);
+      
       // Vibrate on completion (mobile only)
       if (Platform.OS !== 'web' && Haptics) {
         try {
@@ -126,134 +267,236 @@ export default function FocusScreen() {
       // Add session to stats
       addSession(targetTime);
       
+      // 🆕 更新子任務進度
+      if (taskInfo?.isSubtask && taskInfo.mainTaskId && taskInfo.subtaskId) {
+        const { updateSubtaskProgress } = useTaskStore.getState();
+        const actualMinutes = Math.floor(targetTime / 60); // 轉換為分鐘
+        
+        try {
+          updateSubtaskProgress(
+            taskInfo.mainTaskId,
+            taskInfo.subtaskId,
+            actualMinutes,
+            `Focus session completed: ${actualMinutes}min on ${new Date().toLocaleDateString()}`
+          );
+          
+          console.log(`✅ Focus: Updated subtask progress - ${taskInfo.mainTaskId}/${taskInfo.subtaskId}: +${actualMinutes}min`);
+        } catch (progressError) {
+          console.error("❌ Focus: Failed to update subtask progress:", progressError);
+        }
+      }
+      
       // Show completion alert and navigate to feedback
       Alert.alert(
-        "Session Complete!",
-        "Great job! Would you like to record what you learned?",
+        t('focus.sessionComplete'),
+        t('focus.sessionCompleteMessage'),
         [
           {
-            text: "Skip",
+            text: t('focus.skipFeedback'),
             style: "cancel",
             onPress: () => router.back(),
           },
           {
-            text: "Record Learning",
-            onPress: () => router.push("/learning-feedback"),
+            text: t('focus.recordLearning'),
+            onPress: () => {
+              router.push({
+                pathname: "/learning-feedback",
+                params: { 
+                  taskId: taskId,
+                  duration: targetTime.toString(),
+                  isSubtask: taskInfo?.isSubtask ? 'true' : 'false'
+                }
+              });
+            },
           },
         ]
       );
     } catch (error) {
-      console.error("Session complete error:", error);
+      console.error("❌ Focus: Session complete error:", error);
       // Still navigate back even if there's an error
       router.back();
     }
-  };
+  }, [targetTime, addSession, taskInfo, taskId, t]);
+
+  // 監聽 timer 完成
+  useEffect(() => {
+    if (isRunning && currentTime <= 0) {
+      handleSessionComplete();
+    }
+  }, [isRunning, currentTime, handleSessionComplete]);
 
   const handleStart = () => {
     try {
-      if (!taskId) {
-        Alert.alert("No Task Selected", "Please select a task to focus on.");
+      if (!taskInfo) {
+        Alert.alert(t('errors.taskNotFound'), t('errors.taskNotFoundMessage'));
         return;
       }
       
-      if (isPaused) {
-        resumeTimer();
-      } else {
-        startTimer(taskId, duration);
-      }
+      console.log(`▶️ Focus: Starting timer for ${taskInfo.title}`);
+      startTimer(taskId!, taskInfo.suggestedDurationSeconds);
     } catch (error) {
-      console.error("Start timer error:", error);
-      Alert.alert("Error", "Failed to start focus session. Please try again.");
+      console.error("❌ Focus: Start error:", error);
+      Alert.alert(t('errors.startTimerFailed'), t('errors.startTimerFailedMessage'));
     }
   };
 
   const handlePause = () => {
     try {
+      console.log(`⏸️ Focus: Pausing timer`);
       pauseTimer();
     } catch (error) {
-      console.error("Pause timer error:", error);
-      Alert.alert("Error", "Failed to pause timer.");
+      console.error("❌ Focus: Pause error:", error);
+      Alert.alert(t('errors.pauseTimerFailed'), t('errors.pauseTimerFailedMessage'));
+    }
+  };
+
+  const handleResume = () => {
+    try {
+      console.log(`▶️ Focus: Resuming timer`);
+      resumeTimer();
+    } catch (error) {
+      console.error("❌ Focus: Resume error:", error);
+      Alert.alert(t('errors.resumeTimerFailed'), t('errors.resumeTimerFailedMessage'));
     }
   };
 
   const handleStop = () => {
+    try {
     Alert.alert(
-      "Stop Session",
-      "Are you sure you want to stop this focus session?",
+        t('focus.stopSession'),
+        t('focus.stopSessionMessage'),
       [
-        { text: "Cancel", style: "cancel" },
+          { text: t('alerts.cancel'), style: "cancel" },
         {
-          text: "Stop",
-          style: "destructive",
+            text: t('focus.stopAndSave'),
           onPress: () => {
-            try {
-              stopTimer();
-              if (currentTime > 60) { // Only show feedback if session was longer than 1 minute
-                Alert.alert(
-                  "Session Stopped",
-                  "Would you like to record what you accomplished?",
-                  [
-                    {
-                      text: "Skip",
-                      style: "cancel",
-                      onPress: () => router.back(),
-                    },
-                    {
-                      text: "Record Progress",
-                      onPress: () => router.push("/learning-feedback"),
-                    },
-                  ]
-                );
-              } else {
-                router.back();
+              console.log(`⏹️ Focus: Stopping timer and saving progress`);
+              
+              // 🆕 計算實際學習時間並更新進度
+              if (taskInfo?.isSubtask && taskInfo.mainTaskId && taskInfo.subtaskId) {
+                const { updateSubtaskProgress } = useTaskStore.getState();
+                const elapsedTime = targetTime - currentTime; // 秒
+                const elapsedMinutes = Math.floor(elapsedTime / 60); // 分鐘
+                
+                if (elapsedMinutes > 0) {
+                  try {
+                    updateSubtaskProgress(
+                      taskInfo.mainTaskId,
+                      taskInfo.subtaskId,
+                      elapsedMinutes,
+                      `Partial session: ${elapsedMinutes}min on ${new Date().toLocaleDateString()}`
+                    );
+                    
+                    console.log(`✅ Focus: Updated partial progress - ${taskInfo.mainTaskId}/${taskInfo.subtaskId}: +${elapsedMinutes}min`);
+                  } catch (progressError) {
+                    console.error("❌ Focus: Failed to update partial progress:", progressError);
+                  }
+                }
               }
-            } catch (error) {
-              console.error("Stop timer error:", error);
+              
+              stopTimer();
               router.back();
-            }
           },
         },
       ]
     );
+    } catch (error) {
+      console.error("❌ Focus: Stop error:", error);
+      Alert.alert(t('errors.stopTimerFailed'), t('errors.stopTimerFailedMessage'));
+    }
   };
 
   const handleReset = () => {
+    try {
     Alert.alert(
-      "Reset Timer",
-      "Are you sure you want to reset the timer?",
+        t('focus.resetTimer'),
+        t('focus.resetTimerMessage'),
       [
-        { text: "Cancel", style: "cancel" },
+          { text: t('alerts.cancel'), style: "cancel" },
         { 
-          text: "Reset", 
+            text: t('focus.reset'),
+            style: "destructive",
           onPress: () => {
-            try {
+              console.log(`🔄 Focus: Resetting timer`);
               resetTimer();
-            } catch (error) {
-              console.error("Reset timer error:", error);
-              Alert.alert("Error", "Failed to reset timer.");
-            }
-          }
+            },
         },
       ]
     );
+    } catch (error) {
+      console.error("❌ Focus: Reset error:", error);
+      Alert.alert(t('errors.resetTimerFailed'), t('errors.resetTimerFailedMessage'));
+    }
   };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  const progress = targetTime > 0 ? (targetTime - currentTime) / targetTime : 0;
-  const remainingTime = Math.max(0, currentTime);
+  const getPhaseIcon = (phase?: string) => {
+    switch (phase) {
+      case "knowledge":
+        return "📚";
+      case "practice":
+        return "🛠️";
+      case "application":
+        return "🎯";
+      case "reflection":
+        return "🤔";
+      case "output":
+        return "📝";
+      case "review":
+        return "🔄";
+      default:
+        return "⏱️";
+    }
+  };
+
+  const getPhaseLabel = (phase?: string) => {
+    switch (phase) {
+      case "knowledge":
+        return t('phases.knowledge');
+      case "practice":
+        return t('phases.practice');
+      case "application":
+        return t('phases.application');
+      case "reflection":
+        return t('phases.reflection');
+      case "output":
+        return t('phases.output');
+      case "review":
+        return t('phases.review');
+      default:
+        return t('focus.focusSession');
+    }
+  };
+
+  // 🆕 進度計算
+  const getProgress = () => {
+    if (targetTime === 0) return 0;
+    return ((targetTime - currentTime) / targetTime) * 100;
+  };
+
+  if (!taskInfo) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ title: t('focus.title') }} />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>{t('focus.loadingTask')}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          title: "Focus Session",
+          title: t('focus.title'),
           headerRight: () => (
-            <TouchableOpacity onPress={() => setShowCompanion(!showCompanion)}>
+            <TouchableOpacity onPress={() => setShowCompanion(!showCompanion)} style={styles.settingsButton}>
               <Settings size={20} color={Colors.light.primary} />
             </TouchableOpacity>
           ),
@@ -261,74 +504,106 @@ export default function FocusScreen() {
       />
       
       <View style={styles.content}>
-        {/* Task Info */}
-        {currentTask && (
+        {/* Task Info Section */}
           <View style={styles.taskInfo}>
-            <Text style={styles.taskTitle}>{currentTask.title}</Text>
-            {currentTask.description && (
-              <Text style={styles.taskDescription} numberOfLines={2}>
-                {currentTask.description}
-              </Text>
+          <View style={styles.taskHeader}>
+            {taskInfo.phase && (
+              <Text style={styles.phaseIcon}>{getPhaseIcon(taskInfo.phase)}</Text>
             )}
+            <Text style={styles.taskTitle} numberOfLines={2}>
+              {taskInfo.title}
+              </Text>
           </View>
-        )}
+          
+          {taskInfo.phase && (
+            <Text style={styles.phaseLabel}>{getPhaseLabel(taskInfo.phase)}</Text>
+          )}
+          
+          {taskInfo.description && (
+            <Text style={styles.taskDescription} numberOfLines={3}>
+              {taskInfo.description}
+            </Text>
+          )}
 
-        {/* Timer Display */}
-        <View style={styles.timerContainer}>
+          {/* 🆕 子任務進度信息 */}
+          {taskInfo.isSubtask && (
+            <View style={styles.progressInfo}>
+              <View style={styles.progressRow}>
+                <Text style={styles.progressLabel}>{t('focus.progress')}:</Text>
+                <Text style={styles.progressValue}>{taskInfo.progressPercentage}%</Text>
+              </View>
+              <View style={styles.progressRow}>
+                <Text style={styles.progressLabel}>{t('focus.timeSpent')}:</Text>
+                <Text style={styles.progressValue}>{taskInfo.timeSpent}min</Text>
+              </View>
+              <View style={styles.progressRow}>
+                <Text style={styles.progressLabel}>{t('focus.remaining')}:</Text>
+                <Text style={styles.progressValue}>{taskInfo.remainingTime}min</Text>
+              </View>
+              {taskInfo.isSegmented && (
+                <View style={styles.progressRow}>
+                  <Text style={styles.progressLabel}>{t('focus.segment')}:</Text>
+                  <Text style={styles.progressValue}>{taskInfo.segmentIndex}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Timer Section */}
+        <View style={styles.timerSection}>
           <FocusTimer
-            remainingTime={remainingTime}
+            remainingTime={currentTime}
             totalTime={targetTime}
             isRunning={isRunning}
             isPaused={isPaused}
           />
           
-          <Text style={styles.timeText}>
-            {formatTime(remainingTime)}
+          <Text style={styles.timeDisplay}>
+            {formatTime(currentTime)}
           </Text>
           
-          <Text style={styles.progressText}>
-            {Math.round(progress * 100)}% Complete
+          <Text style={styles.timeLabel}>
+            {isRunning 
+              ? (isPaused ? t('focus.paused') : t('focus.focusTime'))
+              : t('focus.readyToStart')
+            }
           </Text>
         </View>
 
-        {/* Controls */}
+        {/* Controls Section */}
         <View style={styles.controls}>
-          <TouchableOpacity
-            style={[styles.controlButton, styles.secondaryButton]}
-            onPress={handleReset}
-            disabled={!isRunning && currentTime === 0}
-          >
-            <RotateCcw size={24} color={Colors.light.subtext} />
+          {!isRunning ? (
+            <TouchableOpacity style={styles.primaryButton} onPress={handleStart}>
+              <Play size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : isPaused ? (
+            <TouchableOpacity style={styles.primaryButton} onPress={handleResume}>
+              <Play size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.primaryButton} onPress={handlePause}>
+              <Pause size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleStop}>
+            <Square size={20} color={Colors.light.subtext} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.controlButton, styles.primaryButton]}
-            onPress={isRunning && !isPaused ? handlePause : handleStart}
-          >
-            {isRunning && !isPaused ? (
-              <Pause size={32} color="#FFFFFF" />
-            ) : (
-              <Play size={32} color="#FFFFFF" />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.controlButton, styles.secondaryButton]}
-            onPress={handleStop}
-            disabled={!isRunning && currentTime === 0}
-          >
-            <Square size={24} color={Colors.light.subtext} />
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleReset}>
+            <RotateCcw size={20} color={Colors.light.subtext} />
           </TouchableOpacity>
         </View>
 
         {/* Companion View */}
         {showCompanion && (
-          <View style={styles.companionContainer}>
+          <View style={styles.companionSection}>
             <CompanionView
               isActive={isRunning}
               isPaused={isPaused}
-              progress={progress}
-              currentTask={currentTask}
+              progress={getProgress()}
+              currentTask={taskInfo}
             />
           </View>
         )}
@@ -342,72 +617,129 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  content: {
+  loadingContainer: {
     flex: 1,
-    padding: Theme.spacing.lg,
     justifyContent: "center",
     alignItems: "center",
+    padding: Theme.spacing.xl,
+  },
+  loadingText: {
+    fontSize: Theme.typography.sizes.lg,
+    color: Colors.light.subtext,
+    textAlign: "center",
+  },
+  content: {
+    flex: 1,
+    padding: Theme.spacing.xl,
   },
   taskInfo: {
-    alignItems: "center",
+    backgroundColor: Colors.light.card,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.lg,
     marginBottom: Theme.spacing.xl,
-    paddingHorizontal: Theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  taskHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Theme.spacing.sm,
+  },
+  phaseIcon: {
+    fontSize: 20,
+    marginRight: Theme.spacing.sm,
   },
   taskTitle: {
     fontSize: Theme.typography.sizes.xl,
     fontWeight: "700",
     color: Colors.light.text,
-    textAlign: "center",
-    marginBottom: Theme.spacing.xs,
+    flex: 1,
+    lineHeight: 28,
+  },
+  phaseLabel: {
+    fontSize: Theme.typography.sizes.sm,
+    fontWeight: "600",
+    color: Colors.light.primary,
+    marginBottom: Theme.spacing.sm,
   },
   taskDescription: {
     fontSize: Theme.typography.sizes.md,
     color: Colors.light.subtext,
-    textAlign: "center",
     lineHeight: 22,
+    marginBottom: Theme.spacing.sm,
   },
-  timerContainer: {
+  progressInfo: {
+    backgroundColor: Colors.light.background,
+    borderRadius: Theme.radius.md,
+    padding: Theme.spacing.md,
+    marginTop: Theme.spacing.sm,
+  },
+  progressRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Theme.spacing.xl,
+    marginBottom: 4,
   },
-  timeText: {
-    fontSize: 48,
+  progressLabel: {
+    fontSize: Theme.typography.sizes.sm,
+    color: Colors.light.subtext,
+  },
+  progressValue: {
+    fontSize: Theme.typography.sizes.sm,
+    fontWeight: "600",
+    color: Colors.light.text,
+  },
+  timerSection: {
+    alignItems: "center",
+    marginBottom: Theme.spacing.xxl,
+  },
+  timeDisplay: {
+    fontSize: 64,
     fontWeight: "300",
     color: Colors.light.text,
     marginTop: Theme.spacing.lg,
     fontVariant: ["tabular-nums"],
   },
-  progressText: {
-    fontSize: Theme.typography.sizes.md,
+  timeLabel: {
+    fontSize: Theme.typography.sizes.lg,
     color: Colors.light.subtext,
     marginTop: Theme.spacing.sm,
   },
   controls: {
     flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
     gap: Theme.spacing.lg,
     marginBottom: Theme.spacing.xl,
   },
-  controlButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   primaryButton: {
-    backgroundColor: Colors.light.primary,
     width: 80,
     height: 80,
     borderRadius: 40,
+    backgroundColor: Colors.light.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: Colors.light.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   secondaryButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: Colors.light.card,
     borderWidth: 1,
     borderColor: Colors.light.border,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  companionContainer: {
-    width: "100%",
-    maxWidth: 400,
+  companionSection: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  settingsButton: {
+    padding: Theme.spacing.sm,
   },
 });

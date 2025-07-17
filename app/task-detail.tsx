@@ -22,6 +22,7 @@ import {
   BookOpen,
   ExternalLink
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
 import Button from "@/components/Button";
@@ -30,6 +31,7 @@ import { useTimerStore } from "@/store/timerStore";
 import { formatDuration } from "@/utils/timeUtils";
 
 export default function TaskDetailScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ id: string }>();
   const taskId = params.id;
   
@@ -47,7 +49,7 @@ export default function TaskDetailScreen() {
   if (!task) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Task not found</Text>
+        <Text style={styles.errorText}>{t('errors.taskNotFound')}</Text>
       </View>
     );
   }
@@ -73,15 +75,15 @@ export default function TaskDetailScreen() {
   
   const handleDelete = () => {
     Alert.alert(
-      "Delete Task",
-      "Are you sure you want to delete this task?",
+      t('alerts.deleteTaskTitle'),
+      t('alerts.deleteTaskMessage'),
       [
         {
-          text: "Cancel",
+          text: t('alerts.cancel'),
           style: "cancel",
         },
         {
-          text: "Delete",
+          text: t('alerts.delete'),
           onPress: () => {
             deleteTask(taskId);
             router.back();
@@ -141,15 +143,17 @@ export default function TaskDetailScreen() {
   const getPhaseLabel = (phase?: string) => {
     switch (phase) {
       case "knowledge":
-        return "Knowledge";
+        return t('phases.knowledge');
       case "practice":
-        return "Practice";
+        return t('phases.practice');
       case "application":
-        return "Application";
+        return t('phases.application');
       case "reflection":
-        return "Reflection";
+        return t('phases.reflection');
       case "output":
-        return "Output";
+        return t('phases.output');
+      case "review":
+        return t('phases.review');
       default:
         return "";
     }
@@ -478,7 +482,7 @@ export default function TaskDetailScreen() {
                           <View style={styles.subtaskDuration}>
                             <Clock size={12} color={Colors.light.subtext} />
                             <Text style={styles.subtaskDurationText}>
-                              {subtask.userEstimatedDuration || subtask.aiEstimatedDuration}m
+                              {t('timeUnits.minutes', { count: subtask.userEstimatedDuration || subtask.aiEstimatedDuration })}
                             </Text>
                           </View>
                         )}
@@ -522,18 +526,18 @@ export default function TaskDetailScreen() {
         )}
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Progress</Text>
+          <Text style={styles.sectionTitle}>{t('taskDetail.progress')}</Text>
           <View style={styles.progressContainer}>
             <View style={styles.progressItem}>
               <Text style={styles.progressValue}>
                 {formatDuration(totalTimeSpent)}
               </Text>
-              <Text style={styles.progressLabel}>Time Spent</Text>
+              <Text style={styles.progressLabel}>{t('taskDetail.timeSpent')}</Text>
             </View>
             
             <View style={styles.progressItem}>
               <Text style={styles.progressValue}>{sessions.length}</Text>
-              <Text style={styles.progressLabel}>Focus Sessions</Text>
+              <Text style={styles.progressLabel}>{t('stats.sessions')}</Text>
             </View>
             
             <View style={styles.progressItem}>
@@ -547,7 +551,7 @@ export default function TaskDetailScreen() {
                   : 0}
                 %
               </Text>
-              <Text style={styles.progressLabel}>Subtasks</Text>
+              <Text style={styles.progressLabel}>{t('taskDetail.subtasks')}</Text>
             </View>
           </View>
         </View>
@@ -555,7 +559,7 @@ export default function TaskDetailScreen() {
       
       <View style={styles.buttonContainer}>
         <Button
-          title="Start Focus Session"
+          title={t('taskDetail.startFocus')}
           onPress={handleStartFocus}
           variant="primary"
           size="large"

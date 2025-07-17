@@ -8,6 +8,13 @@ export interface TimerSession {
   startedAt: string;
   completedAt?: string;
   startTime: string; // for compatibility
+  // 🆕 子任務支援
+  isSubtask?: boolean;
+  mainTaskId?: string;
+  subtaskId?: string;
+  segmentIndex?: number; // 子任務片段序號
+  actualDuration?: number; // 實際學習時長（秒）
+  notes?: string; // 學習筆記
 }
 
 interface TimerState {
@@ -19,8 +26,12 @@ interface TimerState {
   sessions: TimerSession[];
   lastSession: TimerSession | null;
   
+  // 🆕 子任務支援
+  currentSubtaskId: string | null;
+  currentSegmentIndex?: number;
+  
   // Actions
-  startTimer: (taskId: string, duration: number) => void;
+  startTimer: (taskId: string, duration: number, subtaskId?: string, segmentIndex?: number) => void;
   pauseTimer: () => void;
   resumeTimer: () => void;
   stopTimer: () => void;
@@ -32,6 +43,9 @@ interface TimerState {
   getAverageSessionDuration: () => number;
   getSessionsByTaskId: (taskId: string) => TimerSession[];
   startSession: (taskId: string) => void;
+  
+  // 🆕 子任務相關方法
+  startSubtaskSession: (mainTaskId: string, subtaskId: string, duration: number, segmentIndex?: number) => void;
 }
 
 export const useTimerStore = create<TimerState>()(
@@ -45,7 +59,11 @@ export const useTimerStore = create<TimerState>()(
       sessions: [],
       lastSession: null,
 
-      startTimer: (taskId: string, duration: number) => {
+      // 🆕 子任務支援
+      currentSubtaskId: null,
+      currentSegmentIndex: undefined,
+
+      startTimer: (taskId: string, duration: number, subtaskId?: string, segmentIndex?: number) => {
         try {
           // Validate inputs
           if (!taskId || typeof taskId !== 'string') {
@@ -53,7 +71,7 @@ export const useTimerStore = create<TimerState>()(
           }
           
           // Ensure duration is a valid number and convert to seconds if needed
-          let validDuration = 25 * 60; // default 25 minutes
+          let validDuration = 25 * 60; // default 25 minutes in seconds
           
           if (typeof duration === 'number' && duration > 0) {
             validDuration = Math.floor(duration); // Ensure it's an integer
@@ -64,15 +82,39 @@ export const useTimerStore = create<TimerState>()(
             }
           }
           
+          console.log(`⏰ TimerStore: Starting timer - Task: ${taskId}, Duration: ${Math.floor(validDuration/60)}min (${validDuration}s)`);
+          
+          // 🆕 解析子任務信息
+          let isSubtask = false;
+          let mainTaskId: string | undefined;
+          let extractedSubtaskId: string | undefined;
+          
+          if (taskId.includes('_')) {
+            isSubtask = true;
+            const parts = taskId.split('_');
+            if (parts.includes('segment')) {
+              const segmentPos = parts.indexOf('segment');
+              mainTaskId = parts[0];
+              extractedSubtaskId = parts.slice(1, segmentPos).join('_');
+            } else {
+              mainTaskId = parts[0];
+              extractedSubtaskId = parts.slice(1).join('_');
+            }
+            
+            console.log(`📝 TimerStore: Subtask detected - Main: ${mainTaskId}, Sub: ${extractedSubtaskId}`);
+          }
+          
           set({
             isRunning: true,
             isPaused: false,
             currentTime: validDuration,
             targetTime: validDuration,
             currentTaskId: taskId,
+            currentSubtaskId: extractedSubtaskId || subtaskId,
+            currentSegmentIndex: segmentIndex,
           });
         } catch (error) {
-          console.error("Start timer error:", error);
+          console.error("❌ TimerStore: Start timer error:", error);
           throw new Error("Failed to start timer");
         }
       },
@@ -83,6 +125,8 @@ export const useTimerStore = create<TimerState>()(
             throw new Error("Invalid task ID");
           }
           
+          console.log(`📚 TimerStore: Starting session - Task: ${taskId}`);
+          
           set({
             isRunning: true,
             isPaused: false,
@@ -91,25 +135,27 @@ export const useTimerStore = create<TimerState>()(
             currentTaskId: taskId,
           });
         } catch (error) {
-          console.error("Start session error:", error);
+          console.error("❌ TimerStore: Start session error:", error);
           throw new Error("Failed to start session");
         }
       },
 
       pauseTimer: () => {
         try {
+          console.log(`⏸️ TimerStore: Pausing timer`);
           set({ isPaused: true });
         } catch (error) {
-          console.error("Pause timer error:", error);
+          console.error("❌ TimerStore: Pause timer error:", error);
           throw new Error("Failed to pause timer");
         }
       },
 
       resumeTimer: () => {
         try {
+          console.log(`▶️ TimerStore: Resuming timer`);
           set({ isPaused: false });
         } catch (error) {
-          console.error("Resume timer error:", error);
+          console.error("❌ TimerStore: Resume timer error:", error);
           throw new Error("Failed to resume timer");
         }
       },
@@ -117,11 +163,30 @@ export const useTimerStore = create<TimerState>()(
       stopTimer: () => {
         try {
           const state = get();
+          console.log(`⏹️ TimerStore: Stopping timer - Task: ${state.currentTaskId}`);
+          
           if (state.currentTaskId && state.currentTime > 0) {
             // Calculate actual duration (target - remaining)
             const actualDuration = state.targetTime - state.currentTime;
             
             if (actualDuration > 0) {
+              // 🆕 檢查是否為子任務
+              const isSubtask = state.currentTaskId.includes('_');
+              let mainTaskId: string | undefined;
+              let subtaskId: string | undefined;
+              
+              if (isSubtask) {
+                const parts = state.currentTaskId.split('_');
+                if (parts.includes('segment')) {
+                  const segmentPos = parts.indexOf('segment');
+                  mainTaskId = parts[0];
+                  subtaskId = parts.slice(1, segmentPos).join('_');
+                } else {
+                  mainTaskId = parts[0];
+                  subtaskId = parts.slice(1).join('_');
+                }
+              }
+              
               // Save as incomplete session
               const session: TimerSession = {
                 taskId: state.currentTaskId,
@@ -129,23 +194,36 @@ export const useTimerStore = create<TimerState>()(
                 startedAt: new Date(Date.now() - actualDuration * 1000).toISOString(),
                 completedAt: new Date().toISOString(),
                 startTime: new Date(Date.now() - actualDuration * 1000).toISOString(),
+                // 🆕 子任務相關字段
+                isSubtask,
+                mainTaskId,
+                subtaskId: state.currentSubtaskId || subtaskId,
+                segmentIndex: state.currentSegmentIndex,
+                actualDuration, // 實際學習時長
               };
+              
+              console.log(`💾 TimerStore: Saving incomplete session - Duration: ${Math.floor(actualDuration/60)}min`);
               
               set({
                 isRunning: false,
                 isPaused: false,
                 currentTime: 0,
                 currentTaskId: null,
+                currentSubtaskId: null,
+                currentSegmentIndex: undefined,
                 sessions: [...state.sessions, session],
                 lastSession: session,
               });
             } else {
               // No meaningful time elapsed
+              console.log(`🚫 TimerStore: No meaningful time elapsed, not saving session`);
               set({
                 isRunning: false,
                 isPaused: false,
                 currentTime: 0,
                 currentTaskId: null,
+                currentSubtaskId: null,
+                currentSegmentIndex: undefined,
               });
             }
           } else {
@@ -154,16 +232,20 @@ export const useTimerStore = create<TimerState>()(
               isPaused: false,
               currentTime: 0,
               currentTaskId: null,
+              currentSubtaskId: null,
+              currentSegmentIndex: undefined,
             });
           }
         } catch (error) {
-          console.error("Stop timer error:", error);
+          console.error("❌ TimerStore: Stop timer error:", error);
           // Ensure we still stop the timer even if there's an error
           set({
             isRunning: false,
             isPaused: false,
             currentTime: 0,
             currentTaskId: null,
+            currentSubtaskId: null,
+            currentSegmentIndex: undefined,
           });
           throw new Error("Failed to stop timer");
         }
@@ -172,14 +254,17 @@ export const useTimerStore = create<TimerState>()(
       resetTimer: () => {
         try {
           const state = get();
+          console.log(`🔄 TimerStore: Resetting timer`);
           set({
             isRunning: false,
             isPaused: false,
             currentTime: state.targetTime,
             currentTaskId: null,
+            currentSubtaskId: null,
+            currentSegmentIndex: undefined,
           });
         } catch (error) {
-          console.error("Reset timer error:", error);
+          console.error("❌ TimerStore: Reset timer error:", error);
           throw new Error("Failed to reset timer");
         }
       },
@@ -191,14 +276,15 @@ export const useTimerStore = create<TimerState>()(
             const newTime = state.currentTime - 1;
             
             if (newTime <= 0) {
-              // Timer completed
+              // Timer completed - trigger completion
+              console.log(`🎉 TimerStore: Timer completed for task: ${state.currentTaskId}`);
               get().completeSession();
             } else {
               set({ currentTime: newTime });
             }
           }
         } catch (error) {
-          console.error("Timer tick error:", error);
+          console.error("❌ TimerStore: Timer tick error:", error);
           throw new Error("Timer tick failed");
         }
       },
@@ -206,26 +292,55 @@ export const useTimerStore = create<TimerState>()(
       completeSession: () => {
         try {
           const state = get();
+          console.log(`✅ TimerStore: Completing session for task: ${state.currentTaskId}`);
+          
           if (state.currentTaskId) {
+            // 🆕 檢查是否為子任務並加入相關信息
+            const isSubtask = state.currentTaskId.includes('_');
+            let mainTaskId: string | undefined;
+            let subtaskId: string | undefined;
+            
+            if (isSubtask) {
+              const parts = state.currentTaskId.split('_');
+              if (parts.includes('segment')) {
+                const segmentPos = parts.indexOf('segment');
+                mainTaskId = parts[0];
+                subtaskId = parts.slice(1, segmentPos).join('_');
+              } else {
+                mainTaskId = parts[0];
+                subtaskId = parts.slice(1).join('_');
+              }
+            }
+            
             const session: TimerSession = {
               taskId: state.currentTaskId,
               duration: state.targetTime,
               startedAt: new Date(Date.now() - state.targetTime * 1000).toISOString(),
               completedAt: new Date().toISOString(),
               startTime: new Date(Date.now() - state.targetTime * 1000).toISOString(),
+              // 🆕 子任務相關字段
+              isSubtask,
+              mainTaskId,
+              subtaskId: state.currentSubtaskId || subtaskId,
+              segmentIndex: state.currentSegmentIndex,
+              actualDuration: state.targetTime, // 完整完成的時長
             };
+            
+            console.log(`💾 TimerStore: Saving completed session - Duration: ${Math.floor(state.targetTime/60)}min`);
             
             set({
               isRunning: false,
               isPaused: false,
               currentTime: 0,
               currentTaskId: null,
+              currentSubtaskId: null,
+              currentSegmentIndex: undefined,
               sessions: [...state.sessions, session],
               lastSession: session,
             });
           }
         } catch (error) {
-          console.error("Complete session error:", error);
+          console.error("❌ TimerStore: Complete session error:", error);
           throw new Error("Failed to complete session");
         }
       },
@@ -234,7 +349,7 @@ export const useTimerStore = create<TimerState>()(
         try {
           set({ lastSession: null });
         } catch (error) {
-          console.error("Clear last session error:", error);
+          console.error("❌ TimerStore: Clear last session error:", error);
           throw new Error("Failed to clear last session");
         }
       },
@@ -271,7 +386,7 @@ export const useTimerStore = create<TimerState>()(
           
           return state.sessions.reduce((total, session) => total + (session.duration || 0), 0);
         } catch (error) {
-          console.error("Get total focus time error:", error);
+          console.error("❌ TimerStore: Get total focus time error:", error);
           return 0;
         }
       },
@@ -284,7 +399,7 @@ export const useTimerStore = create<TimerState>()(
           const totalDuration = state.sessions.reduce((total, session) => total + (session.duration || 0), 0);
           return Math.floor(totalDuration / state.sessions.length);
         } catch (error) {
-          console.error("Get average session duration error:", error);
+          console.error("❌ TimerStore: Get average session duration error:", error);
           return 0;
         }
       },
@@ -297,8 +412,40 @@ export const useTimerStore = create<TimerState>()(
           }
           return state.sessions.filter(session => session.taskId === taskId);
         } catch (error) {
-          console.error("Get sessions by task ID error:", error);
+          console.error("❌ TimerStore: Get sessions by task ID error:", error);
           return [];
+        }
+      },
+
+      // 🆕 子任務相關方法實現
+      startSubtaskSession: (mainTaskId: string, subtaskId: string, duration: number, segmentIndex?: number) => {
+        try {
+          if (!mainTaskId || !subtaskId) {
+            throw new Error("Invalid task or subtask ID");
+          }
+          
+          // Validate duration
+          let validDuration = 25 * 60; // default 25 minutes in seconds
+          if (typeof duration === 'number' && duration > 0) {
+            validDuration = Math.floor(duration); // Use as-is if already in seconds
+          }
+          
+          const taskId = `${mainTaskId}_${subtaskId}${segmentIndex ? `_segment_${segmentIndex}` : ''}`;
+          
+          console.log(`🎯 TimerStore: Starting subtask session - Task: ${taskId}, Duration: ${Math.floor(validDuration/60)}min`);
+          
+          set({
+            isRunning: true,
+            isPaused: false,
+            currentTime: validDuration,
+            targetTime: validDuration,
+            currentTaskId: taskId,
+            currentSubtaskId: subtaskId,
+            currentSegmentIndex: segmentIndex
+          });
+        } catch (error) {
+          console.error("❌ TimerStore: Start subtask session error:", error);
+          throw new Error("Failed to start subtask session");
         }
       },
     }),

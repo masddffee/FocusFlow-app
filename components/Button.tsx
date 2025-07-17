@@ -5,7 +5,9 @@ import {
   StyleSheet, 
   ActivityIndicator,
   ViewStyle,
-  TextStyle 
+  TextStyle,
+  AccessibilityRole,
+  AccessibilityState
 } from "react-native";
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
@@ -20,6 +22,10 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   icon?: React.ReactNode;
+  // 🆕 可訪問性支持
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  testID?: string;
 }
 
 export default function Button({
@@ -32,6 +38,9 @@ export default function Button({
   style,
   textStyle,
   icon,
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }: ButtonProps) {
   const getButtonStyles = (): ViewStyle[] => {
     const styles: ViewStyle[] = [buttonStyles.button];
@@ -98,12 +107,60 @@ export default function Button({
     return styles;
   };
   
+  // 🆕 安全地構建文本樣式數組
+  const buildTextStyles = (): (TextStyle | undefined)[] => {
+    const baseStyles = getTextStyles();
+    const styles: (TextStyle | undefined)[] = [...baseStyles];
+    
+    // 添加自定義文本樣式（如果存在）
+    if (textStyle) {
+      styles.push(textStyle);
+    }
+    
+    // 添加圖標間距（如果存在圖標）
+    if (icon) {
+      styles.push({ marginLeft: 8 });
+    }
+    
+    return styles;
+  };
+  
+  // 🆕 構建可訪問性屬性
+  const getAccessibilityProps = () => {
+    const props: {
+      accessibilityRole: AccessibilityRole;
+      accessibilityState: AccessibilityState;
+      accessibilityLabel?: string;
+      accessibilityHint?: string;
+    } = {
+      accessibilityRole: "button",
+      accessibilityState: {
+        disabled: disabled || loading,
+        busy: loading,
+      },
+    };
+    
+    if (accessibilityLabel) {
+      props.accessibilityLabel = accessibilityLabel;
+    } else {
+      props.accessibilityLabel = title;
+    }
+    
+    if (accessibilityHint) {
+      props.accessibilityHint = accessibilityHint;
+    }
+    
+    return props;
+  };
+  
   return (
     <TouchableOpacity
       style={[...getButtonStyles(), style]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
+      testID={testID}
+      {...getAccessibilityProps()}
     >
       {loading ? (
         <ActivityIndicator 
@@ -113,7 +170,7 @@ export default function Button({
       ) : (
         <>
           {icon}
-          <Text style={[...getTextStyles(), textStyle, icon && { marginLeft: 8 }]}>
+          <Text style={buildTextStyles()}>
             {title}
           </Text>
         </>

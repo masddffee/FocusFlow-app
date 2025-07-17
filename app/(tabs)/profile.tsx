@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   StyleSheet, 
   Text, 
@@ -21,17 +21,25 @@ import {
   Leaf,
   LogOut,
   CalendarDays,
-  X
+  X,
+  Languages
 } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
+import i18n from "@/constants/i18n";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
-import { useSettingsStore } from "@/store/settingsStore";
+import { useSettingsStore, AppLanguage } from "@/store/settingsStore";
+import { useTaskStore } from "@/store/taskStore";
 import { requestNotificationPermissions, requestCalendarPermissions } from "@/utils/permissions";
+import { restartApp, canAutoRestart } from "@/utils/appRestart";
 import TimeSlotPicker from "@/components/TimeSlotPicker";
 import { TimeSlot } from "@/types/timeSlot";
 
 export default function ProfileScreen() {
   const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
+  const { t } = useTranslation();
   
   const {
     notificationsEnabled,
@@ -45,6 +53,7 @@ export default function ProfileScreen() {
     darkMode,
     availableTimeSlots,
     autoSchedulingEnabled,
+    language,
     setNotificationsEnabled,
     setCalendarSyncEnabled,
     setDefaultFocusDuration,
@@ -57,7 +66,13 @@ export default function ProfileScreen() {
     setAvailableTimeSlots,
     setAutoSchedulingEnabled,
     setHasCompletedOnboarding,
+    setLanguage,
   } = useSettingsStore();
+
+  // 監聽語言變化，同步到 i18n
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language]);
   
   const handleToggleNotifications = async () => {
     if (!notificationsEnabled) {
@@ -66,8 +81,8 @@ export default function ProfileScreen() {
       
       if (!granted) {
         Alert.alert(
-          "Notification Permission",
-          "Please enable notifications in your device settings to receive reminders."
+          t('alerts.notificationPermission'),
+          t('alerts.notificationMessage')
         );
       }
     } else {
@@ -82,8 +97,8 @@ export default function ProfileScreen() {
       
       if (!granted) {
         Alert.alert(
-          "Calendar Permission",
-          "Please enable calendar access in your device settings to sync your tasks."
+          t('alerts.calendarPermission'),
+          t('alerts.calendarMessage')
         );
       }
     } else {
@@ -93,67 +108,158 @@ export default function ProfileScreen() {
   
   const handleChangeFocusDuration = () => {
     Alert.alert(
-      "Focus Duration",
-      "Select default focus session duration",
+      t('alerts.focusDurationTitle'),
+      t('alerts.focusDurationMessage'),
       [
-        { text: "15 minutes", onPress: () => setDefaultFocusDuration(15) },
-        { text: "25 minutes", onPress: () => setDefaultFocusDuration(25) },
-        { text: "30 minutes", onPress: () => setDefaultFocusDuration(30) },
-        { text: "45 minutes", onPress: () => setDefaultFocusDuration(45) },
-        { text: "60 minutes", onPress: () => setDefaultFocusDuration(60) },
-        { text: "Cancel", style: "cancel" },
+        { text: t('timeUnits.minutes', { count: 15 }), onPress: () => setDefaultFocusDuration(15) },
+        { text: t('timeUnits.minutes', { count: 25 }), onPress: () => setDefaultFocusDuration(25) },
+        { text: t('timeUnits.minutes', { count: 30 }), onPress: () => setDefaultFocusDuration(30) },
+        { text: t('timeUnits.minutes', { count: 45 }), onPress: () => setDefaultFocusDuration(45) },
+        { text: t('timeUnits.minutes', { count: 60 }), onPress: () => setDefaultFocusDuration(60) },
+        { text: t('alerts.cancel'), style: "cancel" },
       ]
     );
   };
   
   const handleChangeBreakDuration = () => {
     Alert.alert(
-      "Break Duration",
-      "Select default break duration",
+      t('alerts.breakDurationTitle'),
+      t('alerts.breakDurationMessage'),
       [
-        { text: "5 minutes", onPress: () => setDefaultBreakDuration(5) },
-        { text: "10 minutes", onPress: () => setDefaultBreakDuration(10) },
-        { text: "15 minutes", onPress: () => setDefaultBreakDuration(15) },
-        { text: "Cancel", style: "cancel" },
+        { text: t('timeUnits.minutes', { count: 5 }), onPress: () => setDefaultBreakDuration(5) },
+        { text: t('timeUnits.minutes', { count: 10 }), onPress: () => setDefaultBreakDuration(10) },
+        { text: t('timeUnits.minutes', { count: 15 }), onPress: () => setDefaultBreakDuration(15) },
+        { text: t('alerts.cancel'), style: "cancel" },
       ]
     );
   };
   
   const handleChangeCompanionType = () => {
     Alert.alert(
-      "Companion Type",
-      "Select your focus companion",
+      t('alerts.companionTypeTitle'),
+      t('alerts.companionTypeMessage'),
       [
-        { text: "Plant", onPress: () => setCompanionType("plant") },
-        { text: "Animal", onPress: () => setCompanionType("animal") },
-        { text: "Landscape", onPress: () => setCompanionType("landscape") },
-        { text: "Cancel", style: "cancel" },
+        { text: t('companionTypes.plant'), onPress: () => setCompanionType("plant") },
+        { text: t('companionTypes.animal'), onPress: () => setCompanionType("animal") },
+        { text: t('companionTypes.landscape'), onPress: () => setCompanionType("landscape") },
+        { text: t('alerts.cancel'), style: "cancel" },
       ]
     );
   };
   
   const handleChangeCompanionTheme = () => {
     Alert.alert(
-      "Companion Theme",
-      "Select your companion theme",
+      t('alerts.companionThemeTitle'),
+      t('alerts.companionThemeMessage'),
       [
-        { text: "Forest", onPress: () => setCompanionTheme("forest") },
-        { text: "Ocean", onPress: () => setCompanionTheme("ocean") },
-        { text: "Space", onPress: () => setCompanionTheme("space") },
-        { text: "Desert", onPress: () => setCompanionTheme("desert") },
-        { text: "Cancel", style: "cancel" },
+        { text: t('companionThemes.forest'), onPress: () => setCompanionTheme("forest") },
+        { text: t('companionThemes.ocean'), onPress: () => setCompanionTheme("ocean") },
+        { text: t('companionThemes.space'), onPress: () => setCompanionTheme("space") },
+        { text: t('companionThemes.desert'), onPress: () => setCompanionTheme("desert") },
+        { text: t('alerts.cancel'), style: "cancel" },
+      ]
+    );
+  };
+  
+  // Enhanced language change handler with AsyncStorage and proper reload logic
+  const handleLanguageChange = async (newLang: 'en' | 'zh') => {
+    try {
+      // Change i18n language
+      await i18n.changeLanguage(newLang);
+      
+      // Save to AsyncStorage for persistence
+      await AsyncStorage.setItem('user-language', newLang);
+      
+      // Update app state
+      setLanguage(newLang);
+      
+      // Translate existing tasks
+      await useTaskStore.getState().translateAllTasks(newLang);
+      
+      // Trigger app reload based on platform capabilities
+      if (__DEV__) {
+        // In development, show manual restart alert
+        Alert.alert(
+          t('alerts.restartRequired'),
+          t('alerts.manualRestartMessage'),
+          [{ text: t('alerts.ok') }]
+        );
+      } else {
+        // In production, check if Expo Updates is available
+        try {
+          const Updates = require('expo-updates');
+          if (Updates.isEnabled) {
+            Alert.alert(
+              t('alerts.restartRequired'),
+              t('alerts.autoRestartMessage'),
+              [
+                { text: t('alerts.cancel'), style: "cancel" },
+                { 
+                  text: t('alerts.restartNow'), 
+                  onPress: async () => {
+                    try {
+                      await Updates.reloadAsync();
+                    } catch (error) {
+                      console.error('Failed to reload with Updates:', error);
+                      Alert.alert(
+                        t('alerts.restartRequired'),
+                        t('alerts.manualRestartMessage'),
+                        [{ text: t('alerts.ok') }]
+                      );
+                    }
+                  }
+                }
+              ]
+            );
+          } else {
+            throw new Error('Updates not enabled');
+          }
+        } catch (error) {
+          // Fallback: Use navigation reset or manual restart
+          Alert.alert(
+            t('alerts.restartRequired'),
+            t('alerts.manualRestartMessage'),
+            [{ text: t('alerts.ok') }]
+          );
+        }
+      }
+      
+    } catch (error) {
+      console.error('Language change failed:', error);
+      Alert.alert(
+        t('common.error'),
+        'Failed to change language. Please try again.',
+        [{ text: t('alerts.ok') }]
+      );
+    }
+  };
+
+  const handleChangeLanguage = () => {
+    Alert.alert(
+      t('alerts.languageTitle'),
+      t('alerts.languageMessage'),
+      [
+        { 
+          text: "English", 
+          onPress: () => handleLanguageChange("en")
+        },
+        { 
+          text: "繁體中文", 
+          onPress: () => handleLanguageChange("zh")
+        },
+        { text: t('alerts.cancel'), style: "cancel" },
       ]
     );
   };
   
   const handleResetOnboarding = () => {
     Alert.alert(
-      "Reset Onboarding",
-      "Are you sure you want to reset the onboarding process? You will see the introduction screens again next time you open the app.",
+      t('alerts.resetOnboardingTitle'),
+      t('alerts.resetOnboardingMessage'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('alerts.cancel'), style: "cancel" },
         { 
-          text: "Reset", 
+          text: t('alerts.reset'), 
           onPress: () => setHasCompletedOnboarding(false),
           style: "destructive"
         },
@@ -177,16 +283,16 @@ export default function ProfileScreen() {
   
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Profile" }} />
+      <Stack.Screen options={{ title: t('profile.title') }} />
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
+          <Text style={styles.sectionTitle}>{t('profile.notifications')}</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Bell size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Enable Notifications</Text>
+              <Text style={styles.settingText}>{t('profile.notificationsDesc')}</Text>
             </View>
             <Switch
               value={notificationsEnabled}
@@ -198,12 +304,12 @@ export default function ProfileScreen() {
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Calendar</Text>
+          <Text style={styles.sectionTitle}>{t('profile.calendar')}</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Calendar size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Sync with Calendar</Text>
+              <Text style={styles.settingText}>{t('profile.calendarSync')}</Text>
             </View>
             <Switch
               value={calendarSyncEnabled}
@@ -215,20 +321,20 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Study Schedule</Text>
+          <Text style={styles.sectionTitle}>{t('profile.studySchedule')}</Text>
           
           <TouchableOpacity style={styles.settingItem} onPress={() => setShowTimeSlotModal(true)}>
             <View style={styles.settingInfo}>
               <CalendarDays size={20} color={Colors.light.text} />
               <View style={styles.settingTextContainer}>
-                <Text style={styles.settingText}>Available Time Slots</Text>
+                <Text style={styles.settingText}>{t('profile.availableTimeSlots')}</Text>
                 <Text style={styles.settingSubtext}>
-                  {getTotalWeeklyHours()}h per week configured
+                  {t('profile.timeSlotsDesc', { hours: getTotalWeeklyHours() })}
                 </Text>
               </View>
             </View>
             <View style={styles.settingValue}>
-              <Text style={styles.settingValueText}>Configure</Text>
+              <Text style={styles.settingValueText}>{t('profile.configure')}</Text>
             </View>
           </TouchableOpacity>
 
@@ -236,9 +342,9 @@ export default function ProfileScreen() {
             <View style={styles.settingInfo}>
               <Settings size={20} color={Colors.light.text} />
               <View style={styles.settingTextContainer}>
-                <Text style={styles.settingText}>Auto-Scheduling</Text>
+                <Text style={styles.settingText}>{t('profile.autoScheduling')}</Text>
                 <Text style={styles.settingSubtext}>
-                  Automatically schedule tasks in available slots
+                  {t('profile.autoSchedulingDesc')}
                 </Text>
               </View>
             </View>
@@ -252,40 +358,40 @@ export default function ProfileScreen() {
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Focus Timer</Text>
+          <Text style={styles.sectionTitle}>{t('profile.focusTimer')}</Text>
           
           <TouchableOpacity style={styles.settingItem} onPress={handleChangeFocusDuration}>
             <View style={styles.settingInfo}>
               <Clock size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Default Focus Duration</Text>
+              <Text style={styles.settingText}>{t('profile.defaultFocusDuration')}</Text>
             </View>
             <View style={styles.settingValue}>
-              <Text style={styles.settingValueText}>{defaultFocusDuration} min</Text>
+              <Text style={styles.settingValueText}>{t('timeUnits.minutes', { count: defaultFocusDuration })}</Text>
             </View>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.settingItem} onPress={handleChangeBreakDuration}>
             <View style={styles.settingInfo}>
               <Clock size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Default Break Duration</Text>
+              <Text style={styles.settingText}>{t('profile.defaultBreakDuration')}</Text>
             </View>
             <View style={styles.settingValue}>
-              <Text style={styles.settingValueText}>{defaultBreakDuration} min</Text>
+              <Text style={styles.settingValueText}>{t('timeUnits.minutes', { count: defaultBreakDuration })}</Text>
             </View>
           </TouchableOpacity>
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Companion</Text>
+          <Text style={styles.sectionTitle}>{t('profile.companion')}</Text>
           
           <TouchableOpacity style={styles.settingItem} onPress={handleChangeCompanionType}>
             <View style={styles.settingInfo}>
               <Leaf size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Companion Type</Text>
+              <Text style={styles.settingText}>{t('profile.companionType')}</Text>
             </View>
             <View style={styles.settingValue}>
               <Text style={styles.settingValueText}>
-                {companionType.charAt(0).toUpperCase() + companionType.slice(1)}
+                {t(`companionTypes.${companionType}`)}
               </Text>
             </View>
           </TouchableOpacity>
@@ -293,23 +399,40 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.settingItem} onPress={handleChangeCompanionTheme}>
             <View style={styles.settingInfo}>
               <Settings size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Companion Theme</Text>
+              <Text style={styles.settingText}>{t('profile.companionTheme')}</Text>
             </View>
             <View style={styles.settingValue}>
               <Text style={styles.settingValueText}>
-                {companionTheme.charAt(0).toUpperCase() + companionTheme.slice(1)}
+                {t(`companionThemes.${companionTheme}`)}
               </Text>
             </View>
           </TouchableOpacity>
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
+          <Text style={styles.sectionTitle}>{t('profile.appearance')}</Text>
+
+          <TouchableOpacity style={styles.settingItem} onPress={handleChangeLanguage}>
+            <View style={styles.settingInfo}>
+              <Languages size={20} color={Colors.light.text} />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingText}>{t('profile.language')}</Text>
+                <Text style={styles.settingSubtext}>
+                  {t('profile.languageDesc')}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.settingValue}>
+              <Text style={styles.settingValueText}>
+                {t(`languages.${language === 'zh' ? 'chinese' : 'english'}`)}
+              </Text>
+            </View>
+          </TouchableOpacity>
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Moon size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Dark Mode</Text>
+              <Text style={styles.settingText}>{t('profile.darkMode')}</Text>
             </View>
             <Switch
               value={darkMode}
@@ -321,12 +444,12 @@ export default function ProfileScreen() {
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sound & Haptics</Text>
+          <Text style={styles.sectionTitle}>{t('profile.soundHaptics')}</Text>
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Volume2 size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Sound Effects</Text>
+              <Text style={styles.settingText}>{t('profile.soundEffects')}</Text>
             </View>
             <Switch
               value={soundEnabled}
@@ -339,7 +462,7 @@ export default function ProfileScreen() {
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Vibrate size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Vibration</Text>
+              <Text style={styles.settingText}>{t('profile.vibration')}</Text>
             </View>
             <Switch
               value={vibrationEnabled}
@@ -351,20 +474,20 @@ export default function ProfileScreen() {
         </View>
         
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App</Text>
+          <Text style={styles.sectionTitle}>{t('profile.app')}</Text>
           
           <TouchableOpacity style={styles.settingItem} onPress={handleResetOnboarding}>
             <View style={styles.settingInfo}>
               <LogOut size={20} color={Colors.light.error} />
               <Text style={[styles.settingText, { color: Colors.light.error }]}>
-                Reset Onboarding
+                {t('profile.resetOnboarding')}
               </Text>
             </View>
           </TouchableOpacity>
         </View>
         
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>FocusFlow v1.0.0</Text>
+          <Text style={styles.versionText}>{t('profile.version')}</Text>
         </View>
       </ScrollView>
 
@@ -376,7 +499,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Study Schedule</Text>
+            <Text style={styles.modalTitle}>{t('timeSlotModal.title')}</Text>
             <TouchableOpacity
               onPress={() => setShowTimeSlotModal(false)}
               style={styles.closeButton}
@@ -387,7 +510,7 @@ export default function ProfileScreen() {
           
           <View style={styles.modalContent}>
             <Text style={styles.modalDescription}>
-              Set your available study times for each day of the week. The app will use these slots to automatically schedule your tasks and focus sessions.
+              {t('timeSlotModal.description')}
             </Text>
             
             <TimeSlotPicker

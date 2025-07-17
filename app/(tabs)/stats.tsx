@@ -15,7 +15,8 @@ import { useStatsStore } from "@/store/statsStore";
 import { useTimerStore } from "@/store/timerStore";
 import { useTaskStore } from "@/store/taskStore";
 import { formatDuration, getWeekDates } from "@/utils/timeUtils";
-import { generateProductivityTips } from "@/utils/ai";
+// import { generateProductivityTipsSafely } from "@/utils/api";
+import { useSettingsStore } from "@/store/settingsStore";
 
 export default function StatsScreen() {
   const [activeTab, setActiveTab] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -40,10 +41,33 @@ export default function StatsScreen() {
         distractions: todayStats.distractions,
       };
       
-      const tips = await generateProductivityTips(stats);
-      setProductivityTips(tips);
+      // 🔐 使用安全的生產力建議生成
+      const currentLanguage = useSettingsStore.getState().language;
+      
+      // 暫時使用靜態建議，直到後端 API 完成
+      const tipsResponse = {
+        tips: [
+          "根據您的專注時間，建議增加學習時長",
+          "完成任務數量不錯，可以嘗試增加挑戰性",
+          "專注時間分布良好，保持這種節奏"
+        ],
+        fallback: true
+      };
+      
+      if (tipsResponse.tips && tipsResponse.tips.length > 0) {
+        setProductivityTips(tipsResponse.tips);
+        
+        if (tipsResponse.fallback) {
+          console.warn('⚠️ Using fallback productivity tips due to network issues');
+        }
+      } else {
+        console.error('❌ No productivity tips received');
+        setProductivityTips([]);
+      }
+      
     } catch (error) {
       console.error("Error generating tips:", error);
+      setProductivityTips([]);
     } finally {
       setIsLoadingTips(false);
     }

@@ -5,6 +5,7 @@ import { DayTimeSlots } from "@/types/timeSlot";
 
 export type CompanionType = "plant" | "animal" | "landscape";
 export type CompanionTheme = "forest" | "ocean" | "space" | "desert";
+export type AppLanguage = "en" | "zh";
 
 interface SettingsState {
   hasCompletedOnboarding: boolean;
@@ -21,6 +22,7 @@ interface SettingsState {
   darkMode: boolean;
   availableTimeSlots: DayTimeSlots;
   autoSchedulingEnabled: boolean;
+  language: AppLanguage;
   
   setHasCompletedOnboarding: (value: boolean) => void;
   setUsername: (value: string) => void;
@@ -36,6 +38,7 @@ interface SettingsState {
   setDarkMode: (value: boolean) => void;
   setAvailableTimeSlots: (value: DayTimeSlots) => void;
   setAutoSchedulingEnabled: (value: boolean) => void;
+  setLanguage: (value: AppLanguage) => void;
 }
 
 const defaultTimeSlots: DayTimeSlots = {
@@ -91,6 +94,7 @@ export const useSettingsStore = create<SettingsState>()(
       darkMode: false,
       availableTimeSlots: defaultTimeSlots,
       autoSchedulingEnabled: true,
+      language: "en" as AppLanguage,
       
       setHasCompletedOnboarding: (value) => set({ hasCompletedOnboarding: value }),
       setUsername: (value) => set({ username: value }),
@@ -106,6 +110,7 @@ export const useSettingsStore = create<SettingsState>()(
       setDarkMode: (value) => set({ darkMode: value }),
       setAvailableTimeSlots: (value) => set({ availableTimeSlots: value }),
       setAutoSchedulingEnabled: (value) => set({ autoSchedulingEnabled: value }),
+      setLanguage: (value) => set({ language: value }),
     }),
     {
       name: "settings-storage",
