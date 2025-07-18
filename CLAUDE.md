@@ -28,6 +28,7 @@ Before starting **ANY** task, Claude Code must respond:
 * **NEVER hard-code any prompts.** → All AI prompts must be imported from files under `/lib/prompts/`.
 * **NEVER call third-party APIs (e.g., Gemini) directly from the frontend (`app/`, `components/`).** → All AI requests must be proxied through secure backend endpoints (e.g., `/api/ai/plan`).
 * **NEVER copy and paste code blocks longer than three lines.** → Immediately extract them into reusable functions or components.
+* **Never modify large core files such as ai.js or add-task.tsx directly**. If you want to modify them, please ask first and specify in detail what program you want to modify and what functions it has.
 
 ### Mandatory Requirements
 

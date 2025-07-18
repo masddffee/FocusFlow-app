@@ -1,0 +1,74 @@
+mcpServers:
+  playwright:
+    command: npx
+    args:
+      - "@playwright/mcp@latest"
+    env:
+      PLAYWRIGHT_MCP_PORT: "8081"
+      PLAYWRIGHT_MCP_HOST: "localhost"
+      PLAYWRIGHT_BROWSERS_PATH: "/Users/wetom/Desktop/FocusFlow/node_modules/.bin"
+    description: "Playwright MCP Server for FocusFlow automated testing"
+    capabilities:
+      - tabs
+      - pdf
+      - history
+      - wait
+      - files
+      - install
+    permissions:
+      allowedOrigins:
+        - "http://localhost:8080"
+        - "http://localhost:8081"
+        - "https://localhost:8080"
+        - "https://localhost:8081"
+        - "exp://localhost:8080"
+        - "exp://localhost:8081"
+        - "http://192.168.*:8080"
+        - "http://192.168.*:8081"
+      allowFileAccess: true
+      allowNetworkAccess: true
+    browser:
+      type: "chromium"
+      headless: false
+      devtools: false
+      slowMo: 0
+      timeout: 30000
+    testing:
+      baseURL: "http://localhost:8081"
+      timeout: 30000
+      retries: 2
+      workers: 1
+      fullyParallel: false
+      forbidOnly: false
+      use:
+        browserName: "chromium"
+        headless: false
+        viewport:
+          width: 1280
+          height: 720
+        ignoreHTTPSErrors: true
+        video: "retain-on-failure"
+        screenshot: "only-on-failure"
+    projects:
+      - name: "chromium-desktop"
+        use:
+          browserName: "chromium"
+          viewport:
+            width: 1280
+            height: 720
+      - name: "mobile-chrome"
+        use:
+          browserName: "chromium"
+          viewport:
+            width: 375
+            height: 667
+          isMobile: true
+          hasTouch: true
+      - name: "tablet-chrome"
+        use:
+          browserName: "chromium"
+          viewport:
+            width: 768
+            height: 1024
+          isMobile: true
+          hasTouch: true

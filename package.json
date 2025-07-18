@@ -10,6 +10,7 @@
     "backend": "cd focusflow-backend && node index.js",
     "backend:test": "cd focusflow-backend && node test_security.js",
     "dev": "concurrently \"npm run backend\" \"npm run start\"",
+    "dev:web": "concurrently \"npm run backend\" \"npm run web\"",
     "test": "jest",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
@@ -67,6 +68,7 @@
     "@playwright/test": "^1.54.1",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.0.10",
+    "concurrently": "^9.2.0",
     "playwright": "^1.54.1",
     "typescript": "~5.8.3"
   },
