@@ -499,10 +499,19 @@ export async function generateUnifiedLearningPlan(params: {
   targetProficiency?: string;
   clarificationResponses?: Record<string, string>;
 }): Promise<any> {
-  // 這裡直接呼叫 submitLearningPlanJob，然後 pollUntilComplete
+  // 🔧 修復：使用正確的 learning_plan 類型
   const jobResult = await submitLearningPlanJob(params);
   const finalResult = await pollUntilComplete(jobResult.jobId);
-  return finalResult.result || finalResult; // 兼容不同後端格式
+  
+  // 🔧 修復數據格式不匹配問題
+  const result = finalResult.result || finalResult;
+  
+  // 如果後端返回 questions，轉換為前端期待的 personalizationQuestions
+  if (result.questions && !result.personalizationQuestions) {
+    result.personalizationQuestions = result.questions;
+  }
+  
+  return result;
 }
 
 // 安全的輸入品質評估（可用 Job API 或 fallback）

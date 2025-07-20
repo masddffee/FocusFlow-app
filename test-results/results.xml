@@ -1,0 +1,296 @@
+<testsuites id="" name="" tests="3" failures="0" skipped="0" errors="0" time="115.453371">
+<testsuite name="focused-task-creation-test.spec.ts" timestamp="2025-07-20T02:18:10.047Z" hostname="chromium-desktop" tests="1" failures="0" skipped="0" time="37.366" errors="0">
+<testcase name="FocusFlow Smart Generate - Network Monitoring › 智能生成功能 - 完整流程監控" classname="focused-task-creation-test.spec.ts" time="37.366">
+<system-out>
+<![CDATA[🚀 [smart-generate-1752977890228] 初始化獨立瀏覽器實例...
+✅ [smart-generate-1752977890228] 瀏覽器實例初始化完成
+🚀 開始測試：Smart Generate 功能完整流程
+🚀 [smart-generate-1752977890228-navigation-retry-0] 初始化獨立瀏覽器實例...
+✅ [smart-generate-1752977890228-navigation-retry-0] 瀏覽器實例初始化完成
+🧹 [smart-generate-1752977890228-navigation-retry-0] 開始清理瀏覽器資源...
+✅ [smart-generate-1752977890228-navigation-retry-0] 頁面已關閉
+✅ [smart-generate-1752977890228-navigation-retry-0] 上下文已關閉
+✅ [smart-generate-1752977890228-navigation-retry-0] 瀏覽器已關閉
+📸 [smart-generate-1752977890228] 截圖已保存: test-results/01-app-loaded-smart-generate-1752977890228-1752977894165.png
+➕ 步驟 2：點擊新增任務按鈕
+⚠️ 按鈕選擇器失敗: button:has(text("+"))
+⚠️ 按鈕選擇器失敗: [role="button"]:has(text("+"))
+⚠️ 按鈕選擇器失敗: div:has(text("+"))
+🔄 嘗試透過底部導航進入任務頁面
+✅ [smart-generate-1752977890228] 找到元素: text="Tasks"
+⚠️ [smart-generate-1752977890228] 元素未找到: button:has(text("+"))
+⚠️ [smart-generate-1752977890228] 元素未找到: [role="button"]:has(text("+"))
+⚠️ [smart-generate-1752977890228] 元素未找到: button:visible:has-text("+")
+⚠️ [smart-generate-1752977890228] 元素未找到: div:has(text("+"))
+⚠️ [smart-generate-1752977890228] 元素未找到: text="+"
+⚠️ [smart-generate-1752977890228] 元素未找到: .fixed button
+⚠️ [smart-generate-1752977890228] 元素未找到: [data-testid="add-task"]
+❌ 無法通過底部導航進入
+🔄 直接導航到 /add-task
+🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+📸 [smart-generate-1752977890228] 截圖已保存: test-results/02-add-task-page-smart-generate-1752977890228-1752977908145.png
+📝 步驟 3：填寫任務資訊
+⚠️ [smart-generate-1752977890228] 元素未找到: input[placeholder*="title" i]
+⚠️ [smart-generate-1752977890228] 元素未找到: input[placeholder*="標題" i]
+⚠️ [smart-generate-1752977890228] 元素未找到: input[placeholder*="Title" i]
+⚠️ [smart-generate-1752977890228] 元素未找到: input[type="text"]:visible
+⚠️ [smart-generate-1752977890228] 元素未找到: input:visible:first
+⚠️ 填寫標題失敗: Error: 無法找到任何匹配的元素: input[placeholder*="title" i], input[placeholder*="標題" i], input[placeholder*="Title" i], input[type="text"]:visible, input:visible:first
+    at EnhancedTestHelpers.findElement [90m(/Users/wetom/Desktop/FocusFlow/[39me2e-tests/utils/enhanced-test-helpers.ts:116:11[90m)[39m
+    at EnhancedTestHelpers.safeFill [90m(/Users/wetom/Desktop/FocusFlow/[39me2e-tests/utils/enhanced-test-helpers.ts:142:21[90m)[39m
+    at [90m/Users/wetom/Desktop/FocusFlow/[39me2e-tests/focused-task-creation-test.spec.ts:182:7
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:304:9
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/testInfo.js:289:11
+    at TimeoutManager.withRunnable [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/timeoutManager.js:67:14[90m)[39m
+    at TestInfoImpl._runWithTimeout [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/testInfo.js:287:7[90m)[39m
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:302:7
+    at WorkerMain._runTest [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:277:5[90m)[39m
+    at WorkerMain.runTestGroup [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:193:11[90m)[39m
+    at process.<anonymous> [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/common/process.js:65:22[90m)[39m
+⚠️ [smart-generate-1752977890228] 元素未找到: textarea[placeholder*="description" i]
+⚠️ [smart-generate-1752977890228] 元素未找到: textarea[placeholder*="描述" i]
+⚠️ [smart-generate-1752977890228] 元素未找到: textarea[placeholder*="Description" i]
+✅ [smart-generate-1752977890228] 找到元素: textarea:visible
+🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+✅ [smart-generate-1752977890228] 成功填寫: 這是一個自動化測試任務，創建於 2025/7/20 上午10:18:28
+✅ 成功填寫描述: 這是一個自動化測試任務，創建於 2025/7/20 上午10:18:28
+📸 [smart-generate-1752977890228] 截圖已保存: test-results/03-form-filled-smart-generate-1752977890228-1752977922302.png
+🤖 步驟 4：尋找 Smart Generate 按鈕
+✅ 找到生成按鈕: button:has-text("Smart Generate")
+📸 [smart-generate-1752977890228] 截圖已保存: test-results/04-generate-clicked-smart-generate-1752977890228-1752977922377.png
+📡 步驟 5：監控 API 請求...
+❌ 未偵測到作業建立請求
+🖥️ 步驟 6：檢查 UI 回應
+📸 [smart-generate-1752977890228] 截圖已保存: test-results/05-after-generate-smart-generate-1752977890228-1752977927460.png
+🔴 錯誤訊息: 0
+✅ 成功訊息: 2
+📋 計劃內容: 1
+📋 計劃內容片段:
+  - Subtasks
+📸 [smart-generate-1752977890228] 截圖已保存: test-results/06-final-state-smart-generate-1752977890228-1752977927529.png
+
+🎯 測試結果分析:
+📊 總 API 請求數: 0
+🆔 作業相關請求: 0
+🔴 錯誤回應數: 0
+❌ Smart Generate 功能未觸發 API 請求
+
+📊 測試完成 - 網路請求統計:
+總 API 請求: 0
+總 API 回應: 0
+作業相關請求: 0
+🧹 [smart-generate-1752977890228] 開始清理瀏覽器資源...
+✅ [smart-generate-1752977890228] 頁面已關閉
+✅ [smart-generate-1752977890228] 上下文已關閉
+✅ [smart-generate-1752977890228] 瀏覽器已關閉
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="focused-task-creation-test.spec.ts" timestamp="2025-07-20T02:18:10.047Z" hostname="mobile-chrome" tests="1" failures="0" skipped="0" time="37.966" errors="0">
+<testcase name="FocusFlow Smart Generate - Network Monitoring › 智能生成功能 - 完整流程監控" classname="focused-task-creation-test.spec.ts" time="37.966">
+<system-out>
+<![CDATA[🚀 [smart-generate-1752977927842] 初始化獨立瀏覽器實例...
+✅ [smart-generate-1752977927842] 瀏覽器實例初始化完成
+🚀 開始測試：Smart Generate 功能完整流程
+🚀 [smart-generate-1752977927842-navigation-retry-0] 初始化獨立瀏覽器實例...
+✅ [smart-generate-1752977927842-navigation-retry-0] 瀏覽器實例初始化完成
+🧹 [smart-generate-1752977927842-navigation-retry-0] 開始清理瀏覽器資源...
+✅ [smart-generate-1752977927842-navigation-retry-0] 頁面已關閉
+✅ [smart-generate-1752977927842-navigation-retry-0] 上下文已關閉
+✅ [smart-generate-1752977927842-navigation-retry-0] 瀏覽器已關閉
+📸 [smart-generate-1752977927842] 截圖已保存: test-results/01-app-loaded-smart-generate-1752977927842-1752977931766.png
+➕ 步驟 2：點擊新增任務按鈕
+⚠️ 按鈕選擇器失敗: button:has(text("+"))
+⚠️ 按鈕選擇器失敗: [role="button"]:has(text("+"))
+⚠️ 按鈕選擇器失敗: div:has(text("+"))
+🔄 嘗試透過底部導航進入任務頁面
+✅ [smart-generate-1752977927842] 找到元素: text="Tasks"
+⚠️ [smart-generate-1752977927842] 元素未找到: button:has(text("+"))
+⚠️ [smart-generate-1752977927842] 元素未找到: [role="button"]:has(text("+"))
+⚠️ [smart-generate-1752977927842] 元素未找到: button:visible:has-text("+")
+⚠️ [smart-generate-1752977927842] 元素未找到: div:has(text("+"))
+⚠️ [smart-generate-1752977927842] 元素未找到: text="+"
+⚠️ [smart-generate-1752977927842] 元素未找到: .fixed button
+⚠️ [smart-generate-1752977927842] 元素未找到: [data-testid="add-task"]
+❌ 無法通過底部導航進入
+🔄 直接導航到 /add-task
+🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+📸 [smart-generate-1752977927842] 截圖已保存: test-results/02-add-task-page-smart-generate-1752977927842-1752977945787.png
+📝 步驟 3：填寫任務資訊
+⚠️ [smart-generate-1752977927842] 元素未找到: input[placeholder*="title" i]
+⚠️ [smart-generate-1752977927842] 元素未找到: input[placeholder*="標題" i]
+⚠️ [smart-generate-1752977927842] 元素未找到: input[placeholder*="Title" i]
+⚠️ [smart-generate-1752977927842] 元素未找到: input[type="text"]:visible
+⚠️ [smart-generate-1752977927842] 元素未找到: input:visible:first
+⚠️ 填寫標題失敗: Error: 無法找到任何匹配的元素: input[placeholder*="title" i], input[placeholder*="標題" i], input[placeholder*="Title" i], input[type="text"]:visible, input:visible:first
+    at EnhancedTestHelpers.findElement [90m(/Users/wetom/Desktop/FocusFlow/[39me2e-tests/utils/enhanced-test-helpers.ts:116:11[90m)[39m
+    at EnhancedTestHelpers.safeFill [90m(/Users/wetom/Desktop/FocusFlow/[39me2e-tests/utils/enhanced-test-helpers.ts:142:21[90m)[39m
+    at [90m/Users/wetom/Desktop/FocusFlow/[39me2e-tests/focused-task-creation-test.spec.ts:182:7
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:304:9
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/testInfo.js:289:11
+    at TimeoutManager.withRunnable [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/timeoutManager.js:67:14[90m)[39m
+    at TestInfoImpl._runWithTimeout [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/testInfo.js:287:7[90m)[39m
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:302:7
+    at WorkerMain._runTest [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:277:5[90m)[39m
+    at WorkerMain.runTestGroup [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:193:11[90m)[39m
+    at process.<anonymous> [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/common/process.js:65:22[90m)[39m
+⚠️ [smart-generate-1752977927842] 元素未找到: textarea[placeholder*="description" i]
+⚠️ [smart-generate-1752977927842] 元素未找到: textarea[placeholder*="描述" i]
+⚠️ [smart-generate-1752977927842] 元素未找到: textarea[placeholder*="Description" i]
+✅ [smart-generate-1752977927842] 找到元素: textarea:visible
+🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+✅ [smart-generate-1752977927842] 成功填寫: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:05
+✅ 成功填寫描述: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:05
+📸 [smart-generate-1752977927842] 截圖已保存: test-results/03-form-filled-smart-generate-1752977927842-1752977960085.png
+🤖 步驟 4：尋找 Smart Generate 按鈕
+✅ 找到生成按鈕: button:has-text("Smart Generate")
+📸 [smart-generate-1752977927842] 截圖已保存: test-results/04-generate-clicked-smart-generate-1752977927842-1752977960274.png
+📡 步驟 5：監控 API 請求...
+❌ 未偵測到作業建立請求
+🖥️ 步驟 6：檢查 UI 回應
+📸 [smart-generate-1752977927842] 截圖已保存: test-results/05-after-generate-smart-generate-1752977927842-1752977965433.png
+🔴 錯誤訊息: 0
+✅ 成功訊息: 2
+📋 計劃內容: 1
+📋 計劃內容片段:
+  - Subtasks
+📸 [smart-generate-1752977927842] 截圖已保存: test-results/06-final-state-smart-generate-1752977927842-1752977965620.png
+
+🎯 測試結果分析:
+📊 總 API 請求數: 0
+🆔 作業相關請求: 0
+🔴 錯誤回應數: 0
+❌ Smart Generate 功能未觸發 API 請求
+
+📊 測試完成 - 網路請求統計:
+總 API 請求: 0
+總 API 回應: 0
+作業相關請求: 0
+🧹 [smart-generate-1752977927842] 開始清理瀏覽器資源...
+✅ [smart-generate-1752977927842] 頁面已關閉
+✅ [smart-generate-1752977927842] 上下文已關閉
+✅ [smart-generate-1752977927842] 瀏覽器已關閉
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="focused-task-creation-test.spec.ts" timestamp="2025-07-20T02:18:10.047Z" hostname="tablet-chrome" tests="1" failures="0" skipped="0" time="37.452" errors="0">
+<testcase name="FocusFlow Smart Generate - Network Monitoring › 智能生成功能 - 完整流程監控" classname="focused-task-creation-test.spec.ts" time="37.452">
+<system-out>
+<![CDATA[🚀 [smart-generate-1752977966052] 初始化獨立瀏覽器實例...
+✅ [smart-generate-1752977966052] 瀏覽器實例初始化完成
+🚀 開始測試：Smart Generate 功能完整流程
+🚀 [smart-generate-1752977966052-navigation-retry-0] 初始化獨立瀏覽器實例...
+✅ [smart-generate-1752977966052-navigation-retry-0] 瀏覽器實例初始化完成
+🧹 [smart-generate-1752977966052-navigation-retry-0] 開始清理瀏覽器資源...
+✅ [smart-generate-1752977966052-navigation-retry-0] 頁面已關閉
+✅ [smart-generate-1752977966052-navigation-retry-0] 上下文已關閉
+✅ [smart-generate-1752977966052-navigation-retry-0] 瀏覽器已關閉
+📸 [smart-generate-1752977966052] 截圖已保存: test-results/01-app-loaded-smart-generate-1752977966052-1752977969976.png
+➕ 步驟 2：點擊新增任務按鈕
+⚠️ 按鈕選擇器失敗: button:has(text("+"))
+⚠️ 按鈕選擇器失敗: [role="button"]:has(text("+"))
+⚠️ 按鈕選擇器失敗: div:has(text("+"))
+🔄 嘗試透過底部導航進入任務頁面
+✅ [smart-generate-1752977966052] 找到元素: text="Tasks"
+⚠️ [smart-generate-1752977966052] 元素未找到: button:has(text("+"))
+⚠️ [smart-generate-1752977966052] 元素未找到: [role="button"]:has(text("+"))
+⚠️ [smart-generate-1752977966052] 元素未找到: button:visible:has-text("+")
+⚠️ [smart-generate-1752977966052] 元素未找到: div:has(text("+"))
+⚠️ [smart-generate-1752977966052] 元素未找到: text="+"
+⚠️ [smart-generate-1752977966052] 元素未找到: .fixed button
+⚠️ [smart-generate-1752977966052] 元素未找到: [data-testid="add-task"]
+❌ 無法通過底部導航進入
+🔄 直接導航到 /add-task
+🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+📸 [smart-generate-1752977966052] 截圖已保存: test-results/02-add-task-page-smart-generate-1752977966052-1752977983898.png
+📝 步驟 3：填寫任務資訊
+⚠️ [smart-generate-1752977966052] 元素未找到: input[placeholder*="title" i]
+⚠️ [smart-generate-1752977966052] 元素未找到: input[placeholder*="標題" i]
+⚠️ [smart-generate-1752977966052] 元素未找到: input[placeholder*="Title" i]
+⚠️ [smart-generate-1752977966052] 元素未找到: input[type="text"]:visible
+⚠️ [smart-generate-1752977966052] 元素未找到: input:visible:first
+⚠️ 填寫標題失敗: Error: 無法找到任何匹配的元素: input[placeholder*="title" i], input[placeholder*="標題" i], input[placeholder*="Title" i], input[type="text"]:visible, input:visible:first
+    at EnhancedTestHelpers.findElement [90m(/Users/wetom/Desktop/FocusFlow/[39me2e-tests/utils/enhanced-test-helpers.ts:116:11[90m)[39m
+    at EnhancedTestHelpers.safeFill [90m(/Users/wetom/Desktop/FocusFlow/[39me2e-tests/utils/enhanced-test-helpers.ts:142:21[90m)[39m
+    at [90m/Users/wetom/Desktop/FocusFlow/[39me2e-tests/focused-task-creation-test.spec.ts:182:7
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:304:9
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/testInfo.js:289:11
+    at TimeoutManager.withRunnable [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/timeoutManager.js:67:14[90m)[39m
+    at TestInfoImpl._runWithTimeout [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/testInfo.js:287:7[90m)[39m
+    at [90m/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:302:7
+    at WorkerMain._runTest [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:277:5[90m)[39m
+    at WorkerMain.runTestGroup [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/worker/workerMain.js:193:11[90m)[39m
+    at process.<anonymous> [90m(/Users/wetom/Desktop/FocusFlow/[39mnode_modules/[4mplaywright[24m/lib/common/process.js:65:22[90m)[39m
+⚠️ [smart-generate-1752977966052] 元素未找到: textarea[placeholder*="description" i]
+⚠️ [smart-generate-1752977966052] 元素未找到: textarea[placeholder*="描述" i]
+⚠️ [smart-generate-1752977966052] 元素未找到: textarea[placeholder*="Description" i]
+✅ [smart-generate-1752977966052] 找到元素: textarea:visible
+🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.
+✅ [smart-generate-1752977966052] 成功填寫: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:43
+✅ 成功填寫描述: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:43
+📸 [smart-generate-1752977966052] 截圖已保存: test-results/03-form-filled-smart-generate-1752977966052-1752977998176.png
+🤖 步驟 4：尋找 Smart Generate 按鈕
+✅ 找到生成按鈕: button:has-text("Smart Generate")
+📸 [smart-generate-1752977966052] 截圖已保存: test-results/04-generate-clicked-smart-generate-1752977966052-1752977998262.png
+📡 步驟 5：監控 API 請求...
+❌ 未偵測到作業建立請求
+🖥️ 步驟 6：檢查 UI 回應
+📸 [smart-generate-1752977966052] 截圖已保存: test-results/05-after-generate-smart-generate-1752977966052-1752978003329.png
+🔴 錯誤訊息: 0
+✅ 成功訊息: 2
+📋 計劃內容: 1
+📋 計劃內容片段:
+  - Subtasks
+📸 [smart-generate-1752977966052] 截圖已保存: test-results/06-final-state-smart-generate-1752977966052-1752978003408.png
+
+🎯 測試結果分析:
+📊 總 API 請求數: 0
+🆔 作業相關請求: 0
+🔴 錯誤回應數: 0
+❌ Smart Generate 功能未觸發 API 請求
+
+📊 測試完成 - 網路請求統計:
+總 API 請求: 0
+總 API 回應: 0
+作業相關請求: 0
+🧹 [smart-generate-1752977966052] 開始清理瀏覽器資源...
+✅ [smart-generate-1752977966052] 頁面已關閉
+✅ [smart-generate-1752977966052] 上下文已關閉
+✅ [smart-generate-1752977966052] 瀏覽器已關閉
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

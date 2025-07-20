@@ -10,13 +10,9 @@ This document provides the highest-priority guiding principles for Claude Code (
 ## Critical Rules - Read and Confirm Before Starting Any Task
 
 **Rule Compliance System Activated**
-
 *Claude Code must explicitly confirm these rules before beginning any task, without exception.*
-
 **Rule Confirmation Required**
-
 Before starting **ANY** task, Claude Code must respond:
-
 **"Critical rules confirmed - I will comply with all prohibitions and mandatory requirements listed in FocusFlow CLAUDE.md."**
 
 ---
@@ -29,12 +25,16 @@ Before starting **ANY** task, Claude Code must respond:
 * **NEVER call third-party APIs (e.g., Gemini) directly from the frontend (`app/`, `components/`).** → All AI requests must be proxied through secure backend endpoints (e.g., `/api/ai/plan`).
 * **NEVER copy and paste code blocks longer than three lines.** → Immediately extract them into reusable functions or components.
 * **Never modify large core files such as ai.js or add-task.tsx directly**. If you want to modify them, please ask first and specify in detail what program you want to modify and what functions it has.
+* **NEVER ignore or skip any errors**. → Once an error occurs (whether it is a TypeScript compilation error, an API response exception, a test failure, or an ESLint warning), it must be corrected immediately, and no subsequent development, submission, or deployment actions may be performed until the error is completely resolved.
+* **NEVER sign Claude Code**. 
 
 ### Mandatory Requirements
 
 * **Search before you create:** Before creating any new function or component, **must** use the `grep` tool to search the project for similar extensible features.
 * **Layered architecture:** Strictly follow the call order “UI layer (`app/`) → API layer (`utils/api.ts`) → routing layer (`routes/ai.js`) → service layer (`services/`)”.
 * **Single source of truth (SSOT):** Each core concept (e.g., the data structure for a learning plan) must be defined in one authoritative place (e.g., `types/task.ts`); all other code must import and reference that definition.
+* **Code verification first:** Every newly created or modified functional module must first be tested locally and its functionality and correctness must be verified. Only after confirming that there are no errors and that it meets the expected behavior can the next step (such as integration, submission or deployment) be entered.
+* **Test file cleanup:** All test files temporarily created to verify the function (such as manual test pages, console output verification codes, etc.) must be deleted immediately after the unit is completed to keep the project clean and avoid technical debt.
 * **Backup after each commit:** After every `git commit`, **must** immediately run `git push origin main` to ensure the work is backed up to the remote repository.
 * **Use Task Agents for all long-running operations:** Any operation that may exceed 30 seconds (especially AI generation and testing) **must** run in a background Task Agent to prevent interruptions due to context switching.
 
@@ -99,6 +99,5 @@ Before starting **ANY** task, Claude Code must respond:
 
 ---
 
-**Please respond before starting any task:
-"Critical rules confirmed - I will comply with all prohibitions and mandatory requirements listed in FocusFlow CLAUDE.md."**
+* **Please respond before starting any task**:Critical rules confirmed - I will comply with all prohibitions and mandatory requirements listed in FocusFlow CLAUDE.md.
 You are now ready to begin the development process. Please follow the above structure and guidelines for every task.

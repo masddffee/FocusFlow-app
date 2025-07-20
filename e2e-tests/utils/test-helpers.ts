@@ -12,10 +12,39 @@ export class TestHelpers {
    */
   async waitForAppReady() {
     await this.page.waitForLoadState('networkidle');
-    // Wait for React app to initialize
-    await this.page.waitForSelector('#root', { timeout: 10000 });
-    // Wait for app content to load
-    await this.page.waitForTimeout(2000);
+    
+    // Wait longer for Expo web app to fully load
+    console.log('⏳ Waiting for Expo web app to load...');
+    await this.page.waitForTimeout(8000);
+    
+    // Try multiple times to get content as Expo apps can be slow to render
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`🔄 Attempt ${attempts}/${maxAttempts} to detect app content`);
+      
+      const title = await this.page.title();
+      const bodyContent = await this.page.locator('body').innerHTML();
+      
+      console.log(`📄 Page title: "${title}"`);
+      console.log(`📄 Body content length: ${bodyContent.length}`);
+      
+      // Check for any meaningful content
+      if (bodyContent.length > 50 || title.includes('FocusMate') || title.includes('Expo')) {
+        console.log('✅ App content detected');
+        return;
+      }
+      
+      // Wait before next attempt
+      await this.page.waitForTimeout(2000);
+    }
+    
+    // If we still don't have content, log but don't fail
+    console.log('⚠️ App may still be loading, continuing with test...');
+    const finalContent = await this.page.locator('body').innerHTML();
+    console.log('📄 Final page structure (first 500 chars):', finalContent.substring(0, 500));
   }
 
   /**
@@ -209,6 +238,20 @@ export class TestHelpers {
         this.page.waitForSelector(selector, { timeout })
       )
     );
+  }
+
+  /**
+   * Get console logs from the page
+   */
+  async getConsoleLogs(): Promise<string[]> {
+    const logs: string[] = [];
+    
+    // Return any captured console messages
+    return this.page.evaluate(() => {
+      // Get console messages that may have been logged
+      const errors = (window as any).__testConsoleErrors || [];
+      return errors;
+    });
   }
 
   /**

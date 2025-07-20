@@ -1,0 +1,934 @@
+{
+  "config": {
+    "configFile": "/Users/wetom/Desktop/FocusFlow/playwright.config.ts",
+    "rootDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/Users/wetom/Desktop/FocusFlow/e2e-tests/global-setup.ts",
+    "globalTeardown": "/Users/wetom/Desktop/FocusFlow/e2e-tests/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/wetom/Desktop/FocusFlow/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium-desktop",
+        "name": "chromium-desktop",
+        "testDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "/Users/wetom/Desktop/FocusFlow/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "/Users/wetom/Desktop/FocusFlow/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet-chrome",
+        "name": "tablet-chrome",
+        "testDir": "/Users/wetom/Desktop/FocusFlow/e2e-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "focused-task-creation-test.spec.ts",
+      "file": "focused-task-creation-test.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "FocusFlow Smart Generate - Network Monitoring",
+          "file": "focused-task-creation-test.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "智能生成功能 - 完整流程監控",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 37366,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🚀 [smart-generate-1752977890228] 初始化獨立瀏覽器實例...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228] 瀏覽器實例初始化完成\n"
+                        },
+                        {
+                          "text": "🚀 開始測試：Smart Generate 功能完整流程\n"
+                        },
+                        {
+                          "text": "🚀 [smart-generate-1752977890228-navigation-retry-0] 初始化獨立瀏覽器實例...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228-navigation-retry-0] 瀏覽器實例初始化完成\n"
+                        },
+                        {
+                          "text": "🧹 [smart-generate-1752977890228-navigation-retry-0] 開始清理瀏覽器資源...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228-navigation-retry-0] 頁面已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228-navigation-retry-0] 上下文已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228-navigation-retry-0] 瀏覽器已關閉\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977890228] 截圖已保存: test-results/01-app-loaded-smart-generate-1752977890228-1752977894165.png\n"
+                        },
+                        {
+                          "text": "➕ 步驟 2：點擊新增任務按鈕\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: button:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: [role=\"button\"]:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: div:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "🔄 嘗試透過底部導航進入任務頁面\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228] 找到元素: text=\"Tasks\"\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: button:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: [role=\"button\"]:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: button:visible:has-text(\"+\")\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: div:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: text=\"+\"\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: .fixed button\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: [data-testid=\"add-task\"]\n"
+                        },
+                        {
+                          "text": "❌ 無法通過底部導航進入\n"
+                        },
+                        {
+                          "text": "🔄 直接導航到 /add-task\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977890228] 截圖已保存: test-results/02-add-task-page-smart-generate-1752977890228-1752977908145.png\n"
+                        },
+                        {
+                          "text": "📝 步驟 3：填寫任務資訊\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: input[placeholder*=\"title\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: input[placeholder*=\"標題\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: input[placeholder*=\"Title\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: input[type=\"text\"]:visible\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: input:visible:first\n"
+                        },
+                        {
+                          "text": "⚠️ 填寫標題失敗: Error: 無法找到任何匹配的元素: input[placeholder*=\"title\" i], input[placeholder*=\"標題\" i], input[placeholder*=\"Title\" i], input[type=\"text\"]:visible, input:visible:first\n    at EnhancedTestHelpers.findElement \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/utils/enhanced-test-helpers.ts:116:11\u001b[90m)\u001b[39m\n    at EnhancedTestHelpers.safeFill \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/utils/enhanced-test-helpers.ts:142:21\u001b[90m)\u001b[39m\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/focused-task-creation-test.spec.ts:182:7\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:304:9\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/testInfo.js:289:11\n    at TimeoutManager.withRunnable \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/timeoutManager.js:67:14\u001b[90m)\u001b[39m\n    at TestInfoImpl._runWithTimeout \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/testInfo.js:287:7\u001b[90m)\u001b[39m\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:302:7\n    at WorkerMain._runTest \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:277:5\u001b[90m)\u001b[39m\n    at WorkerMain.runTestGroup \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:193:11\u001b[90m)\u001b[39m\n    at process.<anonymous> \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/common/process.js:65:22\u001b[90m)\u001b[39m\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: textarea[placeholder*=\"description\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: textarea[placeholder*=\"描述\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977890228] 元素未找到: textarea[placeholder*=\"Description\" i]\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228] 找到元素: textarea:visible\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977890228] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228] 成功填寫: 這是一個自動化測試任務，創建於 2025/7/20 上午10:18:28\n"
+                        },
+                        {
+                          "text": "✅ 成功填寫描述: 這是一個自動化測試任務，創建於 2025/7/20 上午10:18:28\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977890228] 截圖已保存: test-results/03-form-filled-smart-generate-1752977890228-1752977922302.png\n"
+                        },
+                        {
+                          "text": "🤖 步驟 4：尋找 Smart Generate 按鈕\n"
+                        },
+                        {
+                          "text": "✅ 找到生成按鈕: button:has-text(\"Smart Generate\")\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977890228] 截圖已保存: test-results/04-generate-clicked-smart-generate-1752977890228-1752977922377.png\n"
+                        },
+                        {
+                          "text": "📡 步驟 5：監控 API 請求...\n"
+                        },
+                        {
+                          "text": "❌ 未偵測到作業建立請求\n"
+                        },
+                        {
+                          "text": "🖥️ 步驟 6：檢查 UI 回應\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977890228] 截圖已保存: test-results/05-after-generate-smart-generate-1752977890228-1752977927460.png\n"
+                        },
+                        {
+                          "text": "🔴 錯誤訊息: 0\n"
+                        },
+                        {
+                          "text": "✅ 成功訊息: 2\n"
+                        },
+                        {
+                          "text": "📋 計劃內容: 1\n"
+                        },
+                        {
+                          "text": "📋 計劃內容片段:\n"
+                        },
+                        {
+                          "text": "  - Subtasks\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977890228] 截圖已保存: test-results/06-final-state-smart-generate-1752977890228-1752977927529.png\n"
+                        },
+                        {
+                          "text": "\n🎯 測試結果分析:\n"
+                        },
+                        {
+                          "text": "📊 總 API 請求數: 0\n"
+                        },
+                        {
+                          "text": "🆔 作業相關請求: 0\n"
+                        },
+                        {
+                          "text": "🔴 錯誤回應數: 0\n"
+                        },
+                        {
+                          "text": "❌ Smart Generate 功能未觸發 API 請求\n"
+                        },
+                        {
+                          "text": "\n📊 測試完成 - 網路請求統計:\n"
+                        },
+                        {
+                          "text": "總 API 請求: 0\n"
+                        },
+                        {
+                          "text": "總 API 回應: 0\n"
+                        },
+                        {
+                          "text": "作業相關請求: 0\n"
+                        },
+                        {
+                          "text": "🧹 [smart-generate-1752977890228] 開始清理瀏覽器資源...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228] 頁面已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228] 上下文已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977890228] 瀏覽器已關閉\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-20T02:18:10.224Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae7330cc40f49ee61937-170a2498380414488597",
+              "file": "focused-task-creation-test.spec.ts",
+              "line": 98,
+              "column": 7
+            },
+            {
+              "title": "智能生成功能 - 完整流程監控",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chrome",
+                  "projectName": "mobile-chrome",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 37966,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🚀 [smart-generate-1752977927842] 初始化獨立瀏覽器實例...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842] 瀏覽器實例初始化完成\n"
+                        },
+                        {
+                          "text": "🚀 開始測試：Smart Generate 功能完整流程\n"
+                        },
+                        {
+                          "text": "🚀 [smart-generate-1752977927842-navigation-retry-0] 初始化獨立瀏覽器實例...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842-navigation-retry-0] 瀏覽器實例初始化完成\n"
+                        },
+                        {
+                          "text": "🧹 [smart-generate-1752977927842-navigation-retry-0] 開始清理瀏覽器資源...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842-navigation-retry-0] 頁面已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842-navigation-retry-0] 上下文已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842-navigation-retry-0] 瀏覽器已關閉\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977927842] 截圖已保存: test-results/01-app-loaded-smart-generate-1752977927842-1752977931766.png\n"
+                        },
+                        {
+                          "text": "➕ 步驟 2：點擊新增任務按鈕\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: button:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: [role=\"button\"]:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: div:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "🔄 嘗試透過底部導航進入任務頁面\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842] 找到元素: text=\"Tasks\"\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: button:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: [role=\"button\"]:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: button:visible:has-text(\"+\")\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: div:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: text=\"+\"\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: .fixed button\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: [data-testid=\"add-task\"]\n"
+                        },
+                        {
+                          "text": "❌ 無法通過底部導航進入\n"
+                        },
+                        {
+                          "text": "🔄 直接導航到 /add-task\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977927842] 截圖已保存: test-results/02-add-task-page-smart-generate-1752977927842-1752977945787.png\n"
+                        },
+                        {
+                          "text": "📝 步驟 3：填寫任務資訊\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: input[placeholder*=\"title\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: input[placeholder*=\"標題\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: input[placeholder*=\"Title\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: input[type=\"text\"]:visible\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: input:visible:first\n"
+                        },
+                        {
+                          "text": "⚠️ 填寫標題失敗: Error: 無法找到任何匹配的元素: input[placeholder*=\"title\" i], input[placeholder*=\"標題\" i], input[placeholder*=\"Title\" i], input[type=\"text\"]:visible, input:visible:first\n    at EnhancedTestHelpers.findElement \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/utils/enhanced-test-helpers.ts:116:11\u001b[90m)\u001b[39m\n    at EnhancedTestHelpers.safeFill \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/utils/enhanced-test-helpers.ts:142:21\u001b[90m)\u001b[39m\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/focused-task-creation-test.spec.ts:182:7\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:304:9\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/testInfo.js:289:11\n    at TimeoutManager.withRunnable \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/timeoutManager.js:67:14\u001b[90m)\u001b[39m\n    at TestInfoImpl._runWithTimeout \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/testInfo.js:287:7\u001b[90m)\u001b[39m\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:302:7\n    at WorkerMain._runTest \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:277:5\u001b[90m)\u001b[39m\n    at WorkerMain.runTestGroup \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:193:11\u001b[90m)\u001b[39m\n    at process.<anonymous> \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/common/process.js:65:22\u001b[90m)\u001b[39m\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: textarea[placeholder*=\"description\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: textarea[placeholder*=\"描述\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977927842] 元素未找到: textarea[placeholder*=\"Description\" i]\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842] 找到元素: textarea:visible\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977927842] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842] 成功填寫: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:05\n"
+                        },
+                        {
+                          "text": "✅ 成功填寫描述: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:05\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977927842] 截圖已保存: test-results/03-form-filled-smart-generate-1752977927842-1752977960085.png\n"
+                        },
+                        {
+                          "text": "🤖 步驟 4：尋找 Smart Generate 按鈕\n"
+                        },
+                        {
+                          "text": "✅ 找到生成按鈕: button:has-text(\"Smart Generate\")\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977927842] 截圖已保存: test-results/04-generate-clicked-smart-generate-1752977927842-1752977960274.png\n"
+                        },
+                        {
+                          "text": "📡 步驟 5：監控 API 請求...\n"
+                        },
+                        {
+                          "text": "❌ 未偵測到作業建立請求\n"
+                        },
+                        {
+                          "text": "🖥️ 步驟 6：檢查 UI 回應\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977927842] 截圖已保存: test-results/05-after-generate-smart-generate-1752977927842-1752977965433.png\n"
+                        },
+                        {
+                          "text": "🔴 錯誤訊息: 0\n"
+                        },
+                        {
+                          "text": "✅ 成功訊息: 2\n"
+                        },
+                        {
+                          "text": "📋 計劃內容: 1\n"
+                        },
+                        {
+                          "text": "📋 計劃內容片段:\n"
+                        },
+                        {
+                          "text": "  - Subtasks\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977927842] 截圖已保存: test-results/06-final-state-smart-generate-1752977927842-1752977965620.png\n"
+                        },
+                        {
+                          "text": "\n🎯 測試結果分析:\n"
+                        },
+                        {
+                          "text": "📊 總 API 請求數: 0\n"
+                        },
+                        {
+                          "text": "🆔 作業相關請求: 0\n"
+                        },
+                        {
+                          "text": "🔴 錯誤回應數: 0\n"
+                        },
+                        {
+                          "text": "❌ Smart Generate 功能未觸發 API 請求\n"
+                        },
+                        {
+                          "text": "\n📊 測試完成 - 網路請求統計:\n"
+                        },
+                        {
+                          "text": "總 API 請求: 0\n"
+                        },
+                        {
+                          "text": "總 API 回應: 0\n"
+                        },
+                        {
+                          "text": "作業相關請求: 0\n"
+                        },
+                        {
+                          "text": "🧹 [smart-generate-1752977927842] 開始清理瀏覽器資源...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842] 頁面已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842] 上下文已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977927842] 瀏覽器已關閉\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-20T02:18:47.839Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae7330cc40f49ee61937-ecdd65518524566510ac",
+              "file": "focused-task-creation-test.spec.ts",
+              "line": 98,
+              "column": 7
+            },
+            {
+              "title": "智能生成功能 - 完整流程監控",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "tablet-chrome",
+                  "projectName": "tablet-chrome",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 37452,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🚀 [smart-generate-1752977966052] 初始化獨立瀏覽器實例...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052] 瀏覽器實例初始化完成\n"
+                        },
+                        {
+                          "text": "🚀 開始測試：Smart Generate 功能完整流程\n"
+                        },
+                        {
+                          "text": "🚀 [smart-generate-1752977966052-navigation-retry-0] 初始化獨立瀏覽器實例...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052-navigation-retry-0] 瀏覽器實例初始化完成\n"
+                        },
+                        {
+                          "text": "🧹 [smart-generate-1752977966052-navigation-retry-0] 開始清理瀏覽器資源...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052-navigation-retry-0] 頁面已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052-navigation-retry-0] 上下文已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052-navigation-retry-0] 瀏覽器已關閉\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977966052] 截圖已保存: test-results/01-app-loaded-smart-generate-1752977966052-1752977969976.png\n"
+                        },
+                        {
+                          "text": "➕ 步驟 2：點擊新增任務按鈕\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: button:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: [role=\"button\"]:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ 按鈕選擇器失敗: div:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "🔄 嘗試透過底部導航進入任務頁面\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052] 找到元素: text=\"Tasks\"\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: button:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: [role=\"button\"]:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: button:visible:has-text(\"+\")\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: div:has(text(\"+\"))\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: text=\"+\"\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: .fixed button\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: [data-testid=\"add-task\"]\n"
+                        },
+                        {
+                          "text": "❌ 無法通過底部導航進入\n"
+                        },
+                        {
+                          "text": "🔄 直接導航到 /add-task\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977966052] 截圖已保存: test-results/02-add-task-page-smart-generate-1752977966052-1752977983898.png\n"
+                        },
+                        {
+                          "text": "📝 步驟 3：填寫任務資訊\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: input[placeholder*=\"title\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: input[placeholder*=\"標題\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: input[placeholder*=\"Title\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: input[type=\"text\"]:visible\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: input:visible:first\n"
+                        },
+                        {
+                          "text": "⚠️ 填寫標題失敗: Error: 無法找到任何匹配的元素: input[placeholder*=\"title\" i], input[placeholder*=\"標題\" i], input[placeholder*=\"Title\" i], input[type=\"text\"]:visible, input:visible:first\n    at EnhancedTestHelpers.findElement \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/utils/enhanced-test-helpers.ts:116:11\u001b[90m)\u001b[39m\n    at EnhancedTestHelpers.safeFill \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/utils/enhanced-test-helpers.ts:142:21\u001b[90m)\u001b[39m\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39me2e-tests/focused-task-creation-test.spec.ts:182:7\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:304:9\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/testInfo.js:289:11\n    at TimeoutManager.withRunnable \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/timeoutManager.js:67:14\u001b[90m)\u001b[39m\n    at TestInfoImpl._runWithTimeout \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/testInfo.js:287:7\u001b[90m)\u001b[39m\n    at \u001b[90m/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:302:7\n    at WorkerMain._runTest \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:277:5\u001b[90m)\u001b[39m\n    at WorkerMain.runTestGroup \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/worker/workerMain.js:193:11\u001b[90m)\u001b[39m\n    at process.<anonymous> \u001b[90m(/Users/wetom/Desktop/FocusFlow/\u001b[39mnode_modules/\u001b[4mplaywright\u001b[24m/lib/common/process.js:65:22\u001b[90m)\u001b[39m\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: textarea[placeholder*=\"description\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: textarea[placeholder*=\"描述\" i]\n"
+                        },
+                        {
+                          "text": "⚠️ [smart-generate-1752977966052] 元素未找到: textarea[placeholder*=\"Description\" i]\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052] 找到元素: textarea:visible\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🚨 [smart-generate-1752977966052] Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "🔴 Console 錯誤: Unexpected text node: . A text node cannot be a child of a <View>.\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052] 成功填寫: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:43\n"
+                        },
+                        {
+                          "text": "✅ 成功填寫描述: 這是一個自動化測試任務，創建於 2025/7/20 上午10:19:43\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977966052] 截圖已保存: test-results/03-form-filled-smart-generate-1752977966052-1752977998176.png\n"
+                        },
+                        {
+                          "text": "🤖 步驟 4：尋找 Smart Generate 按鈕\n"
+                        },
+                        {
+                          "text": "✅ 找到生成按鈕: button:has-text(\"Smart Generate\")\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977966052] 截圖已保存: test-results/04-generate-clicked-smart-generate-1752977966052-1752977998262.png\n"
+                        },
+                        {
+                          "text": "📡 步驟 5：監控 API 請求...\n"
+                        },
+                        {
+                          "text": "❌ 未偵測到作業建立請求\n"
+                        },
+                        {
+                          "text": "🖥️ 步驟 6：檢查 UI 回應\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977966052] 截圖已保存: test-results/05-after-generate-smart-generate-1752977966052-1752978003329.png\n"
+                        },
+                        {
+                          "text": "🔴 錯誤訊息: 0\n"
+                        },
+                        {
+                          "text": "✅ 成功訊息: 2\n"
+                        },
+                        {
+                          "text": "📋 計劃內容: 1\n"
+                        },
+                        {
+                          "text": "📋 計劃內容片段:\n"
+                        },
+                        {
+                          "text": "  - Subtasks\n"
+                        },
+                        {
+                          "text": "📸 [smart-generate-1752977966052] 截圖已保存: test-results/06-final-state-smart-generate-1752977966052-1752978003408.png\n"
+                        },
+                        {
+                          "text": "\n🎯 測試結果分析:\n"
+                        },
+                        {
+                          "text": "📊 總 API 請求數: 0\n"
+                        },
+                        {
+                          "text": "🆔 作業相關請求: 0\n"
+                        },
+                        {
+                          "text": "🔴 錯誤回應數: 0\n"
+                        },
+                        {
+                          "text": "❌ Smart Generate 功能未觸發 API 請求\n"
+                        },
+                        {
+                          "text": "\n📊 測試完成 - 網路請求統計:\n"
+                        },
+                        {
+                          "text": "總 API 請求: 0\n"
+                        },
+                        {
+                          "text": "總 API 回應: 0\n"
+                        },
+                        {
+                          "text": "作業相關請求: 0\n"
+                        },
+                        {
+                          "text": "🧹 [smart-generate-1752977966052] 開始清理瀏覽器資源...\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052] 頁面已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052] 上下文已關閉\n"
+                        },
+                        {
+                          "text": "✅ [smart-generate-1752977966052] 瀏覽器已關閉\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-20T02:19:26.049Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ae7330cc40f49ee61937-93e924a65535ffa9fe3e",
+              "file": "focused-task-creation-test.spec.ts",
+              "line": 98,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-07-20T02:18:08.064Z",
+    "duration": 115453.371,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

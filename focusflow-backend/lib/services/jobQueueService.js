@@ -320,7 +320,7 @@ class JobQueueService {
     job.progress.percentage = 30;
     job.progress.message = '分析任務並生成個人化問題...';
     
-    const { systemPrompt, userContent } = constructDiagnosticPrompt({
+    const { systemPrompt, userPrompt } = constructDiagnosticPrompt({
       taskTitle: title,
       taskDescription: description,
       language,
@@ -328,7 +328,7 @@ class JobQueueService {
 
     const diagnosticResult = await geminiService.callGeminiStructured(
       systemPrompt,
-      userContent,
+      userPrompt,
       {
         schemaType: 'personalizationQuestions',
         maxTokens: 2000,
@@ -384,7 +384,7 @@ class JobQueueService {
     job.progress.percentage = 50;
     job.progress.message = '生成個人化問題...';
 
-    const { systemPrompt, userContent } = constructDiagnosticPrompt({
+    const { systemPrompt, userPrompt } = constructDiagnosticPrompt({
       taskTitle: title,
       taskDescription: description,
       language,
@@ -392,7 +392,7 @@ class JobQueueService {
 
     const result = await geminiService.callGeminiStructured(
       systemPrompt,
-      userContent,
+      userPrompt,
       {
         schemaType: 'personalizationQuestions',
         maxTokens: 2000,
@@ -551,7 +551,7 @@ ${Object.keys(clarificationResponses).length > 0
       userContent,
       {
         schemaType: 'unifiedLearningPlan',
-        maxTokens: 5000,
+        maxTokens: 8000,
         temperature: 0.3
       }
     );

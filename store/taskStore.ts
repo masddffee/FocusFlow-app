@@ -30,7 +30,7 @@ interface TaskState {
   reviewTasks: ReviewTask[];
   
   // Task management
-  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "completed">) => void;
+  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "completed">) => string;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   toggleTaskCompletion: (id: string) => void;
@@ -425,14 +425,32 @@ export const useTaskStore = create<TaskState>()(
             updatedAt: now,
           };
           
-          set((state) => ({
-            tasks: [...state.tasks, newTask],
-          }));
+          console.log(`📝 Adding task to store: ${newTask.id} - ${newTask.title}`);
           
-          // 🆕 新增任務後清理無效的排程記錄
-          setTimeout(() => {
+          // 🔧 使用同步方式更新狀態，確保立即生效
+          set((state) => {
+            const updatedTasks = [...state.tasks, newTask];
+            console.log(`📊 Store updated. Total tasks: ${updatedTasks.length}`);
+            return { tasks: updatedTasks };
+          });
+          
+          // 🔧 改為同步執行清理，確保狀態一致性
+          try {
             get().cleanupOrphanedScheduledTasks();
-          }, 100);
+          } catch (cleanupError) {
+            console.warn("Cleanup error during task creation:", cleanupError);
+          }
+          
+          // 🆕 驗證任務是否真的被添加
+          const state = get();
+          const taskExists = state.tasks.some(t => t.id === newTask.id);
+          if (!taskExists) {
+            console.error("❌ Task was not added to store properly");
+            throw new Error("Failed to add task to store");
+          }
+          
+          console.log(`✅ Task successfully added to store: ${newTask.id}`);
+          return newTask.id; // 返回新任務的 ID
         } catch (error) {
           console.error("Add task error:", error);
           throw error;
