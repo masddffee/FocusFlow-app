@@ -511,11 +511,19 @@ ${Object.keys(clarificationResponses).length > 0
   }
 
   /**
-   * 生成統一學習計劃
+   * 生成統一學習計劃 (Phase 6 Optimized)
    */
   async generateUnifiedPlan(params) {
     const GeminiService = require('./geminiService');
     const geminiService = new GeminiService();
+
+    console.log('🤖 [GEMINI-CALL] Starting unified plan generation');
+    console.log('🤖 [GEMINI-CALL] Input params:', {
+      title: params.title,
+      hasDescription: !!params.description,
+      hasClarificationResponses: !!(params.clarificationResponses && Object.keys(params.clarificationResponses).length > 0),
+      language: params.language
+    });
 
     const {
       title,
@@ -529,8 +537,9 @@ ${Object.keys(clarificationResponses).length > 0
 
     // 如果沒有個人化回答，僅回傳個人化問題
     if (!clarificationResponses || Object.keys(clarificationResponses).length === 0) {
-      const systemPrompt = `請根據以下任務資訊，生成 2-4 個個人化問題以釐清用戶需求：\n- 標題：${title}\n- 描述：${description}\n- 任務類型：${taskType}\n- 當前水平：${currentProficiency}\n- 目標水平：${targetProficiency}`;
-      const userContent = '';
+      console.log('🤖 [GEMINI-CALL] Phase 1: Generating personalization questions (SINGLE CALL)');
+      const systemPrompt = `請生成 2-3 個相關的個人化問題來了解學習需求和背景。`;
+      const userContent = `任務標題: ${title}\n任務描述: ${description}\n任務類型: ${taskType}\n當前水平: ${currentProficiency}\n目標水平: ${targetProficiency}\n\n請根據這些資訊生成適合的個人化問題。`;
       const questionsResult = await geminiService.callGeminiStructured(
         systemPrompt,
         userContent,
@@ -540,10 +549,13 @@ ${Object.keys(clarificationResponses).length > 0
           temperature: 0.2
         }
       );
+      console.log('🤖 [GEMINI-CALL] Phase 1 completed: Generated', questionsResult.questions?.length || 0, 'questions');
       return { personalizationQuestions: questionsResult.questions || [], learningPlan: null, subtasks: [] };
     }
 
     // 有個人化回答，生成完整學習計劃
+    console.log('🤖 [GEMINI-CALL] Phase 2: Generating complete learning plan (SINGLE CALL)');
+    console.log('🤖 [GEMINI-CALL] Clarification responses count:', Object.keys(clarificationResponses).length);
     const systemPrompt = `您是一位專業的學習設計師。請創建完整的學習計劃，包括可實現的目標、推薦工具、檢查點和動態生成的子任務。\n${language === 'zh' ? '所有內容必須使用繁體中文' : 'All content must be in English'}`;
     const userContent = `## 學習任務：\n- 標題：${title}\n- 描述：${description}\n- 任務類型：${taskType}\n- 當前水平：${currentProficiency}\n- 目標水平：${targetProficiency}\n\n## 個人化信息：\n${Object.entries(clarificationResponses).map(([key, value]) => `- ${key}: ${value}`).join('\n')}`;
     const result = await geminiService.callGeminiStructured(
@@ -555,6 +567,7 @@ ${Object.keys(clarificationResponses).length > 0
         temperature: 0.3
       }
     );
+    console.log('🤖 [GEMINI-CALL] Phase 2 completed: Generated plan with', result.subtasks?.length || 0, 'subtasks');
     return result;
   }
 

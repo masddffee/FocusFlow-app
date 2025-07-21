@@ -902,6 +902,7 @@ export default function AddTaskScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('addTask.taskTitle')}</Text>
           <TextInput
+            testID="task-title-input"
             style={styles.input}
             value={title}
             onChangeText={setTitle}
@@ -913,6 +914,7 @@ export default function AddTaskScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('addTask.description')}</Text>
           <TextInput
+            testID="task-description-input"
             style={[styles.input, styles.textArea]}
             value={description}
             onChangeText={setDescription}
@@ -1236,6 +1238,7 @@ export default function AddTaskScreen() {
           <View style={styles.subtaskHeader}>
             <Text style={styles.label}>Subtasks</Text>
             <Button
+              testID="smart-generate-button"
               title="Smart Generate"
               onPress={handleSmartGenerate}
               variant="outline"
@@ -1415,6 +1418,7 @@ export default function AddTaskScreen() {
       
       <View style={styles.buttonContainer}>
         <Button
+          testID="create-task-button"
           title={
             isEstimatingDuration 
               ? (taskId ? "更新中..." : "創建中...") 
@@ -1432,11 +1436,12 @@ export default function AddTaskScreen() {
 
       {/* Personalization Modal */}
       <Modal
+        testID="personalization-modal"
         visible={showPersonalizationModal}
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View style={styles.modalContainer}>
+        <View testID="personalization-modal-container" style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Help us personalize your plan</Text>
             <Text style={styles.modalSubtitle}>
@@ -1453,7 +1458,7 @@ export default function AddTaskScreen() {
           
           <ScrollView style={styles.modalContent}>
             {clarifyingQuestions.map((question, index) => (
-              <View key={question.id} style={styles.questionContainer}>
+              <View key={question.id} testID={`personalization-question-${question.id}`} style={styles.questionContainer}>
                 <View style={styles.questionHeader}>
                   <HelpCircle size={16} color={Colors.light.primary} />
                   <Text style={styles.questionText}>
@@ -1486,6 +1491,7 @@ export default function AddTaskScreen() {
                   </View>
                 ) : (
                   <TextInput
+                    testID={`personalization-input-${question.id}`}
                     style={styles.questionInput}
                     value={clarificationResponses[question.id] || ""}
                     onChangeText={(text) => handlePersonalizationResponse(question.id, text)}
@@ -1501,12 +1507,14 @@ export default function AddTaskScreen() {
           
           <View style={styles.modalButtons}>
             <Button
+              testID="personalization-cancel-button"
               title="Cancel"
               onPress={() => setShowPersonalizationModal(false)}
               variant="outline"
               style={styles.modalButton}
             />
             <Button
+              testID="personalization-submit-button"
               title="Generate Plan"
               onPress={handlePersonalizationComplete}
               variant="primary"

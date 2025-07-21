@@ -1,11 +1,11 @@
 {
-  "totalJobsCreated": 3,
-  "totalJobsCompleted": 3,
-  "totalJobsFailed": 0,
-  "averageProcessingTime": 9465,
+  "totalJobsCreated": 7,
+  "totalJobsCompleted": 2,
+  "totalJobsFailed": 5,
+  "averageProcessingTime": 15808,
   "currentActiveJobs": 0,
-  "longestJobDuration": 13155,
+  "longestJobDuration": 16205,
   "queueLength": 0,
   "activeJobs": 1,
-  "totalJobsInMemory": 2
+  "totalJobsInMemory": 4
 }

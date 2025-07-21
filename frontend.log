@@ -1,79 +1,105 @@
 Starting project at /Users/wetom/Desktop/FocusFlow
 Starting Metro Bundler
-Waiting on http://localhost:8081
+The following packages should be updated for best compatibility with the installed expo version:
+  expo-updates@0.28.16 - expected version: ~0.28.17
+  jest@30.0.4 - expected version: ~29.7.0
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8082
 Logs for your project will appear below.
-Web Bundled 730ms node_modules/expo-router/entry.js (2429 modules)
+Recrawled this watch 7 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/wetom/Desktop/FocusFlow' ; watchman watch-project '/Users/wetom/Desktop/FocusFlow'`
+
+Web Bundled 717ms node_modules/expo-router/entry.js (2414 modules)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 50ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 131ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
-Web Bundled 69ms node_modules/expo-router/entry.js (1 module)
- LOG  [web] Logs will appear in the browser console
-Web Bundled 40ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 60ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 48ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 82ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 43ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 55ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
 Web Bundled 60ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
-Web Bundled 42ms node_modules/expo-router/entry.js (1 module)
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 136ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
-Web Bundled 47ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 69ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 157ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web Bundled 48ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 36ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 59ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 71ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 46ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 69ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 58ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 54ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web Bundled 39ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 951ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 42ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 190ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web Bundled 53ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 55ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 62ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
 Web Bundled 45ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
-Web Bundled 52ms node_modules/expo-router/entry.js (1 module)
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 735ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
-Web Bundled 51ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 62ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 524ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web Bundled 58ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 47ms node_modules/expo-router/entry.js (1 module)
- LOG  [web] Logs will appear in the browser console
-Web Bundled 68ms node_modules/expo-router/entry.js (1 module)
- LOG  [web] Logs will appear in the browser console
-Web Bundled 83ms node_modules/expo-router/entry.js (1 module)
- LOG  [web] Logs will appear in the browser console
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 96ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 125ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web Bundled 67ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 59ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 86ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 55ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 78ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 69ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
-Web Bundled 39ms node_modules/expo-router/entry.js (1 module)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
- LOG  [web] Logs will appear in the browser console
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 52ms node_modules/expo-router/entry.js (1 module)
- LOG  [web] Logs will appear in the browser console
-Web Bundled 35ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 66ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console
 Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 38ms node_modules/expo-router/entry.js (1 module)
+Web Bundled 57ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 40ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 69ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 61ms node_modules/expo-router/entry.js (1 module)
  LOG  [web] Logs will appear in the browser console

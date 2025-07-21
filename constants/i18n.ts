@@ -500,16 +500,50 @@ const en = {
     task: 'Task'
   },
 
-  // Error Messages
+  // Error Messages - 🔧 Phase 1C: 擴展錯誤處理框架支援
   errors: {
+    // 基本錯誤
     required: 'This field is required',
     invalid: 'Invalid input',
+    unknown: 'Unknown error occurred',
+    
+    // 網路錯誤
+    network: 'Network connection error. Please check your internet connection.',
+    timeout: 'Request timeout. Please try again.',
+    connectionRefused: 'Connection refused. The server may be unavailable.',
+    dnsError: 'DNS resolution failed. Please check your network settings.',
+    
+    // 服務器錯誤
+    server: 'Server error occurred. Please try again later.',
+    internalServerError: 'Internal server error. Please contact support if this persists.',
+    serviceUnavailable: 'Service temporarily unavailable. Please try again later.',
+    badGateway: 'Bad gateway. The server received an invalid response.',
+    
+    // 客戶端錯誤
+    badRequest: 'Invalid request. Please check your input.',
+    unauthorized: 'Unauthorized access. Please log in again.',
+    forbidden: 'Access forbidden. You do not have permission for this action.',
+    notFound: 'Resource not found.',
+    validation: 'Validation error. Please check your input.',
+    
+    // AI 相關錯誤
+    aiGeneration: 'AI generation failed. Please try again.',
+    aiQuotaExceeded: 'AI quota exceeded. Please try again later.',
+    aiModelError: 'AI model error. Please try again.',
+    jsonParse: 'Data parsing error. Please try again.',
+    
+    // 作業相關錯誤
+    jobFailed: 'Job execution failed. Please try again.',
+    jobTimeout: 'Job execution timeout. Please try again.',
+    jobCancelled: 'Job was cancelled.',
+    
+    // 系統錯誤
+    configuration: 'Configuration error. Please contact support.',
+    permissionDenied: 'Permission denied. Please check your access rights.',
+    
+    // 舊有錯誤訊息（保持兼容性）
     networkError: 'Network connection error',
     serverError: 'Server error occurred',
-    timeout: 'Request timeout',
-    notFound: 'Not found',
-    unauthorized: 'Unauthorized access',
-    forbidden: 'Access forbidden',
     validationError: 'Validation error',
     unknownError: 'Unknown error occurred',
     taskNotFound: 'Task Not Found',
@@ -1026,16 +1060,50 @@ const zh = {
     task: '任務'
   },
 
-  // Error Messages
+  // Error Messages - 🔧 Phase 1C: 擴展錯誤處理框架支援
   errors: {
+    // 基本錯誤
     required: '此欄位為必填',
     invalid: '無效輸入',
+    unknown: '發生未知錯誤',
+    
+    // 網路錯誤
+    network: '網路連線錯誤。請檢查您的網路連線。',
+    timeout: '請求逾時。請重試。',
+    connectionRefused: '連線被拒絕。伺服器可能無法使用。',
+    dnsError: 'DNS 解析失敗。請檢查您的網路設定。',
+    
+    // 服務器錯誤
+    server: '伺服器錯誤。請稍後重試。',
+    internalServerError: '內部伺服器錯誤。如果問題持續發生，請聯絡客服。',
+    serviceUnavailable: '服務暫時無法使用。請稍後重試。',
+    badGateway: '閘道錯誤。伺服器收到無效回應。',
+    
+    // 客戶端錯誤
+    badRequest: '無效請求。請檢查您的輸入。',
+    unauthorized: '未授權存取。請重新登入。',
+    forbidden: '存取被禁止。您沒有此操作的權限。',
+    notFound: '找不到資源。',
+    validation: '驗證錯誤。請檢查您的輸入。',
+    
+    // AI 相關錯誤
+    aiGeneration: 'AI 生成失敗。請重試。',
+    aiQuotaExceeded: 'AI 配額已用完。請稍後重試。',
+    aiModelError: 'AI 模型錯誤。請重試。',
+    jsonParse: '資料解析錯誤。請重試。',
+    
+    // 作業相關錯誤
+    jobFailed: '作業執行失敗。請重試。',
+    jobTimeout: '作業執行逾時。請重試。',
+    jobCancelled: '作業已取消。',
+    
+    // 系統錯誤
+    configuration: '配置錯誤。請聯絡客服。',
+    permissionDenied: '權限不足。請檢查您的存取權限。',
+    
+    // 舊有錯誤訊息（保持兼容性）
     networkError: '網路連線錯誤',
     serverError: '伺服器錯誤',
-    timeout: '請求逾時',
-    notFound: '找不到',
-    unauthorized: '未授權存取',
-    forbidden: '存取被禁止',
     validationError: '驗證錯誤',
     unknownError: '發生未知錯誤',
     taskNotFound: '找不到任務',

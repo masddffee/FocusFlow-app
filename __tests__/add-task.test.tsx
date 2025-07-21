@@ -22,8 +22,20 @@ jest.mock('../utils/scheduling', () => ({
   analyzeSchedulingFeasibility: jest.fn(),
   generateSchedulingSuggestions: jest.fn(),
   SCHEDULING_MODES: {
-    flexible: { mode: 'flexible', description: '彈性模式' },
-    strict: { mode: 'strict', description: '嚴格模式' },
+    flexible: { 
+      mode: 'flexible', 
+      description: '彈性模式',
+      characteristics: ['彈性安排', '自動調整', '適應變化'],
+      icon: '🔄',
+      label: '彈性模式'
+    },
+    strict: { 
+      mode: 'strict', 
+      description: '嚴格模式',
+      characteristics: ['固定時間', '精確安排', '嚴格執行'],
+      icon: '⏰',
+      label: '嚴格模式'
+    },
   },
 }));
 
@@ -40,11 +52,11 @@ describe('AddTaskScreen', () => {
   });
 
   it('renders without crashing', () => {
-    const { getByText } = render(<AddTaskScreen />);
+    const { getByText, getByTestId } = render(<AddTaskScreen />);
     
     // Check if basic elements are rendered
     expect(getByText('Subtasks')).toBeTruthy();
-    expect(getByText('Smart Generate')).toBeTruthy();
+    expect(getByTestId('smart-generate-button')).toBeTruthy();
   });
 
   it('displays difficulty options', () => {

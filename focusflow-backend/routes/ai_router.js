@@ -21,8 +21,10 @@ const costMonitoringService = new CostMonitoringService();
 const compressionService = new CompressionService();
 const jobQueue = new JobQueueService();
 
-const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "gemini-2.5-flash";
-const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT) || 35000;
+const { getAiConfig } = require('../config/serverConfig');
+
+// 🔧 Phase 1B: 使用統一配置系統替代硬編碼配置
+const aiConfig = getAiConfig();
 
 // ==========================================
 // 🔧 健康檢查和系統狀態端點
@@ -221,7 +223,7 @@ router.post('/generate-learning-questions', async (req, res) => {
     const questions = await geminiService.callGeminiStructured(
       'You are a learning reinforcement expert. Generate thoughtful review questions based on the learning summary.\n\nCreate 3-5 questions that:\n- Test understanding of key concepts\n- Encourage deeper thinking\n- Help reinforce learning\n- Are specific to the content learned\n\nReturn as a JSON array of strings (just the questions).',
       `Learning Summary: ${summary}\n\nGenerate review questions as JSON array:`,
-      { schemaType: 'learningQuestions', maxTokens: 800, temperature: 0.2, model: DEFAULT_MODEL }
+      { schemaType: 'learningQuestions', maxTokens: 800, temperature: 0.2, model: aiConfig.defaultModel }
     );
     if (questions && Array.isArray(questions.questions) && questions.questions.length > 0) {
       return res.json({ questions: questions.questions });

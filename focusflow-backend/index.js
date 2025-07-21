@@ -1,23 +1,17 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
+const { initializeConfig, getServerConfig, getCorsConfig } = require('./config/serverConfig');
 
-// Load environment variables
-dotenv.config();
+// 🔧 Phase 1B: 使用統一配置系統初始化
+const config = initializeConfig();
+const serverConfig = getServerConfig();
+const corsConfig = getCorsConfig();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
 
-// Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:8081',
-    'http://localhost:8082',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
-  credentials: true
-}));
-app.use(express.json({ limit: '10mb' }));
+// 🔧 Phase 1B: 使用統一配置系統替代硬編碼配置
+app.use(cors(corsConfig));
+app.use(express.json({ limit: serverConfig.request.bodyLimit }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
@@ -25,7 +19,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
+    environment: serverConfig.server.nodeEnv,
     service: 'gemini'
   });
 });
@@ -38,7 +32,7 @@ app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    message: serverConfig.server.isDevelopment ? err.message : 'Something went wrong'
   });
 });
 
@@ -51,16 +45,19 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`✅ FocusFlow Backend running on http://localhost:${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:8081'}`);
+app.listen(serverConfig.server.port, serverConfig.server.host, () => {
+  console.log(`✅ FocusFlow Backend running on http://${serverConfig.server.host}:${serverConfig.server.port}`);
+  console.log(`📊 Environment: ${serverConfig.server.nodeEnv}`);
+  console.log(`🔗 CORS enabled for:`, corsConfig.origin);
   
-  // Check if Gemini API key is configured
-  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
+  // 🔧 Phase 1B: AI 配置檢查使用統一配置
+  const aiConfig = config.ai;
+  if (!aiConfig.gemini.apiKey || aiConfig.gemini.apiKey === 'your_gemini_api_key_here') {
     console.warn('⚠️  Warning: GEMINI_API_KEY not properly configured in .env file');
     console.warn('    Please add your Google Gemini API key to the .env file');
   } else {
     console.log('🤖 Gemini API key configured');
+    console.log(`🎯 AI Model: ${aiConfig.gemini.model}`);
+    console.log(`⚡ Max Tokens: ${aiConfig.gemini.maxTokens}`);
   }
 }); 

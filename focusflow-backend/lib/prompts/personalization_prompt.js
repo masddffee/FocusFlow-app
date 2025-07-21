@@ -19,7 +19,7 @@ function constructDiagnosticPrompt({ taskTitle, taskDescription, language = "en"
 - **Current Proficiency:** Go beyond "beginner." Are they a true novice or a professional from another field?
 - **Learning Context:** What are their resource constraints (time, money)? What's their preferred learning style (visual, practical, theoretical)?
 - **Implicit Needs:** What is the user NOT saying? What potential roadblocks can you anticipate?`,
-      output_format_instruction: "Return a `DiagnosticResult` JSON object. Your questions should feel insightful and empathetic, demonstrating true expertise.",
+      output_format_instruction: " Your questions should feel insightful and empathetic, demonstrating true expertise.",
     },
     zh: {
       role: `您是一位世界級的 AI 學習顧問。您的目的不僅是提問，而是進行一次**診斷性訪談**，以深度理解使用者的需求、動機和背景。您的洞察將直接塑造一個使用者願意付費的高價值、個人化學習計畫。`,
@@ -29,7 +29,7 @@ function constructDiagnosticPrompt({ taskTitle, taskDescription, language = "en"
 - **當前熟練度：** 超越「初學者」的標籤。他們是真正的新手，還是從其他領域轉來的專業人士？
 - **學習背景：** 他們有什麼資源限制（時間、金錢）？偏好的學習風格是什麼（視覺、實踐、理論）？
 - **隱性需求：** 使用者沒有說出口的是什麼？您可以預見到哪些潛在的障礙？`,
-      output_format_instruction: "返回一個 `DiagnosticResult` JSON 物件。您的問題應讓人感覺深刻且富有同理心，展現真正的專業性。",
+      output_format_instruction: "您的問題應讓人感覺深刻且富有同理心，展現真正的專業性。",
     }
   };
 

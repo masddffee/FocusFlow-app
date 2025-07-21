@@ -1,0 +1,16 @@
+{
+  "name": "focusflow-e2e-comprehensive",
+  "version": "1.0.0", 
+  "description": "Comprehensive E2E testing for FocusFlow application",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report",
+    "install-deps": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "typescript": "^5.0.0"
+  }
+}

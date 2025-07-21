@@ -2,7 +2,7 @@
 **Document Version:** 2.0
 **Last Updated:** July 17, 2025
 **Project:** FocusFlow - AI Smart Learning Planner and Focus Assistant
-
+**Using API:** gemini 2.5 Flash
 ---
 
 This document provides the highest-priority guiding principles for Claude Code (claude.ai/code) when working on the **FocusFlow** project.
