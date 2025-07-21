@@ -2,331 +2,64 @@
 
 const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
 const dotenv = require('dotenv');
+const { getAiConfig } = require('../../config/serverConfig');
+const { SchemaFactory } = require('./schemaFactory');
 
-// Load environment variables
+// 確保環境變數正確載入
 dotenv.config();
 
-// 🆕 定義結構化輸出的 Schema
-const RESPONSE_SCHEMAS = {
-  // 個人化問題生成的 Schema
-  personalizationQuestions: {
-    type: SchemaType.OBJECT,
-    properties: {
-      questions: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id: { type: SchemaType.STRING },
-            question: { type: SchemaType.STRING },
-            type: { 
-              type: SchemaType.STRING,
-              enum: ["text", "choice"]
-            },
-            options: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-              nullable: true
-            },
-            required: { type: SchemaType.BOOLEAN }
-          },
-          required: ["id", "question", "type", "required"]
-        }
-      }
-    },
-    required: ["questions"]
-  },
+// 🔧 Phase 1B: 使用統一配置系統
+const aiConfig = getAiConfig();
 
-  // 子任務生成的 Schema
-  subtasks: {
-    type: SchemaType.OBJECT,
-    properties: {
-      subtasks: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id: { type: SchemaType.STRING },
-            title: { type: SchemaType.STRING },
-            text: { type: SchemaType.STRING },
-            aiEstimatedDuration: { type: SchemaType.NUMBER },
-            difficulty: { 
-              type: SchemaType.STRING,
-              enum: ["easy", "medium", "hard"]
-            },
-            order: { type: SchemaType.NUMBER },
-            completed: { type: SchemaType.BOOLEAN },
-            skills: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            recommendedResources: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            phase: { 
-              type: SchemaType.STRING,
-              enum: ["knowledge", "practice", "application", "reflection", "output", "review"]
-            }
-          },
-          required: ["id", "title", "text", "aiEstimatedDuration", "difficulty", "order", "completed"]
-        }
-      }
-    },
-    required: ["subtasks"]
-  },
+// 檢查 API key 是否正確載入
+if (!aiConfig.gemini.apiKey || aiConfig.gemini.apiKey === 'your_gemini_api_key_here') {
+  console.error('❌ [GEMINI] API key not configured properly');
+  console.error('🔍 [GEMINI] Current API key length:', aiConfig.gemini.apiKey?.length || 0);
+} else {
+  console.log('✅ [GEMINI] API key configured, length:', aiConfig.gemini.apiKey.length);
+  console.log(`🎯 [GEMINI] Model: ${aiConfig.gemini.model}`);
+  console.log(`⚡ [GEMINI] Max tokens: ${aiConfig.gemini.maxTokens}`);
+}
 
-  // 學習計劃生成的 Schema
-  learningPlan: {
-    type: SchemaType.OBJECT,
-    properties: {
-      achievableGoal: { type: SchemaType.STRING },
-      recommendedTools: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING }
-      },
-      checkpoints: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING }
-      },
-      estimatedTimeToCompletion: { type: SchemaType.NUMBER },
-      subtasks: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id: { type: SchemaType.STRING },
-            title: { type: SchemaType.STRING },
-            text: { type: SchemaType.STRING },
-            aiEstimatedDuration: { type: SchemaType.NUMBER },
-            difficulty: { 
-              type: SchemaType.STRING,
-              enum: ["easy", "medium", "hard"]
-            },
-            order: { type: SchemaType.NUMBER },
-            completed: { type: SchemaType.BOOLEAN },
-            skills: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            recommendedResources: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            phase: { 
-              type: SchemaType.STRING,
-              enum: ["knowledge", "practice", "application", "reflection", "output", "review"]
-            }
-          },
-          required: ["id", "title", "text", "aiEstimatedDuration", "difficulty", "order", "completed"]
-        }
-      }
-    },
-    required: ["achievableGoal", "recommendedTools", "checkpoints", "estimatedTimeToCompletion"]
-  },
+// 🚀 Phase 2A: 使用 Schema 工廠模式替代硬編碼 Schema
+// Schema 工廠實例 - 動態生成和管理 Schema
+const schemaFactory = new SchemaFactory();
 
-  // 統一學習計劃的 Schema
-  unifiedLearningPlan: {
-    type: SchemaType.OBJECT,
-    properties: {
-      personalizationQuestions: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id: { type: SchemaType.STRING },
-            question: { type: SchemaType.STRING },
-            type: { 
-              type: SchemaType.STRING,
-              enum: ["text", "choice"]
-            },
-            options: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-              nullable: true
-            },
-            required: { type: SchemaType.BOOLEAN }
-          },
-          required: ["id", "question", "type", "required"]
-        }
-      },
-      learningPlan: {
-        type: SchemaType.OBJECT,
-        properties: {
-          achievableGoal: { type: SchemaType.STRING },
-          recommendedTools: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING }
-          },
-          checkpoints: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING }
-          },
-          estimatedTimeToCompletion: { type: SchemaType.NUMBER }
-        },
-        required: ["achievableGoal", "recommendedTools", "checkpoints", "estimatedTimeToCompletion"]
-      },
-      subtasks: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id: { type: SchemaType.STRING },
-            title: { type: SchemaType.STRING },
-            text: { type: SchemaType.STRING },
-            aiEstimatedDuration: { type: SchemaType.NUMBER },
-            difficulty: { 
-              type: SchemaType.STRING,
-              enum: ["easy", "medium", "hard"]
-            },
-            order: { type: SchemaType.NUMBER },
-            completed: { type: SchemaType.BOOLEAN },
-            skills: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            recommendedResources: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            phase: { 
-              type: SchemaType.STRING,
-              enum: ["knowledge", "practice", "application", "reflection", "output", "review"]
-            }
-          },
-          required: ["id", "title", "text", "aiEstimatedDuration", "difficulty", "order", "completed"]
-        }
-      }
-    },
-    required: ["personalizationQuestions", "learningPlan", "subtasks"]
-  },
-
-  // 🆕 增強版學習計劃的 Schema - 包含依賴關係和時間約束
-  enhancedLearningPlan: {
-    type: SchemaType.OBJECT,
-    properties: {
-      personalizationQuestions: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id: { type: SchemaType.STRING },
-            question: { type: SchemaType.STRING },
-            type: { 
-              type: SchemaType.STRING,
-              enum: ["text", "choice"]
-            },
-            options: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-              nullable: true
-            },
-            required: { type: SchemaType.BOOLEAN }
-          },
-          required: ["id", "question", "type", "required"]
-        }
-      },
-      learningPlan: {
-        type: SchemaType.OBJECT,
-        properties: {
-          achievableGoal: { type: SchemaType.STRING },
-          recommendedTools: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING }
-          },
-          checkpoints: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING }
-          },
-          estimatedTimeToCompletion: { type: SchemaType.NUMBER }
-        },
-        required: ["achievableGoal", "recommendedTools", "checkpoints", "estimatedTimeToCompletion"]
-      },
-      subtasks: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            id: { type: SchemaType.STRING },
-            title: { type: SchemaType.STRING },
-            text: { type: SchemaType.STRING },
-            aiEstimatedDuration: { type: SchemaType.NUMBER },
-            difficulty: { 
-              type: SchemaType.STRING,
-              enum: ["easy", "medium", "hard"]
-            },
-            order: { type: SchemaType.NUMBER },
-            completed: { type: SchemaType.BOOLEAN },
-            skills: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            recommendedResources: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING }
-            },
-            phase: { 
-              type: SchemaType.STRING,
-              enum: ["knowledge", "practice", "application", "reflection", "output", "review"]
-            },
-            dependencies: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-              nullable: true
-            }
-          },
-          required: ["id", "title", "text", "aiEstimatedDuration", "difficulty", "order", "completed"]
-        }
-      }
-    },
-    required: ["personalizationQuestions", "learningPlan", "subtasks"]
-  },
-
-  // 🆕 新增生產力建議 schema
-  productivityTips: {
-    type: SchemaType.OBJECT,
-    properties: {
-      tips: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING }
-      }
-    },
-    required: ["tips"]
-  },
-
-  // 🆕 新增學習問題 schema
-  learningQuestions: {
-    type: SchemaType.OBJECT,
-    properties: {
-      questions: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING }
-      }
-    },
-    required: ["questions"]
-  },
-
-  // 🆕 新增輸入品質評估 schema
-  inputQuality: {
-    type: SchemaType.OBJECT,
-    properties: {
-      isSufficient: { type: SchemaType.BOOLEAN },
-      reasons: {
-        type: SchemaType.ARRAY,
-        items: { type: SchemaType.STRING }
-      }
-    },
-    required: ["isSufficient", "reasons"]
-  }
+// 向後兼容性：保留原始 RESPONSE_SCHEMAS 的結構，但使用工廠生成
+// 這確保現有代碼可以無縫遷移到新的動態 Schema 系統
+const getLegacyResponseSchemas = () => {
+  return {
+    personalizationQuestions: schemaFactory.createSchema('personalizationQuestions'),
+    subtasks: schemaFactory.createSchema('subtasks'),
+    learningPlan: schemaFactory.createSchema('learningPlan', { includeSubtasks: true }),
+    unifiedLearningPlan: schemaFactory.createSchema('unifiedLearningPlan')
+  };
 };
+
+// 向後兼容性：延遲載入的 RESPONSE_SCHEMAS
+let _responseSchemas = null;
+const RESPONSE_SCHEMAS = new Proxy({}, {
+  get(target, prop) {
+    if (!_responseSchemas) {
+      _responseSchemas = getLegacyResponseSchemas();
+    }
+    return _responseSchemas[prop];
+  }
+});
 
 class GeminiService {
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY;
-    this.defaultModel = process.env.DEFAULT_MODEL || 'gemini-2.5-flash';
-    this.defaultMaxTokens = parseInt(process.env.DEFAULT_MAX_TOKENS) || 4000;
-    this.defaultTemperature = parseFloat(process.env.DEFAULT_TEMPERATURE) || 0.1;
-    this.requestTimeout = parseInt(process.env.REQUEST_TIMEOUT) || 30000;
+    // 🔧 Phase 1B: 使用統一配置系統替代硬編碼配置
+    const aiConfig = getAiConfig();
+    
+    this.apiKey = aiConfig.gemini.apiKey;
+    this.defaultModel = aiConfig.gemini.model;
+    this.defaultMaxTokens = aiConfig.gemini.maxTokens;
+    this.defaultTemperature = aiConfig.gemini.temperature;
+    this.requestTimeout = aiConfig.gemini.requestTimeout;
+    
+    // 🚀 Phase 2A: 集成 Schema 工廠
+    this.schemaFactory = new SchemaFactory();
     
     if (!this.apiKey || this.apiKey === 'your_gemini_api_key_here') {
       console.warn('⚠️ Warning: GEMINI_API_KEY not properly configured in .env file');
@@ -334,6 +67,7 @@ class GeminiService {
     } else {
       this.genAI = new GoogleGenerativeAI(this.apiKey);
       console.log('✅ Gemini API key configured');
+      console.log('🚀 Schema Factory initialized');
     }
   }
 
@@ -346,7 +80,7 @@ class GeminiService {
    */
   async callGeminiStructured(systemPrompt, userContent, options = {}) {
     const startTime = Date.now();
-    const maxRetries = options.maxRetries || 3; // 🆕 增加重試次數
+    const maxRetries = options.maxRetries || 3;
     let lastError = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -359,64 +93,74 @@ class GeminiService {
           model: options.model || this.defaultModel 
         });
 
-        // 🆕 取得指定的 schema
+        // 🚀 Phase 2A: 使用 Schema 工廠動態生成 Schema
         const schemaType = options.schemaType || 'subtasks';
-        const responseSchema = RESPONSE_SCHEMAS[schemaType];
+        let responseSchema;
         
-        if (!responseSchema) {
-          throw new Error(`Unknown schema type: ${schemaType}`);
+        try {
+          // 首先嘗試使用 Schema 工廠
+          responseSchema = this.schemaFactory.createSchema(schemaType, options.schemaOptions || {});
+        } catch (factoryError) {
+          // 向後兼容性：回退到傳統 Schema
+          responseSchema = RESPONSE_SCHEMAS[schemaType];
+          if (!responseSchema) {
+            throw new Error(`Unknown schema type: ${schemaType}. Factory error: ${factoryError.message}`);
+          }
+          console.warn(`⚠️ Using legacy schema for ${schemaType}: ${factoryError.message}`);
         }
 
         console.log(`🤖 [Attempt ${attempt}/${maxRetries}] Calling Gemini with structured output (${schemaType})`);
         console.log(`📝 Model: ${options.model || this.defaultModel}`);
         console.log(`📄 Response Schema: ${schemaType}`);
 
-        // 🆕 強化提示詞以確保 schema 合規性和完整性
-        const enhancedSystemPrompt = `${systemPrompt}
-
-CRITICAL REQUIREMENTS:
-1. Your response MUST be valid JSON that strictly follows the provided schema
-2. DO NOT include any text before or after the JSON object
-3. DO NOT use markdown code blocks
-4. Ensure all required fields are present and properly formatted
-5. If the response is getting cut off, prioritize completing the JSON structure over adding more content
-
-For subtasks schema, ensure each subtask contains ALL of these required fields:
-- id: A unique string identifier (e.g., "subtask_001", "subtask_002")
-- title: A clear, descriptive title
-- text: Detailed description (50-100 words)
-- aiEstimatedDuration: Estimated time in minutes (number between 30-120)
-- difficulty: Exactly one of "easy", "medium", "hard"
-- order: Sequential number starting from 1
-- completed: Boolean false
-- skills: Array of skill tags (can be empty [])
-- recommendedResources: Array of resource suggestions (can be empty [])
-- phase: Exactly one of "knowledge", "practice", "application", "reflection", "output", "review"
-
-IMPORTANT: If you cannot complete the full response within token limits, prioritize completing the JSON structure over adding more content.`;
-
+        // 更寬鬆的 token 數量設定
+        let adjustedMaxTokens = options.maxTokens || this.defaultMaxTokens;
+        if (schemaType === 'personalizationQuestions') {
+          adjustedMaxTokens = Math.max(adjustedMaxTokens, 1200);
+        } else if (schemaType === 'unifiedLearningPlan') {
+          adjustedMaxTokens = Math.max(adjustedMaxTokens, 4000);
+        }
+        
         const requestConfig = {
           contents: [
             {
               role: 'user',
-              parts: [{ text: `${enhancedSystemPrompt}\n\nUser Request: ${userContent}` }]
+              parts: [{ text: `${systemPrompt}\n\n${userContent}` }]
             }
           ],
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: responseSchema,
-            maxOutputTokens: options.maxTokens || this.defaultMaxTokens,
+            maxOutputTokens: adjustedMaxTokens,
             temperature: options.temperature || this.defaultTemperature,
+            candidateCount: 1
           }
         };
 
-        const result = await model.generateContent(requestConfig);
-        const responseText = result.response.text();
+        // 添加超時控制
+        const result = await Promise.race([
+          model.generateContent(requestConfig),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), this.requestTimeout)
+          )
+        ]);
+        
+        const response = result.response;
+        if (!response) {
+          throw new Error('No response received from Gemini API');
+        }
+        
+        const responseText = response.text();
+        
+        // 檢查空回應
+        if (!responseText || responseText.trim().length === 0) {
+          throw new Error('Empty response received from Gemini API');
+        }
         
         console.log(`📊 Response length: ${responseText.length} characters`);
         console.log(`⏱️ Request took: ${Date.now() - startTime}ms`);
 
-        // 🆕 增強的響應解析和驗證
+        // 解析和驗證響應
         let parsedResponse;
         try {
           // 清理響應文本
@@ -435,55 +179,31 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
           console.error(`❌ JSON parsing failed:`, parseError);
           console.log(`🔍 Raw response (first 500 chars):`, responseText.substring(0, 500));
           
-          // 🆕 嘗試修復截斷的 JSON
-          try {
-            console.log(`🔧 Attempting to repair truncated JSON...`);
-            parsedResponse = this.repairTruncatedJSON(responseText);
-            console.log(`✅ JSON repair successful`);
-            parsedResponse._repaired = true;
-          } catch (repairError) {
-            console.error(`❌ JSON repair failed:`, repairError);
-            
-            // 檢查是否為截斷響應的跡象
-            const possibleTruncationIndicators = [
-              responseText.length < 100, // 響應太短
-              responseText.includes('...'), // 包含省略號
-              !responseText.includes('}'), // 沒有閉合大括號
-              responseText.match(/,\s*$/), // 以逗號結尾
-              responseText.match(/:\s*"[^"]*$/), // 不完整的字符串
-            ];
-            
-            const isTruncated = possibleTruncationIndicators.some(indicator => indicator);
-            
-            if (isTruncated && attempt < maxRetries) {
-              console.warn(`⚠️ Response appears truncated, retrying...`);
-              lastError = new Error(`Truncated JSON response: ${parseError.message}`);
-              continue;
-            } else {
-              throw new Error(`Invalid JSON response: ${parseError.message}`);
-            }
+          // JSON parsing failed - retry with different configuration
+          if (attempt < maxRetries) {
+            console.log(`🔄 Retrying API call with modified parameters (attempt ${attempt + 1}/${maxRetries})...`);
+            lastError = new Error(`JSON parsing failed: ${parseError.message}`);
+            continue;
+          } else {
+            throw new Error(`JSON parsing failed after ${maxRetries} attempts: ${parseError.message}`);
           }
         }
 
-        // 🆕 驗證響應結構
-        const validationResult = this.validateStructuredResponse(parsedResponse, schemaType);
+        // 🚀 Phase 2A: 使用 Schema 工廠驗證器
+        let validationResult;
+        try {
+          validationResult = this.schemaFactory.validateResponse(parsedResponse, schemaType);
+        } catch (validationError) {
+          // 向後兼容性：回退到傳統驗證
+          console.warn(`⚠️ Using legacy validation for ${schemaType}: ${validationError.message}`);
+          validationResult = this.validateStructuredResponse(parsedResponse, schemaType);
+        }
+        
         if (!validationResult.isValid) {
           console.warn(`⚠️ Schema validation failed:`, validationResult.errors);
           
-          // 🆕 嘗試修復常見問題
-          const repairedResponse = this.repairStructuredResponse(parsedResponse, schemaType);
-          if (repairedResponse) {
-            console.log(`🔧 Attempting to repair response structure...`);
-            const revalidation = this.validateStructuredResponse(repairedResponse, schemaType);
-            if (revalidation.isValid) {
-              console.log(`✅ Response repair successful`);
-              repairedResponse._repaired = true;
-              return repairedResponse;
-            }
-          }
-          
           if (attempt < maxRetries) {
-            console.log(`🔄 Retrying with enhanced constraints...`);
+            console.log(`🔄 Retrying with modified prompt (attempt ${attempt + 1}/${maxRetries})...`);
             lastError = new Error(`Schema validation failed: ${validationResult.errors.join(', ')}`);
             continue;
           } else {
@@ -499,9 +219,15 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
         lastError = error;
         
         if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000; // 指數退避
+          const delay = Math.min(Math.pow(2, attempt) * 1000, 8000);
           console.log(`⏳ Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // 在重試時調整參數
+          if (attempt === 2) {
+            adjustedMaxTokens = Math.min(adjustedMaxTokens * 1.5, 4000);
+            console.log(`🔧 Increasing maxTokens to ${adjustedMaxTokens} for retry`);
+          }
         }
       }
     }
@@ -511,110 +237,67 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
   }
 
   /**
-   * 🆕 修復截斷的 JSON 響應
-   * @param {string} responseText - 原始響應文本
-   * @returns {object} - 修復後的 JSON 對象
-   */
-  repairTruncatedJSON(responseText) {
-    console.log('🔧 Attempting to repair truncated JSON...');
-    
-    // 提取 JSON 對象
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON object found in response');
-    }
-    
-    let extractedJson = jsonMatch[0];
-    
-    // 檢查大括號平衡
-    const openBraces = (extractedJson.match(/\{/g) || []).length;
-    const closeBraces = (extractedJson.match(/\}/g) || []).length;
-    
-    if (openBraces > closeBraces) {
-      console.log(`🔧 Detected ${openBraces - closeBraces} missing closing braces`);
-      
-      // 處理不完整的字符串值
-      if (extractedJson.match(/:\s*"[^"]*$/)) {
-        extractedJson += '"';
-      } else if (extractedJson.match(/,\s*"[^"]*$/)) {
-        extractedJson += '": ""';
-      } else if (extractedJson.match(/,\s*$/)) {
-        extractedJson = extractedJson.replace(/,\s*$/, '');
-      } else if (extractedJson.match(/:\s*\[.*[^}\]]\s*$/)) {
-        extractedJson += ']';
-      }
-      
-      // 添加缺失的閉合大括號
-      const missingBraces = openBraces - closeBraces;
-      for (let i = 0; i < missingBraces; i++) {
-        extractedJson += '}';
-      }
-      
-      console.log('🔧 Repaired JSON length:', extractedJson.length);
-      const repairedResult = JSON.parse(extractedJson);
-      console.log('✅ Successfully repaired truncated JSON!');
-      
-      // 添加修復標誌
-      repairedResult._repaired = true;
-      repairedResult._originalLength = responseText.length;
-      
-      return repairedResult;
-    }
-    
-    // 如果大括號平衡，直接解析
-    return JSON.parse(extractedJson);
-  }
-
-  /**
-   * 驗證結構化響應是否符合 schema 要求
+   * 🚀 Phase 2A: 重構驗證方法，優先使用 Schema 工廠驗證器
+   * @deprecated 此方法保留用於向後兼容性，新代碼應使用 schemaFactory.validateResponse()
    * @param {Object} response - AI 響應對象
    * @param {string} schemaType - Schema 類型
    * @returns {Object} - 驗證結果
    */
   validateStructuredResponse(response, schemaType) {
-    const errors = [];
+    console.warn('⚠️ DEPRECATED: validateStructuredResponse() is deprecated. Use schemaFactory.validateResponse() for better performance and flexibility.');
+    
+    try {
+      // 嘗試使用新的 Schema 工廠驗證器
+      return this.schemaFactory.validateResponse(response, schemaType);
+    } catch (error) {
+      console.warn(`⚠️ Schema factory validation failed, falling back to legacy validation: ${error.message}`);
+      
+      // 回退到原始驗證邏輯
+      const errors = [];
 
-    if (schemaType === 'subtasks') {
-      // 驗證子任務 schema
-      if (!response.subtasks || !Array.isArray(response.subtasks)) {
-        errors.push('Missing or invalid subtasks array');
-        return { isValid: false, errors };
-      }
+      if (schemaType === 'personalizationQuestions') {
+        // 驗證個人化問題 schema
+        if (!response.questions || !Array.isArray(response.questions)) {
+          errors.push('Missing or invalid questions array');
+          return { isValid: false, errors };
+        }
 
-      response.subtasks.forEach((subtask, index) => {
-        const requiredFields = ['id', 'title', 'text', 'aiEstimatedDuration', 'difficulty', 'order', 'completed'];
-        const missingFields = requiredFields.filter(field => {
-          if (field === 'completed') return typeof subtask[field] !== 'boolean';
-          if (field === 'aiEstimatedDuration' || field === 'order') return typeof subtask[field] !== 'number';
-          return !subtask[field];
+        response.questions.forEach((question, index) => {
+          const requiredFields = ['id', 'question', 'type', 'required'];
+          const missingFields = requiredFields.filter(field => {
+            if (field === 'required') return typeof question[field] !== 'boolean';
+            return !question[field];
+          });
+
+          if (missingFields.length > 0) {
+            errors.push(`Question ${index + 1}: missing fields [${missingFields.join(', ')}]`);
+          }
+
+          // 驗證問題類型和選項
+          if (question.type === 'choice') {
+            if (!question.options || !Array.isArray(question.options) || question.options.length === 0) {
+              // 自動修復：如果是 choice 但沒有 options，轉成 text 類型
+              question.type = 'text';
+              delete question.options;
+            }
+          }
+
+          // 驗證簡單類型
+          if (question.type && !['text', 'choice', 'scale', 'boolean'].includes(question.type)) {
+            errors.push(`Question ${index + 1}: invalid type "${question.type}"`);
+          }
         });
 
-        if (missingFields.length > 0) {
-          errors.push(`Subtask ${index + 1}: missing fields [${missingFields.join(', ')}]`);
-        }
-
-        // 驗證枚舉值
-        if (subtask.difficulty && !['easy', 'medium', 'hard'].includes(subtask.difficulty)) {
-          errors.push(`Subtask ${index + 1}: invalid difficulty "${subtask.difficulty}"`);
-        }
-        if (subtask.phase && !['knowledge', 'practice', 'application', 'reflection', 'output', 'review'].includes(subtask.phase)) {
-          errors.push(`Subtask ${index + 1}: invalid phase "${subtask.phase}"`);
-        }
-      });
-    } else if (schemaType === 'unifiedLearningPlan') {
-      // 驗證統一學習計劃 schema
-      if (!response.personalizationQuestions || !Array.isArray(response.personalizationQuestions)) {
-        errors.push('Missing personalizationQuestions array');
-      }
-      if (!response.learningPlan || typeof response.learningPlan !== 'object') {
-        errors.push('Missing learningPlan object');
-      }
-      if (!response.subtasks || !Array.isArray(response.subtasks)) {
-        errors.push('Missing subtasks array');
+        return { isValid: errors.length === 0, errors };
       }
 
-      // 驗證子任務
-      if (response.subtasks) {
+      if (schemaType === 'subtasks') {
+        // 驗證子任務 schema
+        if (!response.subtasks || !Array.isArray(response.subtasks)) {
+          errors.push('Missing or invalid subtasks array');
+          return { isValid: false, errors };
+        }
+
         response.subtasks.forEach((subtask, index) => {
           const requiredFields = ['id', 'title', 'text', 'aiEstimatedDuration', 'difficulty', 'order', 'completed'];
           const missingFields = requiredFields.filter(field => {
@@ -626,174 +309,65 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
           if (missingFields.length > 0) {
             errors.push(`Subtask ${index + 1}: missing fields [${missingFields.join(', ')}]`);
           }
-        });
-      }
-    } else if (schemaType === 'productivityTips') {
-      // 🆕 驗證生產力建議 schema
-      if (!response.tips || !Array.isArray(response.tips)) {
-        errors.push('Missing or invalid tips array');
-        return { isValid: false, errors };
-      }
 
-      if (response.tips.length === 0) {
-        errors.push('Tips array is empty');
-      }
-
-      response.tips.forEach((tip, index) => {
-        if (typeof tip !== 'string' || tip.trim().length === 0) {
-          errors.push(`Tip ${index + 1}: must be a non-empty string`);
-        }
-      });
-    } else if (schemaType === 'learningQuestions') {
-      // 🆕 驗證學習問題 schema
-      if (!response.questions || !Array.isArray(response.questions)) {
-        errors.push('Missing or invalid questions array');
-        return { isValid: false, errors };
-      }
-
-      if (response.questions.length === 0) {
-        errors.push('Questions array is empty');
-      }
-
-      response.questions.forEach((question, index) => {
-        if (typeof question !== 'string' || question.trim().length === 0) {
-          errors.push(`Question ${index + 1}: must be a non-empty string`);
-        }
-      });
-    } else if (schemaType === 'inputQuality') {
-      // 🆕 驗證輸入品質評估 schema
-      if (typeof response.isSufficient !== 'boolean') {
-        errors.push('Missing or invalid isSufficient boolean');
-      }
-
-      if (response.reasons && !Array.isArray(response.reasons)) {
-        errors.push('Invalid reasons array');
-      }
-
-      if (response.reasons) {
-        response.reasons.forEach((reason, index) => {
-          if (typeof reason !== 'string' || reason.trim().length === 0) {
-            errors.push(`Reason ${index + 1}: must be a non-empty string`);
+          // 驗證枚舉值
+          if (subtask.difficulty && !['easy', 'medium', 'hard'].includes(subtask.difficulty)) {
+            errors.push(`Subtask ${index + 1}: invalid difficulty "${subtask.difficulty}"`);
+          }
+          if (subtask.phase && !['knowledge', 'practice', 'application', 'reflection', 'output', 'review'].includes(subtask.phase)) {
+            errors.push(`Subtask ${index + 1}: invalid phase "${subtask.phase}"`);
           }
         });
-      }
-    } else if (schemaType === 'personalizationQuestions') {
-      // 🆕 驗證個人化問題 schema (之前缺少)
-      if (!response.questions || !Array.isArray(response.questions)) {
-        errors.push('Missing or invalid questions array');
-        return { isValid: false, errors };
-      }
-
-      response.questions.forEach((question, index) => {
-        const requiredFields = ['id', 'question', 'type', 'required'];
-        const missingFields = requiredFields.filter(field => {
-          if (field === 'required') return typeof question[field] !== 'boolean';
-          return !question[field];
-        });
-
-        if (missingFields.length > 0) {
-          errors.push(`Question ${index + 1}: missing fields [${missingFields.join(', ')}]`);
+      } else if (schemaType === 'unifiedLearningPlan') {
+        // 驗證統一學習計劃 schema
+        if (!response.personalizationQuestions || !Array.isArray(response.personalizationQuestions)) {
+          errors.push('Missing personalizationQuestions array');
+        }
+        if (!response.learningPlan || typeof response.learningPlan !== 'object') {
+          errors.push('Missing learningPlan object');
+        }
+        if (!response.subtasks || !Array.isArray(response.subtasks)) {
+          errors.push('Missing subtasks array');
         }
 
-        // 驗證問題類型
-        if (question.type && !['text', 'choice', 'scale'].includes(question.type)) {
-          errors.push(`Question ${index + 1}: invalid type "${question.type}"`);
-        }
+        // 驗證子任務
+        if (response.subtasks) {
+          response.subtasks.forEach((subtask, index) => {
+            const requiredFields = ['id', 'title', 'text', 'aiEstimatedDuration', 'difficulty', 'order', 'completed'];
+            const missingFields = requiredFields.filter(field => {
+              if (field === 'completed') return typeof subtask[field] !== 'boolean';
+              if (field === 'aiEstimatedDuration' || field === 'order') return typeof subtask[field] !== 'number';
+              return !subtask[field];
+            });
 
-        // 如果是選擇題，檢查是否有選項
-        if (question.type === 'choice' && (!question.options || !Array.isArray(question.options) || question.options.length === 0)) {
-          errors.push(`Question ${index + 1}: choice type requires non-empty options array`);
-        }
-      });
-    } else if (schemaType === 'learningPlan') {
-      // 🆕 驗證學習計劃 schema (之前缺少)
-      if (!response.achievableGoal || typeof response.achievableGoal !== 'string') {
-        errors.push('Missing or invalid achievableGoal string');
-      }
-
-      if (!response.recommendedTools || !Array.isArray(response.recommendedTools)) {
-        errors.push('Missing or invalid recommendedTools array');
-      }
-
-      if (!response.checkpoints || !Array.isArray(response.checkpoints)) {
-        errors.push('Missing or invalid checkpoints array');
-      }
-
-      if (typeof response.estimatedTimeToCompletion !== 'number') {
-        errors.push('Missing or invalid estimatedTimeToCompletion number');
-      }
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
-
-  /**
-   * 嘗試修復常見的結構化響應問題
-   * @param {Object} response - 原始響應
-   * @param {string} schemaType - Schema 類型
-   * @returns {Object|null} - 修復後的響應，如果無法修復則返回 null
-   */
-  repairStructuredResponse(response, schemaType) {
-    try {
-      const repairedResponse = JSON.parse(JSON.stringify(response)); // 深拷貝
-
-      if (schemaType === 'subtasks' || schemaType === 'unifiedLearningPlan') {
-        const subtasks = schemaType === 'subtasks' ? repairedResponse.subtasks : repairedResponse.subtasks;
-        
-        if (subtasks && Array.isArray(subtasks)) {
-          subtasks.forEach((subtask, index) => {
-            // 修復缺失的必需欄位
-            if (!subtask.id) {
-              subtask.id = `repaired_subtask_${index + 1}_${Date.now()}`;
-            }
-            if (!subtask.title) {
-              subtask.title = `Task ${index + 1}`;
-            }
-            if (!subtask.text) {
-              subtask.text = subtask.description || subtask.title || `Task ${index + 1} description`;
-            }
-            if (typeof subtask.aiEstimatedDuration !== 'number') {
-              subtask.aiEstimatedDuration = subtask.duration || 60;
-            }
-            if (!subtask.difficulty) {
-              subtask.difficulty = 'medium';
-            }
-            if (typeof subtask.order !== 'number') {
-              subtask.order = index + 1;
-            }
-            if (typeof subtask.completed !== 'boolean') {
-              subtask.completed = false;
-            }
-            if (!Array.isArray(subtask.skills)) {
-              subtask.skills = subtask.tags || [];
-            }
-            if (!Array.isArray(subtask.recommendedResources)) {
-              subtask.recommendedResources = [];
-            }
-            if (!subtask.phase) {
-              // 根據順序分配階段
-              const phases = ['knowledge', 'practice', 'application', 'reflection', 'output', 'review'];
-              subtask.phase = phases[index % phases.length];
-            }
-
-            // 修復無效的枚舉值
-            if (!['easy', 'medium', 'hard'].includes(subtask.difficulty)) {
-              subtask.difficulty = 'medium';
-            }
-            if (subtask.phase && !['knowledge', 'practice', 'application', 'reflection', 'output', 'review'].includes(subtask.phase)) {
-              subtask.phase = 'practice';
+            if (missingFields.length > 0) {
+              errors.push(`Subtask ${index + 1}: missing fields [${missingFields.join(', ')}]`);
             }
           });
         }
+      } else if (schemaType === 'learningPlan') {
+        // 驗證學習計劃 schema
+        if (!response.achievableGoal || typeof response.achievableGoal !== 'string') {
+          errors.push('Missing or invalid achievableGoal string');
+        }
+
+        if (!response.recommendedTools || !Array.isArray(response.recommendedTools)) {
+          errors.push('Missing or invalid recommendedTools array');
+        }
+
+        if (!response.checkpoints || !Array.isArray(response.checkpoints)) {
+          errors.push('Missing or invalid checkpoints array');
+        }
+
+        if (typeof response.estimatedTimeToCompletion !== 'number') {
+          errors.push('Missing or invalid estimatedTimeToCompletion number');
+        }
       }
 
-      return repairedResponse;
-    } catch (error) {
-      console.error('Failed to repair response:', error);
-      return null;
+      return {
+        isValid: errors.length === 0,
+        errors
+      };
     }
   }
 
@@ -814,207 +388,13 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
       } else if (systemPrompt.includes('learning plan') || userContent.includes('learning plan')) {
         options.schemaType = 'learningPlan';
       } else {
-        options.schemaType = 'subtasks'; // Default fallback
+        throw new Error('Schema type must be specified for structured output');
       }
     }
     
-    try {
-      const result = await this.callGeminiStructured(systemPrompt, userContent, options);
-      // Return as JSON string for backward compatibility
-      return JSON.stringify(result);
-    } catch (error) {
-      console.error('❌ Structured call failed in legacy mode:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Parse AI response with enhanced error handling and auto-repair for truncated responses
-   * @param {string} response - Raw AI response
-   * @returns {Object} - Parsed response object
-   */
-  parseAIResponse(response) {
-    try {
-      // Clean the response more carefully
-      let cleanedResponse = response.trim();
-      
-      // Remove markdown code blocks
-      cleanedResponse = cleanedResponse.replace(/^```(?:json|javascript|js)?\s*/gm, '');
-      cleanedResponse = cleanedResponse.replace(/```\s*$/gm, '');
-      cleanedResponse = cleanedResponse.replace(/^```/g, '');
-      cleanedResponse = cleanedResponse.replace(/```$/g, '');
-      
-      // Remove any leading/trailing whitespace
-      cleanedResponse = cleanedResponse.trim();
-      
-      // Find the first { and try to find the complete JSON
-      const firstBrace = cleanedResponse.indexOf('{');
-      if (firstBrace === -1) {
-        throw new Error('No JSON object found in response');
-      }
-      
-      // Extract everything from the first brace
-      let jsonCandidate = cleanedResponse.substring(firstBrace);
-      
-      // Try to find the balanced JSON by counting braces
-      let braceCount = 0;
-      let jsonEnd = -1;
-      
-      for (let i = 0; i < jsonCandidate.length; i++) {
-        const char = jsonCandidate[i];
-        if (char === '{') {
-          braceCount++;
-        } else if (char === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            jsonEnd = i;
-            break;
-          }
-        }
-      }
-      
-      if (jsonEnd !== -1) {
-        // We found a complete JSON object
-        const completeJson = jsonCandidate.substring(0, jsonEnd + 1);
-        return JSON.parse(completeJson);
-      } else {
-        // JSON is incomplete, but let's try to parse what we have
-        // This might fail, but we'll catch it below
-        return JSON.parse(jsonCandidate);
-      }
-      
-    } catch (error) {
-      console.error('Failed to parse Gemini response:', error);
-      console.error('Raw response length:', response.length);
-      console.error('Raw response preview (first 500 chars):', response.substring(0, 500));
-      console.error('Raw response preview (last 500 chars):', response.substring(Math.max(0, response.length - 500)));
-      
-      // 🆕 Enhanced auto-repair system for truncated JSON responses
-      try {
-        // Try to extract and repair the JSON
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          let extractedJson = jsonMatch[0];
-          
-          // If the JSON appears incomplete, try to close it intelligently
-          const openBraces = (extractedJson.match(/\{/g) || []).length;
-          const closeBraces = (extractedJson.match(/\}/g) || []).length;
-          
-          if (openBraces > closeBraces) {
-            console.log('🔧 Attempting to repair truncated JSON...');
-            
-            // Handle incomplete string values
-            if (extractedJson.match(/:\s*"[^"]*$/)) {
-              // If it ends with an incomplete string value, close it
-              extractedJson += '"';
-            } else if (extractedJson.match(/,\s*"[^"]*$/)) {
-              // If it ends with an incomplete property name, close it
-              extractedJson += '": ""';
-            } else if (extractedJson.match(/,\s*$/)) {
-              // If it ends with a comma, remove the trailing comma
-              extractedJson = extractedJson.replace(/,\s*$/, '');
-            } else if (extractedJson.match(/:\s*\[.*[^}\]]\s*$/)) {
-              // If it ends with an incomplete array, close the array
-              extractedJson += ']';
-            }
-            
-            // Add missing closing braces
-            const missingBraces = openBraces - closeBraces;
-            for (let i = 0; i < missingBraces; i++) {
-              extractedJson += '}';
-            }
-            
-            console.log('🔧 Repaired JSON length:', extractedJson.length);
-            const repairedResult = JSON.parse(extractedJson);
-            console.log('✅ Successfully repaired truncated JSON!');
-            
-            // Add a flag to indicate this was repaired
-            repairedResult._repaired = true;
-            repairedResult._originalLength = response.length;
-            
-            return repairedResult;
-          }
-        }
-      } catch (repairError) {
-        console.error('❌ JSON repair attempt failed:', repairError);
-      }
-      
-      // 🆕 Try partial extraction for specific patterns
-      try {
-        console.log('🔧 Attempting partial extraction...');
-        
-        // Look for questions array specifically
-        const questionsMatch = response.match(/"questions"\s*:\s*\[([\s\S]*?)\]/);
-        if (questionsMatch) {
-          const questionsContent = questionsMatch[1];
-          
-          // Try to parse individual questions
-          const questions = [];
-          const questionMatches = questionsContent.match(/\{[^}]*\}/g) || [];
-          
-          questionMatches.forEach(qMatch => {
-            try {
-              const question = JSON.parse(qMatch);
-              questions.push(question);
-            } catch (qError) {
-              // Skip malformed individual questions
-            }
-          });
-          
-          if (questions.length > 0) {
-            console.log(`✅ Extracted ${questions.length} questions via partial parsing`);
-            return { questions, _extracted: true };
-          }
-        }
-        
-        // Look for subtasks array specifically
-        const subtasksMatch = response.match(/"subtasks"\s*:\s*\[([\s\S]*?)\]/);
-        if (subtasksMatch) {
-          const subtasksContent = subtasksMatch[1];
-          
-          // Try to parse individual subtasks
-          const subtasks = [];
-          const subtaskMatches = subtasksContent.match(/\{[^}]*\}/g) || [];
-          
-          subtaskMatches.forEach(sMatch => {
-            try {
-              const subtask = JSON.parse(sMatch);
-              subtasks.push(subtask);
-            } catch (sError) {
-              // Skip malformed individual subtasks
-            }
-          });
-          
-          if (subtasks.length > 0) {
-            console.log(`✅ Extracted ${subtasks.length} subtasks via partial parsing`);
-            return { subtasks, _extracted: true };
-          }
-        }
-        
-      } catch (extractError) {
-        console.error('❌ Partial extraction failed:', extractError);
-      }
-      
-      // Final fallback: return a structured error response with debugging info
-      console.warn('⚠️ Returning fallback response due to parsing failure');
-      return {
-        error: 'Failed to parse AI response',
-        errorType: 'JSON_PARSE_ERROR',
-        originalError: error.message,
-        rawResponsePreview: response.substring(0, 200),
-        rawResponseLength: response.length,
-        success: false,
-        troubleshooting: {
-          suggestion: 'The AI response may be truncated or malformed. Try regenerating.',
-          possibleCauses: [
-            'Response was cut off due to token limits',
-            'Network interruption during response',
-            'Malformed JSON from AI model',
-            'Special characters causing encoding issues'
-          ]
-        }
-      };
-    }
+    const result = await this.callGeminiStructured(systemPrompt, userContent, options);
+    // Return as JSON string for backward compatibility
+    return JSON.stringify(result);
   }
 
   /**
@@ -1033,7 +413,7 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
         };
       }
 
-      // 🆕 使用簡單的結構化測試
+      // 使用簡單的結構化測試
       const testSystemPrompt = 'You are a helpful assistant providing health status information.';
       const testUserPrompt = 'Generate a simple health check response with questions array containing one question about system status.';
       
@@ -1146,8 +526,50 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
       temperature: this.defaultTemperature,
       timeout: this.requestTimeout,
       apiKeyConfigured: Boolean(this.apiKey && this.apiKey !== 'your_gemini_api_key_here'),
-      availableModels: this.getAvailableModels()
+      availableModels: this.getAvailableModels(),
+      // 🚀 Phase 2A: Schema 工廠配置
+      schemaFactory: {
+        enabled: true,
+        cacheStats: this.schemaFactory.getCacheStats(),
+        availableSchemas: this.schemaFactory.registry.list()
+      }
     };
+  }
+
+  /**
+   * 🚀 Phase 2A: 創建自定義 Schema
+   * @param {string} schemaType - Schema 類型
+   * @param {Object} options - Schema 選項
+   * @returns {Object} - 生成的 Schema
+   */
+  createCustomSchema(schemaType, options = {}) {
+    return this.schemaFactory.createSchema(schemaType, options);
+  }
+
+  /**
+   * 🚀 Phase 2A: 註冊新的 Schema 類型
+   * @param {string} name - Schema 名稱
+   * @param {Object} schema - Schema 定義
+   */
+  registerSchema(name, schema) {
+    this.schemaFactory.registry.register(name, schema);
+  }
+
+  /**
+   * 🚀 Phase 2A: 組合多個 Schema
+   * @param {Array<string>} schemaTypes - Schema 類型列表
+   * @param {Object} options - 選項
+   * @returns {Object} - 組合的 Schema
+   */
+  combineSchemas(schemaTypes, options = {}) {
+    return this.schemaFactory.combineSchemas(schemaTypes, options);
+  }
+
+  /**
+   * 🚀 Phase 2A: 清除 Schema 快取
+   */
+  clearSchemaCache() {
+    this.schemaFactory.clearCache();
   }
 
   /**
@@ -1176,503 +598,5 @@ IMPORTANT: If you cannot complete the full response within token limits, priorit
   }
 }
 
-/**
- * 🆕 增強的本地後備系統
- * 當 API 不可用時提供更智能的本地處理
- */
-class EnhancedFallbackService {
-  constructor() {
-    this.templates = this.initializeTemplates();
-    this.knowledgeBase = this.initializeKnowledgeBase();
-    this.stats = {
-      fallbackUsage: 0,
-      successRate: 0,
-      templateMatches: 0,
-      knowledgeBaseHits: 0
-    };
-  }
-
-  /**
-   * 初始化響應模板
-   */
-  initializeTemplates() {
-    return {
-      'learning-plan': {
-        zh: {
-          achievableGoal: "基於輸入內容制定的學習目標",
-          recommendedTools: ["線上課程", "實踐練習", "專業書籍", "社群討論"],
-          checkpoints: ["建立基礎概念", "實踐基本技能", "進階應用", "專精掌握"],
-          estimatedTimeToCompletion: 180
-        },
-        en: {
-          achievableGoal: "Learning goal based on input content",
-          recommendedTools: ["Online courses", "Hands-on practice", "Professional books", "Community discussion"],
-          checkpoints: ["Build foundation", "Practice basics", "Advanced application", "Master expertise"],
-          estimatedTimeToCompletion: 180
-        }
-      },
-      'subtasks-generation': {
-        zh: {
-          baseSubtasks: [
-            { title: "學習基礎概念", difficulty: "easy", duration: 30 },
-            { title: "理解核心原理", difficulty: "medium", duration: 45 },
-            { title: "實踐基本操作", difficulty: "medium", duration: 60 },
-            { title: "深入學習進階內容", difficulty: "hard", duration: 90 },
-            { title: "完成實際項目", difficulty: "hard", duration: 120 }
-          ]
-        },
-        en: {
-          baseSubtasks: [
-            { title: "Learn basic concepts", difficulty: "easy", duration: 30 },
-            { title: "Understand core principles", difficulty: "medium", duration: 45 },
-            { title: "Practice basic operations", difficulty: "medium", duration: 60 },
-            { title: "Study advanced content", difficulty: "hard", duration: 90 },
-            { title: "Complete practical project", difficulty: "hard", duration: 120 }
-          ]
-        }
-      },
-      'productivity-tips': {
-        zh: [
-          "設定明確的學習目標和時間表",
-          "使用番茄工作法，每25分鐘專注學習後休息5分鐘",
-          "創建無干擾的學習環境",
-          "定期複習已學內容，加強記憶",
-          "與他人分享學習心得，加深理解"
-        ],
-        en: [
-          "Set clear learning goals and schedules",
-          "Use Pomodoro Technique: 25 minutes focused learning + 5 minutes break",
-          "Create a distraction-free learning environment",
-          "Review learned content regularly to strengthen memory",
-          "Share learning insights with others to deepen understanding"
-        ]
-      },
-      'learning-questions': {
-        zh: [
-          "您認為這個學習內容的關鍵要點是什麼？",
-          "如何將所學知識應用到實際情況中？",
-          "學習過程中遇到的最大挑戰是什麼？",
-          "有哪些方面需要進一步加強練習？",
-          "您對這個主題還有什麼疑問？"
-        ],
-        en: [
-          "What do you think are the key points of this learning content?",
-          "How can you apply the learned knowledge to real situations?",
-          "What was the biggest challenge during the learning process?",
-          "Which aspects need further practice and reinforcement?",
-          "What other questions do you have about this topic?"
-        ]
-      },
-      'personalization-questions': {
-        zh: [
-          { question: "您目前的學習經驗程度如何？", type: "choice", options: ["初學者", "有基礎", "中等水平", "進階"] },
-          { question: "您希望達到什麼程度？", type: "choice", options: ["基本了解", "實際應用", "熟練掌握", "專家水平"] },
-          { question: "您每天可以投入多少時間學習？", type: "choice", options: ["30分鐘以下", "30-60分鐘", "1-2小時", "2小時以上"] },
-          { question: "您偏好的學習方式是？", type: "choice", options: ["理論學習", "實踐操作", "項目導向", "混合方式"] }
-        ],
-        en: [
-          { question: "What's your current experience level?", type: "choice", options: ["Beginner", "Basic knowledge", "Intermediate", "Advanced"] },
-          { question: "What level do you want to achieve?", type: "choice", options: ["Basic understanding", "Practical application", "Proficient mastery", "Expert level"] },
-          { question: "How much time can you dedicate daily?", type: "choice", options: ["Under 30 min", "30-60 min", "1-2 hours", "Over 2 hours"] },
-          { question: "What's your preferred learning style?", type: "choice", options: ["Theoretical study", "Hands-on practice", "Project-based", "Mixed approach"] }
-        ]
-      }
-    };
-  }
-
-  /**
-   * 初始化知識庫
-   */
-  initializeKnowledgeBase() {
-    return {
-      skillCategories: {
-        'programming': {
-          zh: ['程式設計', '編程', '開發', '軟體', '程式', 'coding'],
-          en: ['programming', 'coding', 'development', 'software', 'computer']
-        },
-        'language': {
-          zh: ['語言', '英語', '中文', '日語', '外語', '口語'],
-          en: ['language', 'english', 'chinese', 'japanese', 'speaking', 'grammar']
-        },
-        'business': {
-          zh: ['商業', '管理', '行銷', '財務', '企業', '創業'],
-          en: ['business', 'management', 'marketing', 'finance', 'entrepreneurship']
-        },
-        'design': {
-          zh: ['設計', '美術', '視覺', 'UI', 'UX', '創意'],
-          en: ['design', 'art', 'visual', 'ui', 'ux', 'creative', 'graphics']
-        },
-        'technology': {
-          zh: ['科技', '技術', '人工智慧', 'AI', '機器學習', '數據'],
-          en: ['technology', 'ai', 'artificial intelligence', 'machine learning', 'data']
-        }
-      },
-      difficultyKeywords: {
-        easy: {
-          zh: ['基礎', '入門', '簡單', '初學', '基本'],
-          en: ['basic', 'beginner', 'simple', 'introduction', 'fundamental']
-        },
-        medium: {
-          zh: ['中等', '進階', '深入', '提升', '改進'],
-          en: ['intermediate', 'advanced', 'improve', 'enhance', 'develop']
-        },
-        hard: {
-          zh: ['高級', '專業', '精通', '大師', '專家'],
-          en: ['expert', 'professional', 'master', 'advanced', 'specialized']
-        }
-      }
-    };
-  }
-
-  /**
-   * 智能後備響應生成
-   */
-  async generateFallbackResponse(requestType, content, options = {}) {
-    this.stats.fallbackUsage++;
-    
-    try {
-      const language = options.language || 'zh';
-      let response;
-
-      switch (requestType) {
-        case 'learning-plan':
-          response = this.generateLearningPlanFallback(content, language);
-          break;
-        case 'subtasks-generation':
-          response = this.generateSubtasksFallback(content, language);
-          break;
-        case 'productivity-tips':
-          response = this.generateProductivityTipsFallback(content, language);
-          break;
-        case 'learning-questions':
-          response = this.generateLearningQuestionsFallback(content, language);
-          break;
-        case 'personalization-questions':
-          response = this.generatePersonalizationFallback(content, language);
-          break;
-        default:
-          response = this.generateGenericFallback(content, language);
-      }
-
-      // 添加後備標識
-      response._fallback = true;
-      response._fallbackReason = 'API unavailable';
-      response._confidence = this.calculateConfidence(content, requestType);
-      
-      this.stats.successRate = (this.stats.successRate * (this.stats.fallbackUsage - 1) + 1) / this.stats.fallbackUsage;
-      
-      return response;
-    } catch (error) {
-      console.error('Fallback generation failed:', error);
-      return this.generateMinimalFallback(requestType, options.language || 'zh');
-    }
-  }
-
-  /**
-   * 生成學習計劃後備響應
-   */
-  generateLearningPlanFallback(content, language) {
-    const template = this.templates['learning-plan'][language];
-    const category = this.detectSkillCategory(content, language);
-    const difficulty = this.detectDifficulty(content, language);
-    
-    // 根據類別和難度調整模板
-    const adjustedTemplate = this.adjustTemplateByCategory(template, category, difficulty, language);
-    
-    return {
-      achievableGoal: this.generateContextualGoal(content, language),
-      recommendedTools: adjustedTemplate.recommendedTools,
-      checkpoints: adjustedTemplate.checkpoints,
-      estimatedTimeToCompletion: this.estimateTimeByDifficulty(difficulty)
-    };
-  }
-
-  /**
-   * 生成子任務後備響應
-   */
-  generateSubtasksFallback(content, language) {
-    const template = this.templates['subtasks-generation'][language];
-    const category = this.detectSkillCategory(content, language);
-    const difficulty = this.detectDifficulty(content, language);
-    
-    const subtasks = template.baseSubtasks.map((subtask, index) => ({
-      id: `fallback-${Date.now()}-${index}`,
-      title: this.contextualizeSubtaskTitle(subtask.title, content, language),
-      text: this.generateSubtaskDescription(subtask.title, content, language),
-      aiEstimatedDuration: this.adjustDurationByDifficulty(subtask.duration, difficulty),
-      difficulty: this.adjustSubtaskDifficulty(subtask.difficulty, difficulty),
-      phase: this.getPhaseForIndex(index),
-      tags: this.generateTagsForCategory(category, language)
-    }));
-    
-    return subtasks;
-  }
-
-  /**
-   * 生成生產力建議後備響應
-   */
-  generateProductivityTipsFallback(stats, language) {
-    const baseTips = this.templates['productivity-tips'][language];
-    
-    // 根據統計數據個性化建議
-    const personalizedTips = baseTips.slice();
-    
-    if (stats.focusTime && stats.focusTime < 30) {
-      const tip = language === 'zh' 
-        ? "建議逐步延長專注時間，從15分鐘開始慢慢增加"
-        : "Gradually extend focus time, starting from 15 minutes and slowly increasing";
-      personalizedTips.unshift(tip);
-    }
-    
-    if (stats.distractions && stats.distractions > 5) {
-      const tip = language === 'zh' 
-        ? "考慮關閉通知和社交媒體，創造更專注的環境"
-        : "Consider turning off notifications and social media for a more focused environment";
-      personalizedTips.push(tip);
-    }
-    
-    return personalizedTips.slice(0, 5); // 返回最多5個建議
-  }
-
-  /**
-   * 生成學習問題後備響應
-   */
-  generateLearningQuestionsFallback(content, language) {
-    const baseQuestions = this.templates['learning-questions'][language];
-    const category = this.detectSkillCategory(content, language);
-    
-    // 根據類別調整問題
-    const contextualQuestions = baseQuestions.map(question => 
-      this.contextualizeQuestion(question, content, category, language)
-    );
-    
-    return contextualQuestions;
-  }
-
-  /**
-   * 生成個人化問題後備響應
-   */
-  generatePersonalizationFallback(content, language) {
-    const baseQuestions = this.templates['personalization-questions'][language];
-    const category = this.detectSkillCategory(content, language);
-    
-    // 為每個問題生成唯一ID
-    const questions = baseQuestions.map((q, index) => ({
-      id: `fallback-q-${Date.now()}-${index}`,
-      question: q.question,
-      type: q.type,
-      options: q.options,
-      required: index < 2 // 前兩個問題設為必須
-    }));
-    
-    // 根據類別添加特定問題
-    if (category) {
-      questions.push(this.generateCategorySpecificQuestion(category, language));
-    }
-    
-    return questions;
-  }
-
-  /**
-   * 檢測技能類別
-   */
-  detectSkillCategory(content, language) {
-    const text = content.toLowerCase();
-    
-    for (const [category, keywords] of Object.entries(this.knowledgeBase.skillCategories)) {
-      const categoryKeywords = keywords[language] || keywords.en;
-      if (categoryKeywords.some(keyword => text.includes(keyword))) {
-        this.stats.knowledgeBaseHits++;
-        return category;
-      }
-    }
-    
-    return null;
-  }
-
-  /**
-   * 檢測難度等級
-   */
-  detectDifficulty(content, language) {
-    const text = content.toLowerCase();
-    
-    for (const [difficulty, keywords] of Object.entries(this.knowledgeBase.difficultyKeywords)) {
-      const difficultyKeywords = keywords[language] || keywords.en;
-      if (difficultyKeywords.some(keyword => text.includes(keyword))) {
-        return difficulty;
-      }
-    }
-    
-    return 'medium'; // 預設中等難度
-  }
-
-  /**
-   * 計算後備響應的可信度
-   */
-  calculateConfidence(content, requestType) {
-    let confidence = 0.5; // 基準可信度
-    
-    // 根據內容長度調整
-    if (content.length > 100) confidence += 0.1;
-    if (content.length > 300) confidence += 0.1;
-    
-    // 根據關鍵詞匹配調整
-    const category = this.detectSkillCategory(content, 'zh');
-    if (category) confidence += 0.2;
-    
-    // 根據請求類型調整
-    if (['productivity-tips', 'personalization-questions'].includes(requestType)) {
-      confidence += 0.1; // 這些類型的後備響應通常更可靠
-    }
-    
-    return Math.min(1, confidence);
-  }
-
-  /**
-   * 輔助方法實現
-   */
-  generateContextualGoal(content, language) {
-    const title = content.split('\n')[0] || content.substring(0, 50);
-    
-    if (language === 'zh') {
-      return `透過系統化學習，掌握「${title}」的核心知識和實用技能`;
-    } else {
-      return `Master core knowledge and practical skills of "${title}" through systematic learning`;
-    }
-  }
-
-  adjustTemplateByCategory(template, category, difficulty, language) {
-    const adjusted = { ...template };
-    
-    // 根據類別調整工具和檢查點
-    if (category === 'programming') {
-      if (language === 'zh') {
-        adjusted.recommendedTools = ["線上編程平台", "IDE/編輯器", "技術文檔", "開源項目", "程式設計社群"];
-        adjusted.checkpoints = ["環境搭建", "語法基礎", "實作小項目", "進階特性", "完整應用開發"];
-      }
-    } else if (category === 'language') {
-      if (language === 'zh') {
-        adjusted.recommendedTools = ["語言學習App", "語法書籍", "聽力練習", "口語對話", "文化資源"];
-        adjusted.checkpoints = ["基礎詞彙", "語法規則", "聽說練習", "閱讀理解", "流利對話"];
-      }
-    }
-    
-    return adjusted;
-  }
-
-  estimateTimeByDifficulty(difficulty) {
-    const baseTime = 180; // 3小時基準
-    const multipliers = { easy: 0.7, medium: 1.0, hard: 1.5 };
-    return Math.round(baseTime * (multipliers[difficulty] || 1.0));
-  }
-
-  contextualizeSubtaskTitle(title, content, language) {
-    // 簡單的上下文化，實際實現可以更複雜
-    const topic = content.split('\n')[0] || content.substring(0, 30);
-    return title.replace(/學習|Learn/, language === 'zh' ? `學習${topic}的` : `Learn ${topic}`);
-  }
-
-  generateSubtaskDescription(title, content, language) {
-    if (language === 'zh') {
-      return `詳細學習和理解${title}，通過理論學習和實踐練習掌握相關知識和技能。`;
-    } else {
-      return `Study and understand ${title} in detail through theoretical learning and practical exercises.`;
-    }
-  }
-
-  adjustDurationByDifficulty(baseDuration, difficulty) {
-    const multipliers = { easy: 0.8, medium: 1.0, hard: 1.3 };
-    return Math.round(baseDuration * (multipliers[difficulty] || 1.0));
-  }
-
-  adjustSubtaskDifficulty(baseDifficulty, overallDifficulty) {
-    // 根據整體難度調整子任務難度
-    if (overallDifficulty === 'easy' && baseDifficulty === 'hard') return 'medium';
-    if (overallDifficulty === 'hard' && baseDifficulty === 'easy') return 'medium';
-    return baseDifficulty;
-  }
-
-  getPhaseForIndex(index) {
-    const phases = ['knowledge', 'practice', 'application', 'mastery', 'creation'];
-    return phases[index] || 'practice';
-  }
-
-  generateTagsForCategory(category, language) {
-    const categoryTags = {
-      programming: language === 'zh' ? ['程式設計', '開發', '技術'] : ['programming', 'development', 'technical'],
-      language: language === 'zh' ? ['語言學習', '溝通', '文化'] : ['language learning', 'communication', 'culture'],
-      business: language === 'zh' ? ['商業技能', '管理', '策略'] : ['business skills', 'management', 'strategy'],
-      design: language === 'zh' ? ['設計思維', '創意', '視覺'] : ['design thinking', 'creative', 'visual'],
-      technology: language === 'zh' ? ['科技', '創新', '數位'] : ['technology', 'innovation', 'digital']
-    };
-    
-    return categoryTags[category] || (language === 'zh' ? ['學習', '技能'] : ['learning', 'skills']);
-  }
-
-  contextualizeQuestion(question, content, category, language) {
-    // 簡單的問題上下文化
-    const topic = content.split('\n')[0] || content.substring(0, 20);
-    return question.replace(/這個學習內容|this learning content/, language === 'zh' ? `「${topic}」` : `"${topic}"`);
-  }
-
-  generateCategorySpecificQuestion(category, language) {
-    const specificQuestions = {
-      programming: {
-        zh: { question: "您希望專注於哪種程式語言或技術棧？", type: "text", required: false },
-        en: { question: "Which programming language or tech stack would you like to focus on?", type: "text", required: false }
-      },
-      language: {
-        zh: { question: "您的語言學習目標是什麼（如考試、工作、旅遊）？", type: "text", required: false },
-        en: { question: "What's your language learning goal (exam, work, travel)?", type: "text", required: false }
-      }
-    };
-    
-    const categoryQuestion = specificQuestions[category];
-    if (categoryQuestion && categoryQuestion[language]) {
-      return {
-        id: `category-specific-${Date.now()}`,
-        ...categoryQuestion[language]
-      };
-    }
-    
-    return null;
-  }
-
-  generateMinimalFallback(requestType, language) {
-    const minimal = {
-      'learning-plan': {
-        zh: { achievableGoal: "制定學習計劃", recommendedTools: ["學習資源"], checkpoints: ["開始學習"], estimatedTimeToCompletion: 60 },
-        en: { achievableGoal: "Create learning plan", recommendedTools: ["Learning resources"], checkpoints: ["Start learning"], estimatedTimeToCompletion: 60 }
-      },
-      'subtasks-generation': {
-        zh: [{ id: 'minimal-1', title: "開始學習", text: "開始您的學習旅程", aiEstimatedDuration: 30, difficulty: 'easy' }],
-        en: [{ id: 'minimal-1', title: "Start learning", text: "Begin your learning journey", aiEstimatedDuration: 30, difficulty: 'easy' }]
-      }
-    };
-    
-    return minimal[requestType]?.[language] || { _error: 'Minimal fallback failed' };
-  }
-
-  getStats() {
-    return {
-      ...this.stats,
-      effectivenessRate: this.stats.successRate,
-      knowledgeBaseEfficiency: this.stats.knowledgeBaseHits / Math.max(1, this.stats.fallbackUsage)
-    };
-  }
-
-  reset() {
-    this.stats = {
-      fallbackUsage: 0,
-      successRate: 0,
-      templateMatches: 0,
-      knowledgeBaseHits: 0
-    };
-  }
-}
-
-// Export classes and singleton instances
-const geminiService = new GeminiService();
-const enhancedFallbackService = new EnhancedFallbackService();
-
-module.exports = GeminiService; 
+// Export class only
+module.exports = GeminiService;
