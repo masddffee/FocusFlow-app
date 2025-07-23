@@ -258,14 +258,14 @@ export async function apiRequest<T>(
     },
     {
       retries: appConfig.api.retryCount,
-      timeout: timeout || appConfig.api.timeout,
+      timeout: options.timeout || appConfig.api.timeout,
       context: {
         endpoint,
         method: options.method || 'GET',
-        params: body,
+        params: options.body,
         metadata: {
           fullUrl: `${appConfig.api.baseUrl}${endpoint}`,
-          hasBody: !!body
+          hasBody: !!options.body
         }
       }
     }

@@ -82,6 +82,8 @@ class GeminiService {
     const startTime = Date.now();
     const maxRetries = options.maxRetries || 3;
     let lastError = null;
+    // 將 adjustedMaxTokens 移到外層，以便在重試時能夠訪問
+    let adjustedMaxTokens = options.maxTokens || this.defaultMaxTokens;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -113,8 +115,8 @@ class GeminiService {
         console.log(`📝 Model: ${options.model || this.defaultModel}`);
         console.log(`📄 Response Schema: ${schemaType}`);
 
-        // 更寬鬆的 token 數量設定
-        let adjustedMaxTokens = options.maxTokens || this.defaultMaxTokens;
+        // 更寬鬆的 token 數量設定（每次重試時重新計算）
+        adjustedMaxTokens = options.maxTokens || this.defaultMaxTokens;
         if (schemaType === 'personalizationQuestions') {
           adjustedMaxTokens = Math.max(adjustedMaxTokens, 1200);
         } else if (schemaType === 'unifiedLearningPlan') {
