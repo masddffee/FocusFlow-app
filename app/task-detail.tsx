@@ -408,7 +408,10 @@ export default function TaskDetailScreen() {
             
             {showSubtasks && (
               <View style={styles.subtasksContainer}>
-                {task.subtasks.map((subtask, index) => (
+                {/* 🔧 修復：按 order 欄位排序後再顯示 */}
+                {task.subtasks
+                  .sort((a, b) => (a.order || 0) - (b.order || 0))
+                  .map((subtask, index) => (
                   <View key={subtask.id || index} style={styles.subtaskItem}>
                     <TouchableOpacity
                       style={[

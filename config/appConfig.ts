@@ -80,12 +80,12 @@ function getApiBaseUrl(): string {
     return envApiUrl;
   }
   
-  // 開發環境自動配置
+  // 開發環境自動配置 - 修復：使用正確的端口 3000
   if (__DEV__) {
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8080/api';  // Android 模擬器專用 IP
+      return 'http://10.0.2.2:3000/api';  // Android 模擬器專用 IP，修復端口
     }
-    return 'http://localhost:8080/api';   // iOS 模擬器/實體設備
+    return 'http://localhost:3000/api';   // iOS 模擬器/實體設備，修復端口
   }
   
   // 生產環境預設（應該通過環境變數設定）
@@ -159,7 +159,7 @@ export function getAppConfig(): AppConfig {
       pollInterval: parseEnvInt(process.env.EXPO_PUBLIC_POLL_INTERVAL, 1000),
     },
     test: {
-      testApiUrl: process.env.EXPO_PUBLIC_TEST_API_URL || 'http://localhost:8080/api',
+      testApiUrl: process.env.EXPO_PUBLIC_TEST_API_URL || 'http://localhost:3000/api',
       testTimeout: parseEnvInt(process.env.EXPO_PUBLIC_TEST_TIMEOUT, 30000),
       enableTestMode: parseEnvBoolean(process.env.EXPO_PUBLIC_ENABLE_TEST_MODE, false),
     },

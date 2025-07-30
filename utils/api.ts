@@ -1,64 +1,10 @@
 import i18n from '../constants/i18n';
 import { getConfig } from '../config/appConfig';
-import { 
-  ErrorHandler, 
-  withErrorHandling, 
-  UnifiedError, 
-  ErrorType, 
-  createError,
-  ApiError // 保持兼容性
-} from '../lib/errors/errorHandler';
 
-// 🔧 Phase 5 修復：JSON 韌性工具函數
-function isValidJSON(text: string): boolean {
-  try {
-    JSON.parse(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function attemptJSONRepair(text: string): string | null {
-  try {
-    // 常見的截斷模式修復
-    let repairedText = text.trim();
-    
-    // 如果以逗號結尾，移除逗號並嘗試閉合
-    if (repairedText.endsWith(',')) {
-      repairedText = repairedText.slice(0, -1);
-    }
-    
-    // 計算需要的閉合括號/大括號數量
-    const openBraces = (repairedText.match(/\{/g) || []).length;
-    const closeBraces = (repairedText.match(/\}/g) || []).length;
-    const openBrackets = (repairedText.match(/\[/g) || []).length;
-    const closeBrackets = (repairedText.match(/\]/g) || []).length;
-    
-    // 添加缺失的閉合符號
-    const missingBraces = openBraces - closeBraces;
-    const missingBrackets = openBrackets - closeBrackets;
-    
-    for (let i = 0; i < missingBrackets; i++) {
-      repairedText += ']';
-    }
-    for (let i = 0; i < missingBraces; i++) {
-      repairedText += '}';
-    }
-    
-    // 驗證修復結果
-    if (isValidJSON(repairedText)) {
-      return repairedText;
-    }
-    
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// 🔧 Phase 1B: 使用統一配置系統替代硬編碼配置
-const appConfig = getConfig();
+// API configuration - 使用統一配置系統
+const getApiBaseUrl = (): string => {
+  return getConfig().api.baseUrl;
+};
 
 // 🆕 作業狀態枚舉（與後端保持一致）
 export const JOB_STATUS = {
@@ -119,7 +65,38 @@ export interface JobStatusResult {
   };
 }
 
-// 🔧 Phase 1C: 移除舊的 ApiError 定義，使用統一錯誤處理框架
+// Generic API error class with i18n support
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number,
+    public code?: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+
+  getLocalizedMessage(): string {
+    switch (this.code) {
+      case 'NETWORK_ERROR':
+        return i18n.t('errors.networkError');
+      case 'SERVER_ERROR':
+        return i18n.t('errors.serverError');
+      case 'TIMEOUT':
+        return i18n.t('errors.timeout');
+      case 'NOT_FOUND':
+        return i18n.t('errors.notFound');
+      case 'UNAUTHORIZED':
+        return i18n.t('errors.unauthorized');
+      case 'FORBIDDEN':
+        return i18n.t('errors.forbidden');
+      case 'VALIDATION_ERROR':
+        return i18n.t('errors.validationError');
+      default:
+        return i18n.t('errors.unknownError');
+    }
+  }
+}
 
 // HTTP methods type
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -132,144 +109,90 @@ interface RequestOptions {
   timeout?: number;
 }
 
-// 🔧 Phase 1C: 使用統一錯誤處理框架重構的 API 請求函數
+// 🆕 簡化的 API 請求函數（移除複雜的錯誤修復邏輯）
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  return withErrorHandling(
-    `api_request_${endpoint}`,
-    async () => {
   const {
     method = 'GET',
     headers = {},
     body,
-    timeout = appConfig.api.timeout // 使用配置系統的超時設定
+    timeout = 10000 // 恢復為10秒，因為作業API不需要長超時
   } = options;
 
-  const fullUrl = `${appConfig.api.baseUrl}${endpoint}`;
-  
-  // 🔧 詳細的網路調試日誌
-  console.log('🌐 [API-REQUEST] 開始網路請求');
-  console.log('🌐 [API-REQUEST] Platform:', appConfig.platform);
-  console.log('🌐 [API-REQUEST] Environment:', appConfig.isDevelopment ? 'development' : 'production');
-  console.log('🌐 [API-REQUEST] API Base URL:', appConfig.api.baseUrl);
-  console.log('🌐 [API-REQUEST] Full URL:', fullUrl);
-  console.log('🌐 [API-REQUEST] Method:', method);
-  console.log('🌐 [API-REQUEST] Body:', body ? JSON.stringify(body) : 'none');
-
-      const requestConfig: RequestInit = {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept-Language': i18n.language,
-          ...headers,
-        },
-        ...(body && { body: JSON.stringify(body) }),
-      };
+  const config: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept-Language': i18n.language,
+      ...headers,
+    },
+    ...(body && { body: JSON.stringify(body) }),
+  };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    console.log('🌐 [API-REQUEST] 發送 fetch 請求...');
-        const response = await fetch(fullUrl, {
-          ...requestConfig,
-          signal: controller.signal,
-        });
+    const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
+      ...config,
+      signal: controller.signal,
+    });
 
     clearTimeout(timeoutId);
-    
-    console.log('🌐 [API-REQUEST] 收到回應');
-    console.log('🌐 [API-REQUEST] Status:', response.status);
-    console.log('🌐 [API-REQUEST] Status Text:', response.statusText);
 
-        if (!response.ok) {
-          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorCode = 'SERVER_ERROR';
 
-          try {
-            const errorData = await response.json();
-            console.log('🌐 [API-REQUEST] Error data:', errorData);
-            if (errorData.error) {
-              errorMessage = errorData.error;
-            }
-            if (errorData.message) {
-              errorMessage = errorData.message;
-            }
-          } catch {
-            // 無法解析錯誤回應，使用默認訊息
-          }
-
-          console.error('🌐 [API-REQUEST] HTTP 錯誤:', errorMessage);
-          
-          // 根據 HTTP 狀態碼創建適當的錯誤
-          if (response.status >= 400 && response.status < 500) {
-            throw new Error(`${response.status} ${errorMessage}`);
-          } else if (response.status >= 500) {
-            throw new Error(`${response.status} ${errorMessage}`);
-          } else {
-            throw new Error(errorMessage);
-          }
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
         }
-
-    // 🔧 增強 JSON 解析韌性 - Phase 5 修復
-    let responseText = '';
-    try {
-      responseText = await response.text();
-      console.log('🌐 [API-REQUEST] Response text length:', responseText.length);
-      
-      // 檢查 JSON 完整性
-      if (!isValidJSON(responseText)) {
-        console.warn('🌐 [API-REQUEST] 偵測到不完整的 JSON 回應');
-        console.log('🌐 [API-REQUEST] Raw text (last 100 chars):', responseText.slice(-100));
-        
-        // 嘗試修復截斷的 JSON
-        const repairedJSON = attemptJSONRepair(responseText);
-        if (repairedJSON) {
-          console.log('🌐 [API-REQUEST] JSON 修復成功');
-          const data = JSON.parse(repairedJSON);
-          console.log('🌐 [API-REQUEST] 修復後資料keys:', Object.keys(data));
-          return data as T;
-        } else {
-          throw new Error('JSON response appears truncated and cannot be repaired');
+        if (errorData.message) {
+          errorMessage = errorData.message;
         }
+      } catch {
+        // 無法解析錯誤回應，使用默認訊息
       }
-      
-      const data = JSON.parse(responseText);
-      console.log('🌐 [API-REQUEST] 成功收到資料');
-      console.log('🌐 [API-REQUEST] Response keys:', Object.keys(data));
-      return data as T;
-    } catch (parseError) {
-      console.error('🌐 [API-REQUEST] JSON 解析錯誤:', parseError);
-      console.log('🌐 [API-REQUEST] Response text preview:', responseText.substring(0, 200));
-      throw new Error(`Invalid JSON response: ${parseError.message}`);
+
+      throw new ApiError(errorMessage, response.status, errorCode);
     }
 
-      } catch (error) {
-        clearTimeout(timeoutId);
-        
-        console.error('🌐 [API-REQUEST] 網路錯誤詳情:', error);
-        console.error('🌐 [API-REQUEST] Error type:', error?.constructor?.name);
-        console.error('🌐 [API-REQUEST] Error message:', error?.message);
+    const data = await response.json();
+    return data as T;
 
-        // 讓統一錯誤處理框架來分類和處理錯誤
-        throw error;
-      }
-    },
-    {
-      retries: appConfig.api.retryCount,
-      timeout: options.timeout || appConfig.api.timeout,
-      context: {
-        endpoint,
-        method: options.method || 'GET',
-        params: options.body,
-        metadata: {
-          fullUrl: `${appConfig.api.baseUrl}${endpoint}`,
-          hasBody: !!options.body
-        }
-      }
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof TypeError) {
+      throw new ApiError(
+        i18n.t('errors.networkError'),
+        undefined,
+        'NETWORK_ERROR'
+      );
     }
-  );
+
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ApiError(
+        i18n.t('errors.timeout'),
+        undefined,
+        'TIMEOUT'
+      );
+    }
+
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(
+      i18n.t('errors.unknownError'),
+      undefined,
+      'UNKNOWN_ERROR'
+    );
+  }
 }
 
 // ==========================================
@@ -306,28 +229,17 @@ export async function submitJob(
 }
 
 /**
- * 🆕 輪詢作業狀態 (Phase 5 Enhanced)
+ * 🆕 輪詢作業狀態
  * @param jobId - 作業ID
- * @param retryCount - 重試次數
  * @returns 作業狀態詳情
  */
-export async function pollJobStatus(jobId: string, retryCount: number = 0): Promise<JobStatusResult> {
-  const maxRetries = 3;
-  
+export async function pollJobStatus(jobId: string): Promise<JobStatusResult> {
   try {
     const response = await apiRequest<JobStatusResult>(`/jobs/${jobId}`);
     return response;
     
   } catch (error) {
-    console.error(`❌ [JOB-API] Failed to poll job ${jobId} (attempt ${retryCount + 1}):`, error);
-    
-    // 🔧 Phase 5: 針對 JSON 錯誤的特殊重試邏輯
-    if (error instanceof Error && error.message.includes('Invalid JSON response') && retryCount < maxRetries) {
-      console.log(`🔄 [JOB-API] JSON 錯誤重試 ${retryCount + 1}/${maxRetries}，等待 ${(retryCount + 1) * 1000}ms...`);
-      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
-      return pollJobStatus(jobId, retryCount + 1);
-    }
-    
+    console.error(`❌ [JOB-API] Failed to poll job ${jobId}:`, error);
     throw error;
   }
 }
@@ -404,20 +316,7 @@ export async function pollUntilComplete(
       
       console.warn(`⚠️ [JOB-API] Poll attempt ${pollCount + 1} failed for job ${jobId}:`, error);
       
-      // 🔧 Phase 5: 特殊處理 JSON 解析錯誤
-      if (error instanceof Error && error.message.includes('Invalid JSON response')) {
-        console.log(`🔧 [JOB-API] JSON 解析錯誤偵測，使用延長等待策略`);
-        // 針對 JSON 錯誤使用更長的等待時間，讓後端有更多時間完成回應
-        if (pollCount < maxPolls - 1) {
-          const extendedDelay = 5000 + (pollCount * 1000); // 5-8秒的延長等待
-          console.log(`⏳ [JOB-API] Extended delay for JSON error: ${extendedDelay}ms`);
-          await new Promise(resolve => setTimeout(resolve, extendedDelay));
-          pollCount++;
-          continue;
-        }
-      }
-      
-      // 如果是其他網路錯誤，等待後重試
+      // 如果是網路錯誤，等待後重試
       if (pollCount < maxPolls - 1) {
         await new Promise(resolve => setTimeout(resolve, 3000));
         pollCount++;
@@ -601,19 +500,10 @@ export async function generateUnifiedLearningPlan(params: {
   targetProficiency?: string;
   clarificationResponses?: Record<string, string>;
 }): Promise<any> {
-  // 🔧 修復：使用正確的 learning_plan 類型
+  // 這裡直接呼叫 submitLearningPlanJob，然後 pollUntilComplete
   const jobResult = await submitLearningPlanJob(params);
   const finalResult = await pollUntilComplete(jobResult.jobId);
-  
-  // 🔧 修復數據格式不匹配問題
-  const result = finalResult.result || finalResult;
-  
-  // 如果後端返回 questions，轉換為前端期待的 personalizationQuestions
-  if (result.questions && !result.personalizationQuestions) {
-    result.personalizationQuestions = result.questions;
-  }
-  
-  return result;
+  return finalResult.result || finalResult; // 兼容不同後端格式
 }
 
 // 安全的輸入品質評估（可用 Job API 或 fallback）

@@ -1,0 +1,459 @@
+# FocusFlow MCP 自動化測試配置
+# 完整的端到端測試流程，包含自動截圖和錯誤捕捉機制
+# 
+# 版本: 3.0
+# 作者: FocusFlow Team
+# 更新日期: 2025-07-29
+
+name: "FocusFlow MCP 完整測試套件"
+version: "3.0"
+description: "涵蓋所有核心功能的自動化測試，包含智能生成、專注計時器、統計報表等"
+
+# 測試環境配置
+environment:
+  baseUrl: "http://localhost:8081"
+  backendUrl: "http://localhost:3001"
+  timeout: 30000
+  retries: 3
+  screenshotPath: "./test-results/screenshots"
+  videoPath: "./test-results/videos"
+  reportPath: "./test-results/reports"
+
+# 瀏覽器配置
+browsers:
+  - name: "chromium"
+    enabled: true
+    headless: false  # 設為 false 以便觀察測試過程
+    viewport:
+      width: 1280
+      height: 720
+    recordVideo: true
+    trace: true
+
+# 測試數據
+testData:
+  validTask:
+    title: "學習 React Native 開發"
+    description: "完整學習 React Native 移動應用開發，包括組件開發、狀態管理、導航等核心概念"
+    dueDate: "2025-08-15"
+    difficulty: "medium"
+    priority: "high"
+  
+  complexTask:
+    title: "建立完整的 AI 對話系統"
+    description: "使用 Python 和機器學習技術建立智能對話系統，包含自然語言處理、意圖識別、對話管理和響應生成"
+    dueDate: "2025-09-30"
+    difficulty: "hard"
+    priority: "high"
+
+# 測試流程定義
+testSuites:
+  
+  # 測試套件 1: 核心功能流程測試
+  - name: "complete-user-journey"
+    description: "完整的用戶使用流程測試"
+    priority: "critical"
+    
+    tests:
+      - name: "01-application-startup"
+        description: "應用程式啟動和初始化測試"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}"
+            timeout: 10000
+            screenshot:
+              name: "app-startup"
+              description: "應用程式首次載入畫面"
+          
+          - action: "waitForSelector"
+            selector: "[data-testid='main-container']"
+            timeout: 5000
+            
+          - action: "verify"
+            type: "elementVisible"
+            selector: "[data-testid='add-task-button']"
+            errorMessage: "主要任務按钮未顯示"
+            screenshot:
+              name: "main-interface-loaded"
+              onError: true
+
+      - name: "02-task-creation-flow"
+        description: "任務創建完整流程測試"
+        steps:
+          - action: "click"
+            selector: "[data-testid='add-task-button']"
+            screenshot:
+              name: "task-creation-start"
+              description: "點擊創建任務按鈕"
+          
+          - action: "waitForSelector"
+            selector: "[data-testid='task-form']"
+            timeout: 3000
+            
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: "{{ testData.validTask.title }}"
+            
+          - action: "fill"
+            selector: "[data-testid='task-description-input']"
+            value: "{{ testData.validTask.description }}"
+            screenshot:
+              name: "task-form-filled"
+              description: "任務表單填寫完成"
+          
+          - action: "click"
+            selector: "[data-testid='smart-generate-button']"
+            screenshot:
+              name: "smart-generate-clicked"
+              description: "點擊智能生成按鈕"
+          
+          - action: "waitForResponse"
+            urlPattern: "**/api/ai/**"
+            timeout: 30000
+            errorHandling:
+              onTimeout:
+                screenshot:
+                  name: "ai-request-timeout"
+                  description: "AI 請求超時"
+                action: "halt"
+                
+          - action: "waitForSelector"
+            selector: "[data-testid='personalization-modal']"
+            timeout: 10000
+            screenshot:
+              name: "personalization-modal-appeared"
+              description: "個人化問題彈窗出現"
+
+      - name: "03-personalization-questions"
+        description: "個人化問題回答流程"
+        steps:
+          - action: "verify"
+            type: "elementCount"
+            selector: "[data-testid='question-item']"
+            expectedCount: { min: 3, max: 8 }
+            errorMessage: "個人化問題數量不在預期範圍內"
+            
+          - action: "fillQuestions"
+            strategy: "comprehensive"  # 完整回答所有問題
+            answers:
+              experience: "intermediate"
+              timeAvailable: "2-3 hours daily"
+              learningStyle: "hands-on practice"
+              goal: "build production applications"
+            screenshot:
+              name: "questions-answered"
+              description: "個人化問題回答完成"
+              
+          - action: "click"
+            selector: "[data-testid='complete-personalization-button']"
+            screenshot:
+              name: "personalization-submitted"
+              description: "提交個人化問題"
+
+      - name: "04-subtask-generation-verification"
+        description: "子任務生成結果驗證"
+        steps:
+          - action: "waitForSelector"
+            selector: "[data-testid='subtasks-container']"
+            timeout: 45000  # AI 生成可能需要較長時間
+            screenshot:
+              name: "subtasks-generating"
+              description: "等待子任務生成"
+              
+          - action: "verify"
+            type: "elementCount"
+            selector: "[data-testid='subtask-item']"
+            expectedCount: { min: 5, max: 15 }
+            errorMessage: "生成的子任務數量異常"
+            screenshot:
+              name: "subtasks-generated"
+              description: "子任務生成完成"
+              
+          - action: "verifySubtaskQuality"
+            checks:
+              - hasTitle: true
+              - hasDescription: true
+              - hasDuration: true
+              - hasDifficulty: true
+              - hasOrder: true
+            screenshot:
+              name: "subtask-quality-check"
+              onError: true
+              
+          - action: "click"
+            selector: "[data-testid='save-task-button']"
+            screenshot:
+              name: "task-saved"
+              description: "任務保存成功"
+
+  # 測試套件 2: 專注計時器功能測試  
+  - name: "focus-timer-functionality"
+    description: "專注計時器核心功能測試"
+    priority: "high"
+    
+    tests:
+      - name: "01-timer-initialization"
+        description: "計時器初始化測試"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/focus"
+            screenshot:
+              name: "focus-page-loaded"
+              
+          - action: "verify"
+            type: "elementVisible"
+            selector: "[data-testid='timer-display']"
+            
+          - action: "verify"
+            type: "textContent"
+            selector: "[data-testid='timer-display']"
+            expectedText: "25:00"
+            errorMessage: "計時器初始時間不正確"
+
+      - name: "02-timer-start-and-pause"
+        description: "計時器啟動和暫停測試"
+        steps:
+          - action: "click"
+            selector: "[data-testid='start-timer-button']"
+            screenshot:
+              name: "timer-started"
+              
+          - action: "wait"
+            duration: 3000  # 等待3秒觀察計時器運行
+            
+          - action: "verify"
+            type: "textContent"
+            selector: "[data-testid='timer-display']"
+            expectedText: "24:57"
+            tolerance: 2000  # 允許2秒誤差
+            screenshot:
+              name: "timer-counting-down"
+              
+          - action: "click"
+            selector: "[data-testid='pause-timer-button']"
+            screenshot:
+              name: "timer-paused"
+              
+          - action: "wait"
+            duration: 2000
+            
+          - action: "verifyTimerPaused"
+            screenshot:
+              name: "timer-pause-verified"
+              onError: true
+
+  # 測試套件 3: 統計報表功能測試
+  - name: "statistics-and-analytics"
+    description: "統計報表和分析功能測試"
+    priority: "medium"
+    
+    tests:
+      - name: "01-stats-page-navigation"
+        description: "統計頁面導航測試"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/stats"
+            screenshot:
+              name: "stats-page-loaded"
+              
+          - action: "waitForSelector"
+            selector: "[data-testid='stats-container']"
+            
+          - action: "verify"
+            type: "elementVisible"
+            selector: "[data-testid='productivity-chart']"
+            screenshot:
+              name: "productivity-chart-visible"
+
+      - name: "02-data-visualization"
+        description: "數據視覺化測試"
+        steps:
+          - action: "verifyChartData"
+            chartSelector: "[data-testid='productivity-chart']"
+            expectedDataPoints: { min: 1 }
+            screenshot:
+              name: "chart-data-verified"
+              
+          - action: "interactWithChart"
+            chartSelector: "[data-testid='productivity-chart']"
+            interaction: "hover"
+            screenshot:
+              name: "chart-interaction"
+
+  # 測試套件 4: 錯誤處理和邊界情況測試
+  - name: "error-handling-and-edge-cases"
+    description: "錯誤處理和邊界情況測試"
+    priority: "high"
+    
+    tests:
+      - name: "01-invalid-input-handling"
+        description: "無效輸入處理測試"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/add-task"
+            
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: ""  # 空標題
+            
+          - action: "click"
+            selector: "[data-testid='smart-generate-button']"
+            
+          - action: "verify"
+            type: "elementVisible"
+            selector: "[data-testid='error-message']"
+            screenshot:
+              name: "empty-title-error"
+              
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: "a"  # 過短標題
+            
+          - action: "click"
+            selector: "[data-testid='smart-generate-button']"
+            
+          - action: "verify"
+            type: "elementVisible"
+            selector: "[data-testid='quality-alert']"
+            screenshot:
+              name: "quality-alert-shown"
+
+      - name: "02-network-error-simulation"
+        description: "網路錯誤模擬測試"
+        steps:
+          - action: "interceptNetworkRequests"
+            pattern: "**/api/ai/**"
+            response:
+              status: 500
+              body: { error: "Internal Server Error" }
+              
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: "{{ testData.validTask.title }}"
+            
+          - action: "click"
+            selector: "[data-testid='smart-generate-button']"
+            
+          - action: "waitForSelector"
+            selector: "[data-testid='error-dialog']"
+            timeout: 10000
+            screenshot:
+              name: "network-error-dialog"
+              
+          - action: "verify"
+            type: "textContent"
+            selector: "[data-testid='error-message']"
+            contains: "network"
+            screenshot:
+              name: "network-error-message"
+
+# 全域錯誤處理配置
+errorHandling:
+  
+  # 自動截圖設定
+  autoScreenshot:
+    enabled: true
+    onError: true
+    onTimeout: true
+    onAssertion: true
+    quality: 90
+    fullPage: true
+    
+  # 錯誤恢復策略
+  recovery:
+    enabled: true
+    strategies:
+      - type: "refresh"
+        condition: "navigation_timeout"
+        maxAttempts: 2
+        
+      - type: "restart"
+        condition: "critical_error"
+        maxAttempts: 1
+        
+      - type: "skip"
+        condition: "non_critical_error"
+        
+  # 日誌配置
+  logging:
+    level: "detailed"
+    includeScreenshots: true
+    includeNetworkLogs: true
+    includeConsoleErrors: true
+    
+  # 通知設定
+  notifications:
+    onCriticalError: true
+    onTestComplete: true
+    channels:
+      - type: "console"
+      - type: "file"
+        path: "./test-results/error-log.json"
+
+# 報告生成配置
+reporting:
+  formats:
+    - "html"
+    - "json"
+    - "junit"
+    
+  html:
+    title: "FocusFlow MCP 測試報告"
+    includeScreenshots: true
+    includeVideos: true
+    theme: "dark"
+    
+  customMetrics:
+    - name: "AI 響應時間"
+      description: "AI API 平均響應時間"
+      unit: "ms"
+      
+    - name: "任務生成成功率"
+      description: "智能任務生成成功率"
+      unit: "%"
+      
+    - name: "用戶流程完成時間"
+      description: "完整用戶流程平均完成時間"
+      unit: "seconds"
+
+# 性能監控配置
+performance:
+  enabled: true
+  metrics:
+    - "firstContentfulPaint"
+    - "largestContentfulPaint"
+    - "timeToInteractive"
+    - "totalBlockingTime"
+    
+  thresholds:
+    firstContentfulPaint: 2000  # 2秒內
+    largestContentfulPaint: 4000  # 4秒內
+    timeToInteractive: 5000  # 5秒內
+    
+  screenshot:
+    onThresholdExceeded: true
+    
+# 清理配置
+cleanup:
+  afterEach: true
+  afterSuite: true
+  actions:
+    - "clearLocalStorage"
+    - "clearSessionStorage"
+    - "clearCookies"
+    - "resetDatabase"  # 如果有測試數據庫
+
+# 並行執行配置
+parallel:
+  enabled: true
+  workers: 2
+  strategy: "suite"  # 按測試套件並行
+  
+# 重試配置
+retry:
+  enabled: true
+  maxAttempts: 2
+  conditions:
+    - "timeout"
+    - "network_error"
+    - "element_not_found"

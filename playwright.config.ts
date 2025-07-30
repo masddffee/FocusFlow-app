@@ -85,11 +85,11 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run backend',
-      port: 8080,
+      port: 3000,
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
       env: {
-        NODE_ENV: 'test',
+        NODE_ENV: 'development',
       },
     },
     {
@@ -98,7 +98,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
       env: {
-        NODE_ENV: 'test',
+        NODE_ENV: 'development',
       },
     },
   ],

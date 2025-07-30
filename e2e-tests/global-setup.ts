@@ -15,8 +15,15 @@ async function globalSetup(config: FullConfig) {
   try {
     // Wait for backend to be ready
     console.log('⏳ Waiting for backend server...');
-    await page.goto('http://localhost:8080/health');
-    await page.waitForLoadState('networkidle');
+    try {
+      await page.goto('http://localhost:3000/health');
+      await page.waitForLoadState('networkidle');
+    } catch (error) {
+      // Backend might not have a /health endpoint, try root
+      console.log('⚠️ /health endpoint not found, trying root...');
+      await page.goto('http://localhost:3000/');
+      await page.waitForLoadState('networkidle');
+    }
     
     // Wait for frontend to be ready
     console.log('⏳ Waiting for frontend server...');

@@ -3,6 +3,64 @@
 const express = require('express');
 const router = express.Router();
 
+// 統一日誌管理
+const LogLevel = {
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
+  SILENT: 4
+};
+
+class SimpleLogger {
+  constructor() {
+    const envLevel = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'ERROR' : 'DEBUG');
+    this.currentLevel = this.parseLogLevel(envLevel);
+    this.context = 'AIRouter';
+  }
+
+  parseLogLevel(level) {
+    switch (level.toUpperCase()) {
+      case 'DEBUG': return LogLevel.DEBUG;
+      case 'INFO': return LogLevel.INFO;
+      case 'WARN': case 'WARNING': return LogLevel.WARN;
+      case 'ERROR': return LogLevel.ERROR;
+      case 'SILENT': case 'NONE': return LogLevel.SILENT;
+      default: return LogLevel.INFO;
+    }
+  }
+
+  shouldLog(level) {
+    return level >= this.currentLevel;
+  }
+
+  debug(message, data) {
+    if (this.shouldLog(LogLevel.DEBUG)) {
+      console.log(`[DEBUG] [${this.context}] ${message}`, data || '');
+    }
+  }
+
+  info(message, data) {
+    if (this.shouldLog(LogLevel.INFO)) {
+      console.log(`[INFO] [${this.context}] ${message}`, data || '');
+    }
+  }
+
+  warn(message, data) {
+    if (this.shouldLog(LogLevel.WARN)) {
+      console.warn(`[WARN] [${this.context}] ${message}`, data || '');
+    }
+  }
+
+  error(message, error) {
+    if (this.shouldLog(LogLevel.ERROR)) {
+      console.error(`[ERROR] [${this.context}] ${message}`, error || '');
+    }
+  }
+}
+
+const logger = new SimpleLogger();
+
 // 服務與常量
 const { JobQueueService, JOB_TYPES, JOB_STATUS } = require('../lib/services/jobQueueService');
 const GeminiService = require('../lib/services/geminiService');

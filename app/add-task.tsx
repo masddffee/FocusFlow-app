@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   StyleSheet, 
   Text, 
@@ -32,77 +32,9 @@ import {
   estimateTaskDuration,
   estimateSubtaskDuration
 } from "@/utils/api";
-import { findAvailableTimeSlot, scheduleSubtasks, convertSubtaskSchedulesToTasks, analyzeSchedulingFeasibility, generateSchedulingSuggestions, SchedulingMode, SCHEDULING_MODES } from "@/utils/scheduling";
+import { findAvailableTimeSlot, scheduleSubtasks, convertSubtaskSchedulesToTasks } from "@/utils/scheduling";
 import { calculateDaysUntil, getTimeConstraintLevel, getTimeConstraintMessage } from "@/utils/timeUtils";
 // Remove redundant import - now using getDynamicQuestions from API
-
-// 任務類型配置統一對象
-const TASK_TYPE_CONFIG = {
-  exam_preparation: {
-    label: "Exam Preparation",
-    icon: "🎓",
-    description: "AI detected this is exam preparation. Subtasks will focus on practice problems, test strategies, exam simulation, and spaced repetition for retention."
-  },
-  skill_learning: {
-    label: "Learning",
-    icon: "🎯", 
-    description: "AI detected this is skill learning. Subtasks will include projects, real-world applications, portfolio development, and spaced repetition for mastery."
-  },
-  project_completion: {
-    label: "Project",
-    icon: "🚀",
-    description: "AI detected this is a project. Subtasks will cover planning, implementation, testing, and delivery phases."
-  },
-  habit_building: {
-    label: "Habit Building",
-    icon: "🔄",
-    description: "AI detected this is habit building. Subtasks will focus on consistency, tracking, and long-term sustainability."
-  },
-  challenge: {
-    label: "Challenge",
-    icon: "⚡",
-    description: "AI detected this is a challenge. Subtasks will include training, performance optimization, and achievement tracking."
-  },
-  general: {
-    label: "Action",
-    icon: "📋",
-    description: "AI will generate structured subtasks to help you complete this task efficiently."
-  }
-} as const;
-
-// 學習階段配置統一對象
-const PHASE_CONFIG = {
-  knowledge: {
-    label: "Knowledge",
-    icon: "📚",
-    color: "#3B82F6" // Blue
-  },
-  practice: {
-    label: "Practice", 
-    icon: "🛠️",
-    color: "#10B981" // Green
-  },
-  application: {
-    label: "Application",
-    icon: "🎯", 
-    color: "#F59E0B" // Orange
-  },
-  reflection: {
-    label: "Reflection",
-    icon: "🤔",
-    color: "#8B5CF6" // Purple
-  },
-  output: {
-    label: "Output",
-    icon: "📝",
-    color: "#EF4444" // Red
-  },
-  review: {
-    label: "Review",
-    icon: "🔄",
-    color: "#6366F1" // Indigo
-  }
-} as const;
 
 export default function AddTaskScreen() {
   const { t } = useTranslation();
@@ -117,8 +49,7 @@ export default function AddTaskScreen() {
   const [subtasks, setSubtasks] = useState<EnhancedSubtask[]>([]);
   const [newSubtask, setNewSubtask] = useState("");
   const [autoSchedule, setAutoSchedule] = useState(true);
-  const [schedulingMode, setSchedulingMode] = useState<SchedulingMode>('flexible');
-  const [startNextDay, setStartNextDay] = useState(true);
+  // 🔧 移除複雜的排程模式變數
   const [showSchedulingOptions, setShowSchedulingOptions] = useState(false);
   
   // Enhanced clarification workflow states
@@ -145,24 +76,6 @@ export default function AddTaskScreen() {
   const { tasks, addTask, updateTask, scheduledTasks, addScheduledTask } = useTaskStore();
   const { availableTimeSlots, autoSchedulingEnabled } = useSettingsStore();
   
-  // 時間約束計算函數（使用 useCallback 緩存）
-  const calculateTimeConstraint = useCallback((selectedDate: string): { availableDays: number; timeContext: string; constraintLevel: string } => {
-    if (!selectedDate) {
-      return { availableDays: 0, timeContext: "", constraintLevel: "none" };
-    }
-
-    const availableDays = calculateDaysUntil(selectedDate);
-    const constraintLevel = getTimeConstraintLevel(availableDays);
-    const timeContext = getTimeConstraintMessage(availableDays);
-
-    return { availableDays, timeContext, constraintLevel };
-  }, []);
-  
-  // 使用 useMemo 緩存時間約束計算結果
-  const timeConstraintInfo = useMemo(() => {
-    return calculateTimeConstraint(dueDate);
-  }, [dueDate, calculateTimeConstraint]);
-  
   useEffect(() => {
     if (taskId) {
       const task = tasks.find(t => t.id === taskId);
@@ -187,6 +100,18 @@ export default function AddTaskScreen() {
     }));
   };
 
+  const calculateTimeConstraint = (selectedDate: string): { availableDays: number; timeContext: string; constraintLevel: string } => {
+    if (!selectedDate) {
+      return { availableDays: 0, timeContext: "", constraintLevel: "none" };
+    }
+
+    const availableDays = calculateDaysUntil(selectedDate);
+    const constraintLevel = getTimeConstraintLevel(availableDays);
+    const timeContext = getTimeConstraintMessage(availableDays);
+
+    return { availableDays, timeContext, constraintLevel };
+  };
+
   const handleSmartGenerate = async () => {
     if (!title.trim()) {
       Alert.alert(t('errors.required'), t('addTask.taskTitlePlaceholder'));
@@ -204,9 +129,7 @@ export default function AddTaskScreen() {
     try {
       console.log("🚀 Using unified learning plan generation...");
       const currentLanguage = useSettingsStore.getState().language;
-      
-      // 📋 第一階段：請求個人化問題
-      console.log("📋 第一階段：請求個人化問題...");
+      // 第一次只請求個人化問題
       const unifiedResponse = await generateUnifiedLearningPlan({
         title: title.trim(),
         description: description.trim(),
@@ -215,35 +138,39 @@ export default function AddTaskScreen() {
         currentProficiency: currentProficiency,
         targetProficiency: targetProficiency
       });
-      
-      console.log("📊 第一階段 API 回應:", unifiedResponse);
-      console.log("📝 Available keys:", Object.keys(unifiedResponse));
-      
       const { personalizationQuestions } = unifiedResponse;
       if (personalizationQuestions && personalizationQuestions.length > 0) {
-        console.log("✅ 收到", personalizationQuestions.length, "個個人化問題");
         setClarifyingQuestions(personalizationQuestions);
         setShowPersonalizationModal(true);
       } else {
-        console.log("⚠️ 後端沒有返回個人化問題，但仍需走完整流程");
-        // 即使沒有個人化問題，也要顯示一個基本問題給用戶
-        const defaultQuestions: ClarifyingQuestion[] = [
-          {
-            id: "learning_goal",
-            question: "請描述您希望通過這個任務達到什麼具體目標？",
-            type: "text",
-            required: true
-          },
-          {
-            id: "current_experience", 
-            question: "您在相關領域的經驗水平如何？",
-            type: "choice",
-            options: ["完全新手", "有一些了解", "中等水平", "較有經驗", "專家級別"],
-            required: true
-          }
-        ];
-        setClarifyingQuestions(defaultQuestions);
-        setShowPersonalizationModal(true);
+        // 沒有個人化問題，直接生成
+        const result = await generateUnifiedLearningPlan({
+          title: title.trim(),
+          description: description.trim(),
+          language: currentLanguage,
+          taskType: detectedTaskType || 'skill_learning',
+          currentProficiency: currentProficiency,
+          targetProficiency: targetProficiency,
+          clarificationResponses: {} // 空
+        });
+        if (result.learningPlan) {
+          setLearningPlan(result.learningPlan);
+          setShowLearningPlan(true);
+        }
+        if (result.subtasks && result.subtasks.length > 0) {
+          setSubtasks(result.subtasks);
+          const { availableDays } = calculateTimeConstraint(dueDate);
+          const contextMessage = getTaskTypeMessage(
+            'skill_learning',
+            result.subtasks.length,
+            availableDays,
+            currentProficiency,
+            targetProficiency
+          );
+          Alert.alert("🤖 AI 學習計劃已生成", `✅ 已生成 ${result.subtasks.length} 個個人化子任務\n\n${contextMessage}`);
+        } else {
+          Alert.alert("⚠️ 警告", "未能生成子任務，請稍後再試。");
+        }
       }
     } catch (error) {
       console.error("❌ Unified learning plan generation failed:", error);
@@ -282,7 +209,7 @@ export default function AddTaskScreen() {
       const finalTargetProficiency = targetProf ?? targetProficiency;
       
       // Calculate time constraint based on due date
-      const { availableDays, timeContext } = timeConstraintInfo;
+      const { availableDays, timeContext } = calculateTimeConstraint(dueDate);
       
       // Generate enhanced subtasks with comprehensive context
       const currentLanguage = useSettingsStore.getState().language;
@@ -358,13 +285,9 @@ export default function AddTaskScreen() {
       Alert.alert("Missing Information", "Please answer all required questions before proceeding.");
       return;
     }
-    
     setShowPersonalizationModal(false);
     setIsGeneratingSubtasks(true);
     try {
-      console.log("🎯 第二階段：生成個人化子任務...");
-      console.log("📋 用戶回答:", clarificationResponses);
-      
       // 生成個人化子任務與學習計劃
       const currentLanguage = useSettingsStore.getState().language;
       const result = await generateUnifiedLearningPlan({
@@ -376,20 +299,13 @@ export default function AddTaskScreen() {
         targetProficiency: targetProficiency,
         clarificationResponses
       });
-      
-      console.log("📊 第二階段 API 回應:", result);
-      console.log("📝 Available keys:", Object.keys(result));
-      console.log("📋 result.subtasks:", result.subtasks);
-      
       if (result.learningPlan) {
         setLearningPlan(result.learningPlan);
         setShowLearningPlan(true);
       }
-      
       if (result.subtasks && result.subtasks.length > 0) {
-        console.log("✅ 成功生成", result.subtasks.length, "個個人化子任務");
         setSubtasks(result.subtasks);
-        const { availableDays } = timeConstraintInfo;
+        const { availableDays } = calculateTimeConstraint(dueDate);
         const contextMessage = getTaskTypeMessage(
           detectedTaskType || 'skill_learning',
           result.subtasks.length,
@@ -397,15 +313,13 @@ export default function AddTaskScreen() {
           currentProficiency,
           targetProficiency
         );
-        Alert.alert("🎯 個人化學習計劃完成", `✅ 已生成 ${result.subtasks.length} 個個人化子任務\n\n${contextMessage}`);
+        Alert.alert("Personalized Learning Plan Created", contextMessage);
       } else {
-        console.error("❌ 第二階段 API 回應中沒有 subtasks");
-        console.error("❌ 完整回應:", JSON.stringify(result, null, 2));
-        Alert.alert("❌ 錯誤", "無法生成個人化子任務，請稍後重試或手動添加。");
+        Alert.alert("Error", "Could not generate personalized subtasks. Please try again or add them manually.");
       }
     } catch (error) {
-      console.error("💥 第二階段個人化完成錯誤:", error);
-      Alert.alert("❌ 錯誤", "生成個人化計劃失敗，請稍後重試。");
+      console.error("Personalization complete error:", error);
+      Alert.alert("Error", "Failed to create personalized plan. Please try again later.");
     } finally {
       setIsGeneratingSubtasks(false);
     }
@@ -413,15 +327,47 @@ export default function AddTaskScreen() {
 
   const handleLearningPlanComplete = () => {
     setShowLearningPlan(false);
-    const taskTypeKey = learningPlan?.taskType as keyof typeof TASK_TYPE_CONFIG;
-    const planType = TASK_TYPE_CONFIG[taskTypeKey]?.label || "Action";
-    const { availableDays } = timeConstraintInfo;
+    const planType = getTaskTypeLabel(learningPlan?.taskType);
+    const { availableDays } = calculateTimeConstraint(dueDate);
     Alert.alert(
       `${planType} Plan Applied`,
       `Generated ${subtasks.length} specific subtasks based on your personalized ${planType.toLowerCase()} plan.${availableDays > 0 ? ` Optimized for your ${availableDays}-day timeline.` : ""} You can edit durations and add more subtasks as needed.`
     );
   };
 
+  const getTaskTypeLabel = (taskType?: string): string => {
+    switch (taskType) {
+      case "exam_preparation":
+        return "Exam Preparation";
+      case "skill_learning":
+        return "Learning";
+      case "project_completion":
+        return "Project";
+      case "habit_building":
+        return "Habit Building";
+      case "challenge":
+        return "Challenge";
+      default:
+        return "Action";
+    }
+  };
+
+  const getTaskTypeIcon = (taskType?: string): string => {
+    switch (taskType) {
+      case "exam_preparation":
+        return "🎓";
+      case "skill_learning":
+        return "🎯";
+      case "project_completion":
+        return "🚀";
+      case "habit_building":
+        return "🔄";
+      case "challenge":
+        return "⚡";
+      default:
+        return "📋";
+    }
+  };
 
   const getProficiencyLabel = (proficiency: ProficiencyLevel): string => {
     switch (proficiency) {
@@ -450,13 +396,22 @@ export default function AddTaskScreen() {
         console.error("Failed to estimate subtask duration:", error);
       }
 
+      // 🔧 修復：計算安全的順序值，確保不會與現有子任務衝突
+      const getNextSafeOrder = (existingSubtasks: EnhancedSubtask[]): number => {
+        if (existingSubtasks.length === 0) return 1;
+        
+        // 找到當前最大的 order 值
+        const maxOrder = Math.max(...existingSubtasks.map(s => s.order || 0));
+        return maxOrder + 1;
+      };
+
       const newSubtaskObj: EnhancedSubtask = {
         id: `subtask_${Date.now()}`,
-        title: `Manual Task ${subtasks.length + 1}`,
+        title: `Manual Task ${getNextSafeOrder(subtasks)}`,
         text: newSubtask.trim(),
         aiEstimatedDuration: estimatedDuration,
         difficulty: difficulty as TaskDifficulty || "medium",
-        order: subtasks.length + 1,
+        order: getNextSafeOrder(subtasks), // 🔧 使用安全的順序計算
         completed: false,
         skills: [],
         recommendedResources: [],
@@ -498,37 +453,6 @@ export default function AddTaskScreen() {
   const handleSubtaskDurationCancel = () => {
     setEditingSubtaskId(null);
     setTempDuration("");
-  };
-
-  // 🆕 新增狀態驗證函數
-  const verifyTaskCreated = async (taskId: string, retries = 3): Promise<boolean> => {
-    for (let i = 0; i < retries; i++) {
-      const { tasks } = useTaskStore.getState();
-      const taskExists = tasks.some(t => t.id === taskId);
-      if (taskExists) {
-        console.log(`✅ Task verification successful: ${taskId}`);
-        return true;
-      }
-      console.log(`⏳ Task verification attempt ${i + 1}/${retries}: ${taskId}`);
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    console.error(`❌ Task verification failed: ${taskId}`);
-    return false;
-  };
-
-  // 🆕 安全導航函數
-  const safeNavigateBack = async (taskId?: string, delay = 200) => {
-    if (taskId) {
-      const verified = await verifyTaskCreated(taskId);
-      if (!verified) {
-        console.error("Task not found in store, but continuing navigation");
-      }
-    }
-    
-    // 短暫延遲確保狀態更新完成
-    setTimeout(() => {
-      router.back();
-    }, delay);
   };
 
   const handleSave = async () => {
@@ -586,7 +510,7 @@ export default function AddTaskScreen() {
       if (taskId) {
         updateTask(taskId, taskData);
         Alert.alert("Success", "Task updated successfully", [
-          { text: "OK", onPress: () => safeNavigateBack() }
+          { text: "OK", onPress: () => router.back() }
         ]);
       } else {
         // Create new task
@@ -599,25 +523,16 @@ export default function AddTaskScreen() {
           updatedAt: new Date().toISOString(),
         };
         
-        console.log(`🚀 Creating task: ${newTaskId} - ${taskData.title}`);
-        const createdTaskId = addTask(taskData);
-        console.log(`✅ Task created with ID: ${createdTaskId}`);
+        addTask(taskData);
         
         // Auto-schedule if enabled
         if (autoSchedule && autoSchedulingEnabled && availableTimeSlots) {
           try {
             // Schedule subtasks instead of the whole task
             if (subtasks.length > 0) {
-              // 🆕 創建完整的任務對象供分析和排程使用
-              const taskForScheduling = {
-                ...newTask,
-                id: createdTaskId,
-                subtasks
-              };
-
               // 🆕 排程前可行性分析
               const feasibilityAnalysis = analyzeSchedulingFeasibility(
-                taskForScheduling,
+                { ...newTask, subtasks },
                 availableTimeSlots,
                 scheduledTasks,
                 [], // Calendar events - could be fetched if calendar sync is enabled
@@ -631,7 +546,7 @@ export default function AddTaskScreen() {
               );
 
               // 🆕 生成智能建議
-              const suggestions = generateSchedulingSuggestions(feasibilityAnalysis, taskForScheduling);
+              const suggestions = generateSchedulingSuggestions(feasibilityAnalysis, { ...newTask, subtasks });
 
               if (!suggestions.shouldProceed) {
                 // 🆕 無法確保百分百排入，顯示詳細建議
@@ -649,7 +564,7 @@ export default function AddTaskScreen() {
                         Alert.alert(
                           "任務已建立",
                           "任務已成功建立，但未啟用自動排程。您可以稍後手動安排時間或調整設置後重新排程。",
-                          [{ text: "了解", onPress: () => safeNavigateBack(createdTaskId) }]
+                          [{ text: "了解", onPress: () => router.back() }]
                         );
                       }
                     }
@@ -658,30 +573,23 @@ export default function AddTaskScreen() {
                 return; // 不執行自動排程
               }
 
-              // 🆕 使用新的排程模式進行智能排程
+              // 🔧 修復：使用簡化的排程邏輯
               const schedulingResult = scheduleSubtasks(
-                taskForScheduling,
+                subtasks,
                 availableTimeSlots,
                 scheduledTasks,
                 [], // Calendar events - could be fetched if calendar sync is enabled
                 {
                   startDate: new Date(),
-                  startNextDay: startNextDay, // 🆕 是否從隔天開始
-                  maxDaysToSearch: dueDate ? Math.max(30, calculateDaysUntil(dueDate)) : 90,
-                  bufferBetweenSubtasks: schedulingMode === 'strict' ? 3 : 5, // 🆕 嚴格模式減少緩衝時間
-                  respectPhaseOrder: false,
-                  dailyMaxHours: null,
-                  mode: schedulingMode, // 🆕 排程模式
-                  respectDependencies: true, // 🆕 考慮依賴關係
-                  dependencies: [], // 🆕 依賴關係（可在未來擴展）
-                  flexibilityFactor: schedulingMode === 'flexible' ? 0.7 : 0.3, // 🆕 彈性因子
+                  startNextDay: true, // 🔧 修復：確保從隔天開始排程
+                  maxDaysToSearch: dueDate ? Math.max(14, calculateDaysUntil(dueDate)) : 14
                 }
               );
               
               if (schedulingResult.success) {
                 // Convert subtask schedules to scheduled tasks and save them
                 const subtaskScheduledTasks = convertSubtaskSchedulesToTasks(
-                  createdTaskId,
+                  newTaskId,
                   schedulingResult.scheduledSubtasks
                 );
                 
@@ -690,7 +598,7 @@ export default function AddTaskScreen() {
                   addScheduledTask(scheduledTask);
                 });
                 
-                const { availableDays } = timeConstraintInfo;
+                const { availableDays } = calculateTimeConstraint(dueDate);
                 const timeConstraintNote = availableDays > 0 && availableDays <= 7 
                   ? ` Given your ${availableDays}-day deadline, subtasks have been prioritized for urgent completion.`
                   : "";
@@ -716,35 +624,22 @@ export default function AddTaskScreen() {
                 
                 Alert.alert(
                   "任務已建立並自動排程",
-                  `使用${SCHEDULING_MODES[schedulingMode].description}\n\n${alertMessage}`,
-                  [{ text: "太好了！", onPress: () => safeNavigateBack(createdTaskId) }]
+                  `${alertMessage}`,
+                  [{ text: "太好了！", onPress: () => router.back() }]
                 );
               } else {
-                // 🆕 排程失敗，提供詳細分析
+                // 🔧 簡化：排程失敗處理
                 Alert.alert(
                   "⚠️ 排程遇到問題",
                   schedulingResult.message + "\n\n建議：\n• 延長截止日期\n• 減少子任務數量\n• 增加可用學習時間\n• 縮短子任務時長",
                   [
-                    { 
-                      text: "重新分析", 
-                      onPress: () => {
-                        const newAnalysis = analyzeSchedulingFeasibility(
-                          taskForScheduling,
-                          availableTimeSlots,
-                          scheduledTasks,
-                          []
-                        );
-                        const newSuggestions = generateSchedulingSuggestions(newAnalysis, taskForScheduling);
-                        Alert.alert("詳細建議", newSuggestions.userMessage);
-                      }
-                    },
                     {
                       text: "仍要建立任務",
                       onPress: () => {
                         Alert.alert(
                           "任務已建立",
-                          "任務已成功建立，但未完成自動排程。請根據建議調整後重新嘗試排程。",
-                          [{ text: "了解", onPress: () => safeNavigateBack(createdTaskId) }]
+                          "任務已成功建立，但未完成自動排程。您可以稍後手動安排時間。",
+                          [{ text: "了解", onPress: () => router.back() }]
                         );
                       }
                     }
@@ -754,27 +649,27 @@ export default function AddTaskScreen() {
             } else {
               // No subtasks, schedule the whole task
             const scheduledTask = findAvailableTimeSlot(
-              { ...newTask, id: createdTaskId, duration: totalDuration },
+              { ...newTask, duration: totalDuration },
               availableTimeSlots,
               scheduledTasks
             );
             
             if (scheduledTask) {
               addScheduledTask(scheduledTask);
-              const { availableDays } = timeConstraintInfo;
+              const { availableDays } = calculateTimeConstraint(dueDate);
               const timeConstraintNote = availableDays > 0 && availableDays <= 7 
                 ? ` Given your ${availableDays}-day deadline, this scheduling prioritizes urgent completion.`
                 : "";
               Alert.alert(
                 "Task Created & Scheduled",
                 `Your task has been created and automatically scheduled for ${scheduledTask.date} at ${scheduledTask.timeSlot.start} (${totalDuration} minutes).${timeConstraintNote}`,
-                [{ text: "Great!", onPress: () => safeNavigateBack(createdTaskId) }]
+                [{ text: "Great!", onPress: () => router.back() }]
               );
             } else {
               Alert.alert(
                 "Task Created",
                 `Task created successfully with estimated duration of ${totalDuration} minutes. Could not find an available time slot automatically. You can schedule it manually from the tasks screen.`,
-                [{ text: "OK", onPress: () => safeNavigateBack(createdTaskId) }]
+                [{ text: "OK", onPress: () => router.back() }]
               );
               }
             }
@@ -783,56 +678,22 @@ export default function AddTaskScreen() {
             Alert.alert(
               "Task Created",
               `Task created successfully with estimated duration of ${totalDuration} minutes. Auto-scheduling failed, but you can schedule it manually from the tasks screen.`,
-              [{ text: "OK", onPress: () => safeNavigateBack(createdTaskId) }]
+              [{ text: "OK", onPress: () => router.back() }]
             );
           }
         } else {
           Alert.alert(
             "Task Created",
             `Task created successfully with estimated duration of ${totalDuration} minutes.`,
-            [{ text: "OK", onPress: () => safeNavigateBack(createdTaskId) }]
+            [{ text: "OK", onPress: () => router.back() }]
           );
         }
       }
     } catch (error) {
-      console.error("💥 Save task error:", error);
-      
-      // 🆕 詳細的錯誤處理和用戶反饋
-      let errorMessage = "Failed to save task. Please try again.";
-      let errorTitle = "Error";
-      
-      if (error instanceof Error) {
-        if (error.message.includes("Failed to add task to store")) {
-          errorTitle = "儲存失敗";
-          errorMessage = "任務無法正確保存，請檢查網路連接或稍後再試。";
-        } else if (error.message.includes("network")) {
-          errorTitle = "網路錯誤";
-          errorMessage = "網路連接異常，請檢查網路設定後重試。";
-        } else {
-          errorMessage = `保存任務時發生錯誤：${error.message}`;
-        }
-      }
-      
-      Alert.alert(errorTitle, errorMessage, [
-        { 
-          text: "重試", 
-          onPress: () => {
-            // 🆕 提供重試選項
-            setIsEstimatingDuration(false);
-            handleSave();
-          }
-        },
-        { 
-          text: "取消", 
-          style: "cancel",
-          onPress: () => setIsEstimatingDuration(false)
-        }
-      ]);
+      console.error("Save task error:", error);
+      Alert.alert("Error", "Failed to save task. Please try again.");
     } finally {
-      // 確保加載狀態被重置
-      if (isEstimatingDuration) {
-        setIsEstimatingDuration(false);
-      }
+      setIsEstimatingDuration(false);
     }
   };
 
@@ -855,6 +716,62 @@ export default function AddTaskScreen() {
     }
   };
 
+  const getPhaseColor = (phase?: string) => {
+    switch (phase) {
+      case "knowledge":
+        return "#3B82F6"; // Blue
+      case "practice":
+        return "#10B981"; // Green
+      case "application":
+        return "#F59E0B"; // Orange
+      case "reflection":
+        return "#8B5CF6"; // Purple
+      case "output":
+        return "#EF4444"; // Red
+      case "review":
+        return "#6366F1"; // Indigo
+      default:
+        return Colors.light.subtext;
+    }
+  };
+
+  const getPhaseLabel = (phase?: string) => {
+    switch (phase) {
+      case "knowledge":
+        return "Knowledge";
+      case "practice":
+        return "Practice";
+      case "application":
+        return "Application";
+      case "reflection":
+        return "Reflection";
+      case "output":
+        return "Output";
+      case "review":
+        return "Review";
+      default:
+        return "";
+    }
+  };
+
+  const getPhaseIcon = (phase?: string) => {
+    switch (phase) {
+      case "knowledge":
+        return "📚";
+      case "practice":
+        return "🛠️";
+      case "application":
+        return "🎯";
+      case "reflection":
+        return "🤔";
+      case "output":
+        return "📝";
+      case "review":
+        return "🔄";
+      default:
+        return "📋";
+    }
+  };
 
   const getPhaseStats = () => {
     const phaseCount = {
@@ -876,16 +793,14 @@ export default function AddTaskScreen() {
   };
   
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
-    >
-      <Stack.Screen
-        options={{
-          title: isEstimatingDuration 
-            ? (taskId ? "儲存中..." : "創建中...") 
-            : (taskId ? "Edit Task" : "Add Task"),
+  <KeyboardAvoidingView
+    style={styles.container}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+  >
+    <Stack.Screen
+      options={{
+          title: taskId ? "Edit Task" : "Add Task",
           headerRight: () => (
             <TouchableOpacity onPress={handleSave} style={styles.saveButton} disabled={isEstimatingDuration}>
               {isEstimatingDuration ? (
@@ -902,7 +817,6 @@ export default function AddTaskScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('addTask.taskTitle')}</Text>
           <TextInput
-            testID="task-title-input"
             style={styles.input}
             value={title}
             onChangeText={setTitle}
@@ -914,7 +828,6 @@ export default function AddTaskScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('addTask.description')}</Text>
           <TextInput
-            testID="task-description-input"
             style={[styles.input, styles.textArea]}
             value={description}
             onChangeText={setDescription}
@@ -935,13 +848,13 @@ export default function AddTaskScreen() {
                 styles.detectedTypeBadge,
                 { backgroundColor: Colors.light.primary }
               ]}>
-                <Text style={styles.detectedTypeIcon}>{TASK_TYPE_CONFIG[detectedTaskType]?.icon || "📋"}</Text>
+                <Text style={styles.detectedTypeIcon}>{getTaskTypeIcon(detectedTaskType)}</Text>
                 <Text style={styles.detectedTypeText}>
-                  {TASK_TYPE_CONFIG[detectedTaskType]?.label || "Action"}
+                  {t(`taskTypes.${detectedTaskType}`)}
                 </Text>
               </View>
               <Text style={styles.detectedTypeDescription}>
-                {TASK_TYPE_CONFIG[detectedTaskType]?.description || "AI will generate structured subtasks to help you complete this task efficiently."}
+                {getTaskTypeDescription(detectedTaskType)}
               </Text>
             </View>
           </View>
@@ -1009,7 +922,7 @@ export default function AddTaskScreen() {
           {dueDate && (
             <View style={styles.timeConstraintInfo}>
               <Text style={styles.timeConstraintText}>
-                {timeConstraintInfo.timeContext}
+                {calculateTimeConstraint(dueDate).timeContext}
               </Text>
             </View>
           )}
@@ -1161,76 +1074,7 @@ export default function AddTaskScreen() {
               </TouchableOpacity>
             </View>
             
-            {/* 🆕 排程選項 */}
-            {autoSchedule && (
-              <View style={styles.schedulingOptionsContainer}>
-                {/* 排程模式選擇 */}
-                <View style={styles.schedulingModeContainer}>
-                  <Text style={styles.schedulingModeTitle}>排程模式</Text>
-                  <View style={styles.schedulingModeButtons}>
-                                    {Object.values(SCHEDULING_MODES).map((mode) => (
-                  <TouchableOpacity
-                    key={`scheduling-mode-${mode.mode}`}
-                    style={[
-                      styles.schedulingModeButton,
-                      schedulingMode === mode.mode && styles.schedulingModeButtonActive,
-                    ]}
-                    onPress={() => setSchedulingMode(mode.mode)}
-                  >
-                        <Text style={[
-                          styles.schedulingModeButtonText,
-                          schedulingMode === mode.mode && styles.schedulingModeButtonTextActive,
-                        ]}>
-                          {mode.description}
-                        </Text>
-                        <Text style={styles.schedulingModeCharacteristics}>
-                          {mode.characteristics[0]}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* 開始時間選擇 */}
-                <View style={styles.startTimeContainer}>
-                  <View style={styles.startTimeOption}>
-                    <Text style={styles.startTimeLabel}>從隔天開始</Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.toggleButton,
-                        startNextDay && styles.toggleButtonActive,
-                      ]}
-                      onPress={() => setStartNextDay(!startNextDay)}
-                    >
-                      <View
-                        style={[
-                          styles.toggleIndicator,
-                          startNextDay && styles.toggleIndicatorActive,
-                        ]}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.startTimeDescription}>
-                    {startNextDay 
-                      ? "任務將從明天開始安排，給您更充足的準備時間" 
-                      : "任務可能從今天就開始安排（如果有空檔）"
-                    }
-                  </Text>
-                </View>
-
-                {/* 排程模式詳細說明 */}
-                <View style={styles.schedulingModeDetails}>
-                  <Text style={styles.schedulingModeDetailsTitle}>
-                    {SCHEDULING_MODES[schedulingMode].description}
-                  </Text>
-                  {SCHEDULING_MODES[schedulingMode].characteristics.map((characteristic, index) => (
-                    <Text key={`scheduling-characteristic-${schedulingMode}-${index}`} style={styles.schedulingModeDetailsText}>
-                      • {characteristic}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            )}
+            {/* 🔧 簡化：移除複雜的排程選項UI */}
           </View>
         )}
         
@@ -1238,7 +1082,6 @@ export default function AddTaskScreen() {
           <View style={styles.subtaskHeader}>
             <Text style={styles.label}>Subtasks</Text>
             <Button
-              testID="smart-generate-button"
               title="Smart Generate"
               onPress={handleSmartGenerate}
               variant="outline"
@@ -1266,10 +1109,10 @@ export default function AddTaskScreen() {
                         <View key={phase} style={styles.phaseDistributionItem}>
                           <View style={[
                             styles.phaseDistributionDot,
-                            { backgroundColor: PHASE_CONFIG[phase as keyof typeof PHASE_CONFIG]?.color || Colors.light.subtext }
+                            { backgroundColor: getPhaseColor(phase) }
                           ]} />
                           <Text style={styles.phaseDistributionText}>
-                            {PHASE_CONFIG[phase as keyof typeof PHASE_CONFIG]?.label || phase}: {count}
+                            {getPhaseLabel(phase)}: {count}
                           </Text>
                         </View>
                       )
@@ -1286,7 +1129,7 @@ export default function AddTaskScreen() {
                 <View style={styles.subtaskHeader}>
                   {subtask.title && (
                     <Text style={styles.subtaskTitle}>
-                      {PHASE_CONFIG[subtask.phase as keyof typeof PHASE_CONFIG]?.icon || "📋"} {subtask.title}
+                      {getPhaseIcon(subtask.phase)} {subtask.title}
                     </Text>
                   )}
                   {subtask.taskType === "exam_preparation" && (
@@ -1379,10 +1222,10 @@ export default function AddTaskScreen() {
                   {subtask.phase && (
                     <View style={[
                       styles.phaseBadge,
-                      { backgroundColor: PHASE_CONFIG[subtask.phase as keyof typeof PHASE_CONFIG]?.color || Colors.light.subtext }
+                      { backgroundColor: getPhaseColor(subtask.phase) }
                     ]}>
                       <Text style={styles.phaseBadgeText}>
-                        {PHASE_CONFIG[subtask.phase as keyof typeof PHASE_CONFIG]?.label || subtask.phase}
+                        {getPhaseLabel(subtask.phase)}
                       </Text>
                     </View>
                   )}
@@ -1418,12 +1261,7 @@ export default function AddTaskScreen() {
       
       <View style={styles.buttonContainer}>
         <Button
-          testID="create-task-button"
-          title={
-            isEstimatingDuration 
-              ? (taskId ? "更新中..." : "創建中...") 
-              : (taskId ? "Update Task" : "Create & Schedule Task")
-          }
+          title={taskId ? "Update Task" : "Create & Schedule Task"}
           onPress={handleSave}
           variant="primary"
           size="large"
@@ -1436,12 +1274,11 @@ export default function AddTaskScreen() {
 
       {/* Personalization Modal */}
       <Modal
-        testID="personalization-modal"
         visible={showPersonalizationModal}
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View testID="personalization-modal-container" style={styles.modalContainer}>
+        <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Help us personalize your plan</Text>
             <Text style={styles.modalSubtitle}>
@@ -1450,7 +1287,7 @@ export default function AddTaskScreen() {
             {detectedTaskType && (
               <View style={styles.detectedTypeInModal}>
                 <Text style={styles.detectedTypeInModalText}>
-                  Detected: {TASK_TYPE_CONFIG[detectedTaskType]?.icon || "📋"} {TASK_TYPE_CONFIG[detectedTaskType]?.label || "Action"}
+                  Detected: {getTaskTypeIcon(detectedTaskType)} {getTaskTypeLabel(detectedTaskType)}
                 </Text>
               </View>
             )}
@@ -1458,7 +1295,7 @@ export default function AddTaskScreen() {
           
           <ScrollView style={styles.modalContent}>
             {clarifyingQuestions.map((question, index) => (
-              <View key={question.id} testID={`personalization-question-${question.id}`} style={styles.questionContainer}>
+              <View key={question.id} style={styles.questionContainer}>
                 <View style={styles.questionHeader}>
                   <HelpCircle size={16} color={Colors.light.primary} />
                   <Text style={styles.questionText}>
@@ -1491,7 +1328,6 @@ export default function AddTaskScreen() {
                   </View>
                 ) : (
                   <TextInput
-                    testID={`personalization-input-${question.id}`}
                     style={styles.questionInput}
                     value={clarificationResponses[question.id] || ""}
                     onChangeText={(text) => handlePersonalizationResponse(question.id, text)}
@@ -1507,14 +1343,12 @@ export default function AddTaskScreen() {
           
           <View style={styles.modalButtons}>
             <Button
-              testID="personalization-cancel-button"
               title="Cancel"
               onPress={() => setShowPersonalizationModal(false)}
               variant="outline"
               style={styles.modalButton}
             />
             <Button
-              testID="personalization-submit-button"
               title="Generate Plan"
               onPress={handlePersonalizationComplete}
               variant="primary"
@@ -1535,7 +1369,7 @@ export default function AddTaskScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              Your Personalized {TASK_TYPE_CONFIG[learningPlan?.taskType as keyof typeof TASK_TYPE_CONFIG]?.label || "Action"} Plan
+              Your Personalized {getTaskTypeLabel(learningPlan?.taskType)} Plan
             </Text>
             <Text style={styles.modalSubtitle}>
               A comprehensive plan based on your goals and preferences with spaced repetition integration
@@ -1610,6 +1444,22 @@ export default function AddTaskScreen() {
   );
 }
 
+function getTaskTypeDescription(taskType: string): string {
+  switch (taskType) {
+    case "exam_preparation":
+      return "AI detected this is exam preparation. Subtasks will focus on practice problems, test strategies, exam simulation, and spaced repetition for retention.";
+    case "skill_learning":
+      return "AI detected this is skill learning. Subtasks will include projects, real-world applications, portfolio development, and spaced repetition for mastery.";
+    case "project_completion":
+      return "AI detected this is a project. Subtasks will cover planning, implementation, testing, and delivery phases.";
+    case "habit_building":
+      return "AI detected this is habit building. Subtasks will focus on consistency, tracking, and long-term sustainability.";
+    case "challenge":
+      return "AI detected this is a challenge. Subtasks will include training, performance optimization, and achievement tracking.";
+    default:
+      return "AI will generate structured subtasks to help you complete this task efficiently.";
+  }
+}
 
 function getPhaseBreakdownText(taskType?: string): string[] {
   switch (taskType) {
