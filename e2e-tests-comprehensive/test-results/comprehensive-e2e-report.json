@@ -1,8 +1,8 @@
 {
   "testSuite": "Complete E2E Flow Test",
-  "startTime": "2025-07-30T15:34:43.106Z",
-  "endTime": "2025-07-30T15:34:43.226Z",
-  "totalDuration": 120,
+  "startTime": "2025-07-30T15:39:27.898Z",
+  "endTime": "2025-07-30T15:39:27.979Z",
+  "totalDuration": 81,
   "phases": [],
   "apiCalls": [],
   "consoleLogs": [],

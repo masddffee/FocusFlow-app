@@ -1,0 +1,91 @@
+# Page snapshot
+
+```yaml
+- heading "FocusFlow" [level=1]
+- img
+- text: 0m Focus Time Today 0 Tasks Completed Welcome back!
+- button "Start Focus"
+- text: Today's Schedule All Tasks
+- img
+- img
+- text: Team Standup
+- img
+- text: 9:00 AM - 10:00 AM Google Meet • Weekly project sync
+- img
+- text: 60m easy medium priority
+- img
+- text: Jul 30
+- img
+- text: AP Calculus Exam Preparation
+- img
+- text: 10:30 AM - 12:00 PM Comprehensive preparation for AP Calculus AB exam
+- img
+- text: 1800m hard high priority
+- img
+- text: Aug 29
+- img
+- text: Learn React Native Development
+- img
+- text: 2:00 PM - 2:45 PM Build mobile app development skills for cross-platform applications
+- img
+- text: 2400m hard medium priority
+- img
+- text: Sep 28 Upcoming Tasks All Tasks
+- img
+- img
+- text: Team Standup Google Meet • Weekly project sync
+- img
+- text: 60m easy medium priority
+- img
+- text: Jul 30
+- img
+- text: AP Calculus Exam Preparation Comprehensive preparation for AP Calculus AB exam
+- img
+- text: 1800m hard high priority
+- img
+- text: Aug 29
+- img
+- text: Learn React Native Development Build mobile app development skills for cross-platform applications
+- img
+- text: 2400m hard medium priority
+- img
+- text: Sep 28 Productivity Tips Pomodoro Technique Work for 25 minutes, then take a 5-minute break. This helps maintain focus and prevents burnout. Time Blocking Schedule specific time blocks for different types of work to improve productivity and reduce distractions.
+- img
+- heading "Tasks" [level=1]
+- img
+- img
+- text: Jul 28 - Aug 3, 2025
+- img
+- text: Mon 28 Tue 29 Wed 30 Thu 31 Fri 1 Sat 2 Sun 3 Day Week Month Morning 09:00 - 10:00
+- img
+- text: Work Team Standup Google Meet • Weekly project sync 60 min • Easy • Medium priority
+- button "Start"
+- img
+- text: "This subtask is overdue Please choose how to handle this overdue subtask:"
+- img
+- text: Extend Task Deadline
+- img
+- text: AI Reschedule
+- img
+- text: Remove Subtask 10:30 - 12:00 Study AP Calculus Exam Preparation Comprehensive preparation for AP Calculus AB exam 1800 min • Hard • High priority
+- button "Start"
+- text: Afternoon 14:00 - 14:45 Study Learn React Native Development Build mobile app development skills for cross-platform applications 2400 min • Hard • Medium priority
+- button "Start"
+- tablist:
+  - tab "FocusFlow":
+    - img
+    - img
+    - text: FocusFlow
+  - tab "Tasks":
+    - img
+    - img
+    - text: Tasks
+  - tab "Stats":
+    - img
+    - img
+    - text: Stats
+  - tab "Profile":
+    - img
+    - img
+    - text: Profile
+```

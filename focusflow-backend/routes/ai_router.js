@@ -286,18 +286,21 @@ router.post('/generate-learning-questions', async (req, res) => {
     if (questions && Array.isArray(questions.questions) && questions.questions.length > 0) {
       return res.json({ questions: questions.questions });
     } else {
-      // fallback
-      const fallback = language === 'zh'
-        ? ["您認為這個主題的關鍵要點是什麼？", "如何將所學知識應用到實際情境？", "學習過程中遇到的最大挑戰是什麼？"]
-        : ["What are the key points of this topic?", "How can you apply what you learned?", "What was the biggest challenge during learning?"];
-      return res.json({ questions: fallback, fallback: true });
+      // 不提供後備機制，確保 AI 必須正常工作
+      logger.error('AI failed to generate questions - no fallback provided');
+      return res.status(500).json({ 
+        error: 'AI service failed to generate questions', 
+        message: 'Please try again or check system configuration' 
+      });
     }
   } catch (error) {
-    console.error('[LEARNING-QUESTIONS] Error:', error);
-    const fallback = language === 'zh'
-      ? ["您認為這個主題的關鍵要點是什麼？", "如何將所學知識應用到實際情境？", "學習過程中遇到的最大挑戰是什麼？"]
-      : ["What are the key points of this topic?", "How can you apply what you learned?", "What was the biggest challenge during learning?"];
-    return res.json({ questions: fallback, fallback: true });
+    logger.error('[LEARNING-QUESTIONS] Error:', error.message);
+    // 不提供後備機制，直接回傳錯誤
+    return res.status(500).json({ 
+      error: 'Failed to generate learning questions', 
+      message: error.message || 'AI service encountered an error',
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -331,11 +334,12 @@ ${subtasks && subtasks.length > 0 ? `子任務數量：${subtasks.length}` : ''}
     });
     
   } catch (error) {
-    console.error('[ESTIMATE-TASK-DURATION] Error:', error);
+    logger.error('[ESTIMATE-TASK-DURATION] Error:', error.message);
     res.status(500).json({
       success: false,
       error: 'Failed to estimate task duration',
-      fallback: 60
+      message: error.message || 'AI estimation service encountered an error',
+      timestamp: new Date().toISOString()
     });
   }
 });
@@ -365,11 +369,12 @@ ${difficulty ? `難度：${difficulty}` : ''}
     });
     
   } catch (error) {
-    console.error('[ESTIMATE-SUBTASK-DURATION] Error:', error);
+    logger.error('[ESTIMATE-SUBTASK-DURATION] Error:', error.message);
     res.status(500).json({
       success: false,
       error: 'Failed to estimate subtask duration',
-      fallback: 30
+      message: error.message || 'AI estimation service encountered an error',
+      timestamp: new Date().toISOString()
     });
   }
 });

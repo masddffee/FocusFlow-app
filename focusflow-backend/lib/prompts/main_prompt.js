@@ -61,6 +61,20 @@ ${selectedPrompts.methodology_intro}
 5.  **Strict Output Format & Rationale:**
     ${selectedPrompts.output_format_instruction}
     - **Include a 'planRationale' field:** Briefly explain to the user the "why" behind your plan's structure, referencing their timeline and goals.
+    
+    **🔥 CRITICAL TIME ESTIMATION GUIDELINES:**
+    - **Easy tasks:** 15-45 minutes (基礎概念學習、閱讀材料)
+    - **Medium tasks:** 45-120 minutes (實踐練習、深度理解、寫作練習)  
+    - **Hard tasks:** 120-300 minutes (複雜專案、綜合應用、創作產出)
+    - **NEVER assign less than 15 minutes to any meaningful learning task**
+    - **Consider task complexity:** Reading (15-30min), Practice (45-90min), Projects (120-300min)
+    
+    **📝 DETAILED RESPONSE REQUIREMENT:**
+    - Each subtask 'text' field must be 2-3 detailed sentences minimum
+    - Include specific learning objectives, methods, and expected outcomes
+    - Provide actionable steps and clear success criteria
+    - Reference specific skills being developed
+    
     \`\`\`typescript
     interface LearningPlan {
       planTitle: string;
@@ -73,8 +87,8 @@ ${selectedPrompts.methodology_intro}
     interface EnhancedSubtask {
       // Reference my project's full type definition from types/task.ts
       title: string;          // e.g., "[練習] 解決關於餘式定理的 10 道進階題"
-      text: string;           // Detailed description of the subtask.
-      aiEstimatedDuration: number;
+      text: string;           // 2-3 detailed sentences with specific objectives and methods
+      aiEstimatedDuration: number; // Following the time guidelines above (15-300 minutes)
       difficulty: 'easy' | 'medium' | 'hard';
       phase: 'Remember & Understand' | 'Apply' | 'Analyze & Evaluate' | 'Create';
       skills: string[];

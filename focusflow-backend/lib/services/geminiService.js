@@ -381,7 +381,7 @@ class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.defaultModel = process.env.DEFAULT_MODEL || 'gemini-2.5-flash';
-    this.defaultMaxTokens = parseInt(process.env.DEFAULT_MAX_TOKENS) || 4000;
+    this.defaultMaxTokens = parseInt(process.env.GEMINI_MAX_TOKENS || process.env.DEFAULT_MAX_TOKENS) || 6000;
     this.defaultTemperature = parseFloat(process.env.DEFAULT_TEMPERATURE) || 0.1;
     this.requestTimeout = parseInt(process.env.REQUEST_TIMEOUT) || 30000;
     
@@ -403,7 +403,7 @@ class GeminiService {
    */
   async callGeminiStructured(systemPrompt, userContent, options = {}) {
     const startTime = Date.now();
-    const maxRetries = options.maxRetries || 2; // 🔧 減少重試次數，避免過度複雜
+    const maxRetries = options.maxRetries || 1; // 🔧 進一步減少重試次數，加快處理速度
     let lastError = null;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -453,17 +453,32 @@ class GeminiService {
         
         logger.debug(`Response length: ${responseText.length} characters`);
         
-        // 基本 JSON 解析
+        // 改善的 JSON 解析，處理截斷問題
         let parsedResponse;
         try {
+          // 檢查回應是否被截斷
+          if (responseText.length < 50) {
+            throw new Error(`Response too short: ${responseText.length} characters`);
+          }
+          
+          // 檢查是否以 JSON 結尾
+          const trimmedResponse = responseText.trim();
+          if (!trimmedResponse.endsWith('}') && !trimmedResponse.endsWith(']')) {
+            logger.warn(`⚠️ Response may be truncated, length: ${responseText.length}`);
+            logger.debug(`Response end: ...${responseText.slice(-100)}`);
+          }
+          
           parsedResponse = JSON.parse(responseText);
         } catch (parseError) {
           logger.warn(`⚠️ JSON parsing failed: ${parseError.message}`);
+          logger.debug(`Response length: ${responseText.length}`);
+          logger.debug(`Response preview: ${responseText.substring(0, 200)}...`);
+          
           if (attempt < maxRetries) {
             lastError = parseError;
             continue; // 重試
           } else {
-            throw new Error(`JSON parsing failed: ${parseError.message}`);
+            throw new Error(`JSON parsing failed after ${maxRetries} attempts: ${parseError.message}`);
           }
         }
         
@@ -485,7 +500,7 @@ class GeminiService {
         lastError = error;
         
         if (attempt < maxRetries) {
-          const delay = 1000; // 固定 1 秒延遲，避免複雜的指數退避
+          const delay = 500; // 減少延遲時間從 1000ms 到 500ms
           logger.info(`⏳ Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }

@@ -86,7 +86,7 @@ class E2ETestOrchestrator {
     logsPath: string;
   }> {
     const timestamp = Date.now();
-    const baseDir = '/Users/wetom/Desktop/FocusFlow/e2e-tests-comprehensive/test-results';
+    const baseDir = '/Users/wetom/Desktop/FocusFlow/test-results';
     
     // 📸 Screenshot
     const screenshotPath = `${baseDir}/screenshots/failure-${phase}-${timestamp}.png`;
@@ -122,7 +122,7 @@ class E2ETestOrchestrator {
 
   private async captureSuccessEvidence(phase: string): Promise<string> {
     const timestamp = Date.now();
-    const screenshotPath = `/Users/wetom/Desktop/FocusFlow/e2e-tests-comprehensive/test-results/screenshots/success-${phase}-${timestamp}.png`;
+    const screenshotPath = `/Users/wetom/Desktop/FocusFlow/test-results/screenshots/success-${phase}-${timestamp}.png`;
     await this.page.screenshot({ 
       path: screenshotPath, 
       fullPage: true 
@@ -1147,7 +1147,7 @@ class E2ETestOrchestrator {
   // 📊 Generate comprehensive test report
   async generateReport(): Promise<void> {
     const totalDuration = Date.now() - this.testStartTime;
-    const reportPath = '/Users/wetom/Desktop/FocusFlow/e2e-tests-comprehensive/test-results/comprehensive-e2e-report.json';
+    const reportPath = '/Users/wetom/Desktop/FocusFlow/test-results/comprehensive-e2e-report.json';
     
     const report = {
       testSuite: 'Complete E2E Flow Test',
