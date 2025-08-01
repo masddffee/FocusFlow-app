@@ -9,6 +9,8 @@ import { Task } from "@/types/task";
 import { router } from "expo-router";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
+import SubtaskDateTimeExtender from "@/components/SubtaskDateTimeExtender";
+import { log } from "@/lib/logger";
 
 interface ExtendedTask extends Task {
   scheduledTime?: string;
@@ -45,8 +47,9 @@ export default function ScheduleItem({
   const [isOverdue, setIsOverdue] = useState(false);
   const [showDecisionBox, setShowDecisionBox] = useState(false);
   const [daysUntilDeadline, setDaysUntilDeadline] = useState<number | null>(null);
+  const [showExtender, setShowExtender] = useState(false);
   
-  const { updateTask, removeScheduledTask } = useTaskStore();
+  const { updateTask, removeScheduledTask, addScheduledTask } = useTaskStore();
   const { language } = useSettingsStore();
 
   // 🆕 檢查是否逾期
@@ -79,16 +82,49 @@ export default function ScheduleItem({
     }
   }, [task, scheduledDate]);
   
-  // 🆕 處理延長截止日期
-  const handleExtendDeadline = () => {
-    router.push({
-      pathname: "/task-detail",
-      params: { 
-        id: task.mainTaskId || task.id,
-        action: "extendDeadline"
-      }
-    });
+  // 🆕 處理延長子任務日期
+  const handleExtendSubtask = () => {
+    log.info(`開啟子任務延長選擇器: ${task.title}`);
+    setShowExtender(true);
     setShowDecisionBox(false);
+  };
+
+  // 🆕 處理子任務延長完成
+  const handleExtensionComplete = (newDate: string, newTimeSlot: { start: string; end: string }) => {
+    try {
+      log.info(`子任務延長完成: ${task.id} -> ${newDate} ${newTimeSlot.start}-${newTimeSlot.end}`);
+      
+      // 移除舊的排程
+      if (onRemoveSchedule) {
+        onRemoveSchedule(task.id);
+      }
+      
+      // 添加新的排程
+      const newScheduledTask = {
+        taskId: task.id,
+        date: newDate,
+        timeSlot: newTimeSlot,
+        duration: task.duration || 30,
+      };
+      
+      addScheduledTask(newScheduledTask);
+      
+      // 顯示成功訊息
+      Alert.alert(
+        language === 'zh' ? "延長成功" : "Extension Successful",
+        language === 'zh' 
+          ? `子任務已移動到 ${newDate} ${newTimeSlot.start}-${newTimeSlot.end}` 
+          : `Subtask moved to ${newDate} ${newTimeSlot.start}-${newTimeSlot.end}`,
+        [{ text: language === 'zh' ? "確定" : "OK" }]
+      );
+      
+    } catch (error) {
+      log.error("子任務延長失敗:", error);
+      Alert.alert(
+        language === 'zh' ? "延長失敗" : "Extension Failed",
+        language === 'zh' ? "無法延長子任務，請稍後再試" : "Unable to extend subtask, please try again later"
+      );
+    }
   };
   
   // 🆕 處理重新分配子任務
@@ -271,8 +307,8 @@ export default function ScheduleItem({
         // 🆕 直接導航到 focus 並傳遞正確的參數
         const durationInSeconds = (task.duration || 25) * 60; // 轉換分鐘到秒
         
-        console.log(`🚀 ScheduleItem: Starting focus for ${task.isSubtask ? 'subtask' : 'task'}: ${task.title}`);
-        console.log(`⏱️ ScheduleItem: Duration: ${task.duration || 25}min (${durationInSeconds}s)`);
+        log.info(`🚀 ScheduleItem: Starting focus for ${task.isSubtask ? 'subtask' : 'task'}: ${task.title}`);
+        log.info(`⏱️ ScheduleItem: Duration: ${task.duration || 25}min (${durationInSeconds}s)`);
         
         router.push({
           pathname: "/focus",
@@ -283,7 +319,7 @@ export default function ScheduleItem({
         });
       }
     } catch (error) {
-      console.error("❌ ScheduleItem: Start navigation error:", error);
+      log.error("❌ ScheduleItem: Start navigation error:", error);
     }
   };
   
@@ -390,10 +426,10 @@ export default function ScheduleItem({
           </Text>
           
           <View style={styles.decisionOptions}>
-            <TouchableOpacity style={styles.decisionButton} onPress={handleExtendDeadline}>
+            <TouchableOpacity style={styles.decisionButton} onPress={handleExtendSubtask}>
               <Calendar size={18} color={Colors.light.primary} />
               <Text style={styles.decisionButtonText}>
-                {language === 'zh' ? "延長任務截止日期" : "Extend Task Deadline"}
+                {language === 'zh' ? "延長此子任務" : "Extend This Subtask"}
               </Text>
             </TouchableOpacity>
             
@@ -412,6 +448,23 @@ export default function ScheduleItem({
             </TouchableOpacity>
           </View>
         </View>
+      )}
+      
+      {/* 子任務延長器 */}
+      {task.isSubtask && showExtender && (
+        <SubtaskDateTimeExtender
+          visible={showExtender}
+          onClose={() => setShowExtender(false)}
+          subtaskId={task.id}
+          subtaskTitle={task.title}
+          currentDate={scheduledDate || ""}
+          currentTimeSlot={{
+            start: task.scheduledTime || "09:00",
+            end: task.scheduledEndTime || "10:00"
+          }}
+          duration={task.duration || 30}
+          onExtensionComplete={handleExtensionComplete}
+        />
       )}
     </View>
   );

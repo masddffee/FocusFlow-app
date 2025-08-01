@@ -176,9 +176,7 @@ export function scheduleSubtasks(
 
             // 添加到已佔用槽位列表
             occupiedSlots.push({
-              id: `subtask-${subtask.id}`,
-              taskId: subtask.id,
-              title: subtask.title || subtask.text,
+              taskId: `subtask-${subtask.id}`,
               date: dateString,
               timeSlot: scheduleEntry.timeSlot,
               duration: duration
@@ -287,9 +285,7 @@ export function findAvailableTimeSlot(
 
         if (!hasConflict && !hasCalendarConflict) {
           return {
-            id: `scheduled-${task.id}`,
             taskId: task.id,
-            title: task.title,
             date: dateString,
             timeSlot: {
               start: slot.start,

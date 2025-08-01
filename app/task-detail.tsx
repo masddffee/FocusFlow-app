@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   StyleSheet, 
   Text, 
   View, 
   ScrollView, 
   TouchableOpacity, 
-  Alert 
+  Alert,
+  Modal
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { 
@@ -20,31 +21,47 @@ import {
   GraduationCap,
   Target,
   BookOpen,
-  ExternalLink
+  ExternalLink,
+  X
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
 import Button from "@/components/Button";
+import DatePicker from "@/components/DatePicker";
 import { useTaskStore } from "@/store/taskStore";
 import { useTimerStore } from "@/store/timerStore";
+import { useSettingsStore } from "@/store/settingsStore";
 import { formatDuration } from "@/utils/timeUtils";
+import { log } from "@/lib/logger";
 
 export default function TaskDetailScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; action?: string }>();
   const taskId = params.id;
+  const action = params.action;
   
-  const { tasks, toggleTaskCompletion, deleteTask, toggleSubtaskCompletion } = useTaskStore();
+  const { tasks, toggleTaskCompletion, deleteTask, toggleSubtaskCompletion, updateTask } = useTaskStore();
   const { startSession, getSessionsByTaskId } = useTimerStore();
+  const { language } = useSettingsStore();
   
   const [showSubtasks, setShowSubtasks] = useState(true);
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
+  const [showExtendDeadlineModal, setShowExtendDeadlineModal] = useState(false);
+  const [newDeadline, setNewDeadline] = useState<string>("");
   
   const task = tasks.find(t => t.id === taskId);
   const sessions = getSessionsByTaskId(taskId);
   
   const totalTimeSpent = sessions.reduce((total, session) => total + session.duration, 0);
+
+  // 檢查是否需要打開延長截止日期對話框
+  useEffect(() => {
+    if (action === "extendDeadline") {
+      log.info(`自動打開延長截止日期對話框: ${taskId}`);
+      setShowExtendDeadlineModal(true);
+    }
+  }, [action, taskId]);
   
   if (!task) {
     return (
@@ -96,6 +113,58 @@ export default function TaskDetailScreen() {
   
   const handleToggleSubtask = (subtaskId: string) => {
     toggleSubtaskCompletion(taskId, subtaskId);
+  };
+
+  // 處理延長截止日期
+  const handleExtendDeadline = () => {
+    if (!newDeadline) {
+      Alert.alert(
+        language === 'zh' ? "請選擇日期" : "Please Select Date",
+        language === 'zh' ? "請選擇新的截止日期" : "Please select a new deadline"
+      );
+      return;
+    }
+
+    try {
+      // 驗證新日期必須大於當前日期
+      const selectedDate = new Date(newDeadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate <= today) {
+        Alert.alert(
+          language === 'zh' ? "無效日期" : "Invalid Date",
+          language === 'zh' ? "新截止日期必須大於今天" : "New deadline must be later than today"
+        );
+        return;
+      }
+
+      // 更新任務截止日期
+      updateTask(taskId, {
+        ...task,
+        dueDate: newDeadline
+      });
+
+      log.info(`任務截止日期已延長: ${taskId} -> ${newDeadline}`);
+
+      Alert.alert(
+        language === 'zh' ? "延長成功" : "Extension Successful",
+        language === 'zh' 
+          ? `任務截止日期已延長至 ${selectedDate.toLocaleDateString('zh-CN')}` 
+          : `Task deadline extended to ${selectedDate.toLocaleDateString('en-US')}`,
+        [{ text: language === 'zh' ? "確定" : "OK" }]
+      );
+
+      setShowExtendDeadlineModal(false);
+      setNewDeadline("");
+
+    } catch (error) {
+      log.error("延長截止日期失敗:", error);
+      Alert.alert(
+        language === 'zh' ? "延長失敗" : "Extension Failed",
+        language === 'zh' ? "無法延長截止日期，請稍後再試" : "Unable to extend deadline, please try again later"
+      );
+    }
   };
 
   const toggleSubtaskExpansion = (subtaskId: string) => {
@@ -571,6 +640,88 @@ export default function TaskDetailScreen() {
           disabled={task.completed}
         />
       </View>
+
+      {/* 延長截止日期模態框 */}
+      <Modal
+        visible={showExtendDeadlineModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowExtendDeadlineModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {language === 'zh' ? "延長任務截止日期" : "Extend Task Deadline"}
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setShowExtendDeadlineModal(false)}
+              style={styles.modalCloseButton}
+            >
+              <X size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalContent}>
+            <Text style={styles.modalDescription}>
+              {language === 'zh' 
+                ? "由於無法重新排程所有子任務，請選擇新的截止日期以獲得更多時間安排。"
+                : "Unable to reschedule all subtasks. Please select a new deadline to allow more time for scheduling."
+              }
+            </Text>
+
+            <View style={styles.currentDeadlineInfo}>
+              <Text style={styles.currentDeadlineLabel}>
+                {language === 'zh' ? "當前截止日期" : "Current Deadline"}:
+              </Text>
+              <Text style={styles.currentDeadlineValue}>
+                {task.dueDate 
+                  ? new Date(task.dueDate).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')
+                  : language === 'zh' ? "未設定" : "Not set"
+                }
+              </Text>
+            </View>
+
+            <View style={styles.datePickerContainer}>
+              <Text style={styles.datePickerLabel}>
+                {language === 'zh' ? "新截止日期" : "New Deadline"}:
+              </Text>
+              <DatePicker
+                selectedDate={newDeadline}
+                onDateSelect={setNewDeadline}
+                placeholder={language === 'zh' ? "請選擇新的截止日期" : "Select new deadline"}
+                minDate={new Date(Date.now() + 24 * 60 * 60 * 1000)} // 至少明天
+              />
+            </View>
+          </View>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={() => setShowExtendDeadlineModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>
+                {language === 'zh' ? "取消" : "Cancel"}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.confirmButton,
+                !newDeadline && styles.disabledButton
+              ]} 
+              onPress={handleExtendDeadline}
+              disabled={!newDeadline}
+            >
+              <Text style={[
+                styles.confirmButtonText,
+                !newDeadline && styles.disabledButtonText
+              ]}>
+                {language === 'zh' ? "確認延長" : "Confirm Extension"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -942,5 +1093,102 @@ const styles = StyleSheet.create({
     color: Colors.light.error,
     textAlign: "center",
     marginTop: Theme.spacing.xl,
+  },
+  // 模態框樣式
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  modalTitle: {
+    fontSize: Theme.typography.sizes.xl,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  modalCloseButton: {
+    padding: Theme.spacing.sm,
+  },
+  modalContent: {
+    flex: 1,
+    padding: Theme.spacing.lg,
+  },
+  modalDescription: {
+    fontSize: Theme.typography.sizes.md,
+    color: Colors.light.text,
+    lineHeight: 22,
+    marginBottom: Theme.spacing.xl,
+  },
+  currentDeadlineInfo: {
+    backgroundColor: Colors.light.card,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  currentDeadlineLabel: {
+    fontSize: Theme.typography.sizes.sm,
+    color: Colors.light.subtext,
+    marginBottom: Theme.spacing.xs,
+  },
+  currentDeadlineValue: {
+    fontSize: Theme.typography.sizes.lg,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  datePickerContainer: {
+    marginBottom: Theme.spacing.xl,
+  },
+  datePickerLabel: {
+    fontSize: Theme.typography.sizes.md,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: Theme.spacing.md,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: Theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+    gap: Theme.spacing.md,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: Theme.spacing.md,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.card,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: Theme.typography.sizes.md,
+    color: Colors.light.text,
+    fontWeight: '500',
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: Theme.spacing.md,
+    borderRadius: Theme.radius.md,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: Colors.light.subtext,
+  },
+  confirmButtonText: {
+    fontSize: Theme.typography.sizes.md,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  disabledButtonText: {
+    color: Colors.light.card,
   },
 });
