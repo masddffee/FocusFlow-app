@@ -1,0 +1,13 @@
+Starting project at /Users/wetom/Desktop/FocusFlow
+Starting Metro Bundler
+The following packages should be updated for best compatibility with the installed expo version:
+  expo-updates@0.28.16 - expected version: ~0.28.17
+  jest@30.0.4 - expected version: ~29.7.0
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8083
+Logs for your project will appear below.
+Web Bundled 687ms node_modules/expo-router/entry.js (2515 modules)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 84ms node_modules/expo-router/entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console

@@ -116,7 +116,6 @@ export default function TasksScreen() {
           if (originalSubtask) {
             // 🎯 Priority: userEstimatedDuration > aiEstimatedDuration > fallback
             originalDuration = originalSubtask.userEstimatedDuration || originalSubtask.aiEstimatedDuration || 60;
-            console.log(`🔍 Retrieved original subtask duration: ${originalDuration}min (was using: ${task.duration}min)`);
           }
         }
       }
@@ -150,19 +149,20 @@ export default function TasksScreen() {
         phase: task.phase,
       };
 
-      console.log(`🎯 Rescheduling task: ${task.title}`);
-      console.log(`📊 Duration: ${originalDuration}min | Difficulty: ${task.difficulty} | Priority: ${task.priority}`);
 
       // 從目前排程中移除
       const dateString = selectedDate.toISOString().split('T')[0];
       removeScheduledTask(task.id);
 
       // 使用增強的智能重新排程算法（包含驗證）
-      const { intelligentRescheduleWithValidation } = await import('@/utils/scheduling');
+      const { intelligentRescheduleWithValidation } = await import('@/utils/intelligentReschedule');
       
       const rescheduleResult = intelligentRescheduleWithValidation(
         {
           ...overdueTask,
+          completed: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           originalDuration: task.duration // Pass original for comparison
         },
         scheduledTasks,
@@ -193,14 +193,6 @@ export default function TasksScreen() {
         
         addScheduledTask(newScheduledTask);
 
-        // 📊 Log successful rescheduling details
-        console.log(`✅ Reschedule Success:`, {
-          taskId: task.id,
-          originalDuration: originalDuration,
-          newDuration: rescheduleResult.newSlot.duration,
-          newDate: rescheduleResult.newSlot.date,
-          newTimeSlot: rescheduleResult.newSlot.timeSlot
-        });
 
         // 顯示詳細的成功訊息
         const language = useSettingsStore.getState().language;
@@ -271,7 +263,6 @@ export default function TasksScreen() {
     const { taskId } = reflectionModal;
     
     // 記錄反思原因（這裡可以保存到持久化存儲）
-    console.log("Reflection completed:", { taskId, reasonId, customReason });
     
     // 導航到任務詳情頁面進行調整
     router.push({
@@ -340,37 +331,22 @@ export default function TasksScreen() {
       
       const scheduledTasksWithDetails = dayScheduledTasks
         .map(st => {
-        const isSubtask = st.taskId.includes('_');
+        const isSubtask = st.subtaskId !== undefined; // 🔧 更可靠的子任務判斷方式
         
         if (isSubtask) {
-          const taskIdParts = st.taskId.split('_');
-          const mainTaskId = taskIdParts[0];
+          // 🔧 使用 st.taskId 作為主任務 ID（convertSubtaskSchedulesToTasks 中設置的）
+          const mainTaskId = st.taskId;
           const mainTask = tasks.find(t => t.id === mainTaskId);
           
           if (!mainTask || !mainTask.subtasks) return null;
           
-          // Parse subtask ID
-          let subtaskId: string;
-          let isSegmented = false;
-          let segmentIndex: string | null = null;
-          
-          const segmentPos = taskIdParts.indexOf('segment');
-          if (segmentPos > 0 && segmentPos < taskIdParts.length - 1) {
-            isSegmented = true;
-            segmentIndex = taskIdParts[segmentPos + 1];
-            subtaskId = taskIdParts.slice(1, segmentPos).join('_');
-          } else {
-            subtaskId = taskIdParts.slice(1).join('_');
-          }
-          
+          // 🔧 直接從 ScheduledTask 獲取子任務 ID
+          const subtaskId = st.subtaskId;
           const subtask = mainTask.subtasks.find(s => s.id === subtaskId);
           if (!subtask) return null;
           
           const subtaskTitle = subtask.title || subtask.text;
-          let displayTitle = `${mainTask.title}: ${subtaskTitle}`;
-          if (isSegmented && segmentIndex) {
-            displayTitle += ` (${t('common.part')} ${segmentIndex})`;
-          }
+          const displayTitle = `${mainTask.title}: ${subtaskTitle}`;
           
           // 🔧 FIX: Prioritize original subtask duration over scheduled duration
           // This prevents duration compression from cascading through rescheduling
@@ -393,8 +369,8 @@ export default function TasksScreen() {
             scheduledTime: st.timeSlot.start,
             scheduledEndTime: st.timeSlot.end,
             isSubtask: true,
-            isSegmented,
-            segmentIndex,
+            isSegmented: false,
+            segmentIndex: 0,
             mainTaskId,
             subtaskId,
             category: mainTask.category,

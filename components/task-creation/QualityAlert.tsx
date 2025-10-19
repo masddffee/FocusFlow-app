@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { AlertCircle, X, Lightbulb, ArrowRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { log } from '@/lib/logger';
+// 🔧 緊急修復：移除有問題的 logger 導入
 import Colors from '@/constants/colors';
 import Theme from '@/constants/theme';
 import Button from '@/components/Button';
@@ -32,12 +32,10 @@ export default function QualityAlert({
   const { t } = useTranslation();
 
   const handleContinue = () => {
-    log.info('User chose to continue despite quality issues', { issueCount: issues.length });
     onContinue();
   };
 
   const handleImprove = () => {
-    log.info('User chose to improve task description');
     onImprove();
   };
 

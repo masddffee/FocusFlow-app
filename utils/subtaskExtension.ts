@@ -1,5 +1,5 @@
 import { ScheduledTask, TimeSlot } from "@/types/timeSlot";
-import { log } from "@/lib/logger";
+// 🔧 緊急修復：移除有問題的 logger 導入，使用 console 替代
 
 /**
  * 子任務延長業務邏輯工具函數
@@ -58,7 +58,7 @@ export function validateTimeSlotConflict(
         result.isValid = false;
         result.conflicts.push(existingTask);
         
-        log.warn(`時間段衝突: ${targetTimeSlot.start}-${minutesToTime(targetEndMinutes)} 與任務 ${existingTask.taskId} (${existingTask.timeSlot.start}-${existingTask.timeSlot.end})`);
+        console.warn(`[子任務延長] 時間段衝突: ${targetTimeSlot.start}-${minutesToTime(targetEndMinutes)} 與任務 ${existingTask.taskId} (${existingTask.timeSlot.start}-${existingTask.timeSlot.end})`);
       }
     }
 
@@ -80,7 +80,7 @@ export function validateTimeSlotConflict(
     return result;
 
   } catch (error) {
-    log.error("驗證時間段衝突失敗:", error);
+    console.error(`[子任務延長] 驗證時間段衝突失敗:`, error);
     return {
       isValid: false,
       conflicts: [],
@@ -145,11 +145,11 @@ export function calculateAvailableTimeSlots(
       }
     }
 
-    log.info(`計算可用時間段: ${targetDate}, 需要 ${requiredDuration} 分鐘, 找到 ${availableSlots.length} 個可用時段`);
+    console.log(`計算可用時間段: ${targetDate}, 需要 ${requiredDuration} 分鐘, 找到 ${availableSlots.length} 個可用時段`);
     return availableSlots;
 
   } catch (error) {
-    log.error("計算可用時間段失敗:", error);
+    console.error("計算可用時間段失敗:", error);
     return [];
   }
 }
@@ -234,7 +234,7 @@ export function executeSubtaskExtension(
 
     // 移除舊排程
     onRemoveTask(taskId);
-    log.info(`移除舊排程: ${taskId}`);
+    console.log(`移除舊排程: ${taskId}`);
 
     // 添加新排程
     const newScheduledTask = {
@@ -245,7 +245,7 @@ export function executeSubtaskExtension(
     };
 
     onAddTask(newScheduledTask);
-    log.info(`添加新排程: ${taskId} -> ${newDate} ${newTimeSlot.start}-${newTimeSlot.end}`);
+    console.log(`添加新排程: ${taskId} -> ${newDate} ${newTimeSlot.start}-${newTimeSlot.end}`);
 
     return {
       success: true,
@@ -253,7 +253,7 @@ export function executeSubtaskExtension(
     };
 
   } catch (error) {
-    log.error("執行子任務延長失敗:", error);
+    console.error("執行子任務延長失敗:", error);
     return {
       success: false,
       message: "延長過程發生錯誤，請稍後再試",
@@ -273,7 +273,7 @@ export function isValidFutureDate(dateString: string): boolean {
     
     return targetDate > today;
   } catch (error) {
-    log.error("日期驗證失敗:", error);
+    console.error("日期驗證失敗:", error);
     return false;
   }
 }

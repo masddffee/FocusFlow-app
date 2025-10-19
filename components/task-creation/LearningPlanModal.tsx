@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   StyleSheet
 } from 'react-native';
-import { X, BookOpen, Clock, Target, Tool, CheckCircle } from 'lucide-react-native';
+import { X, BookOpen, Clock, Target, Settings, CheckCircle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { log } from '@/lib/logger';
+// 🔧 緊急修復：移除有問題的 logger 導入
 import Colors from '@/constants/colors';
 import Theme from '@/constants/theme';
 import Button from '@/components/Button';
@@ -33,11 +33,6 @@ export default function LearningPlanModal({
   if (!plan) return null;
 
   const handleAccept = () => {
-    log.info('Learning plan accepted', { 
-      goalLength: plan.achievableGoal?.length,
-      toolsCount: plan.recommendedTools?.length,
-      checkpointsCount: plan.checkpoints?.length
-    });
     onAccept();
   };
 
@@ -66,7 +61,7 @@ export default function LearningPlanModal({
             {t('addTask.learningPlanTitle')}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={Colors.text.secondary} />
+            <X size={24} color={Colors.light.subtext} />
           </TouchableOpacity>
         </View>
 
@@ -74,7 +69,7 @@ export default function LearningPlanModal({
           {/* 學習目標 */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Target size={20} color={Colors.primary} />
+              <Target size={20} color={Colors.light.primary} />
               <Text style={styles.sectionTitle}>
                 {t('addTask.achievableGoal')}
               </Text>
@@ -86,7 +81,7 @@ export default function LearningPlanModal({
           {plan.estimatedTimeToCompletion && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Clock size={20} color={Colors.primary} />
+                <Clock size={20} color={Colors.light.primary} />
                 <Text style={styles.sectionTitle}>
                   {t('addTask.estimatedTime')}
                 </Text>
@@ -101,7 +96,7 @@ export default function LearningPlanModal({
           {plan.recommendedTools && plan.recommendedTools.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Tool size={20} color={Colors.primary} />
+                <Settings size={20} color={Colors.light.primary} />
                 <Text style={styles.sectionTitle}>
                   {t('addTask.recommendedTools')}
                 </Text>
@@ -120,7 +115,7 @@ export default function LearningPlanModal({
           {plan.checkpoints && plan.checkpoints.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <CheckCircle size={20} color={Colors.primary} />
+                <CheckCircle size={20} color={Colors.light.primary} />
                 <Text style={styles.sectionTitle}>
                   {t('addTask.checkpoints')}
                 </Text>
@@ -159,7 +154,7 @@ export default function LearningPlanModal({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.light.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -168,12 +163,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    borderBottomColor: Colors.light.border,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.light.text,
   },
   closeButton: {
     padding: 4,
@@ -194,23 +189,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.light.text,
   },
   goalText: {
     fontSize: 16,
-    color: Colors.text.primary,
+    color: Colors.light.text,
     lineHeight: 24,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.light.card,
     padding: 16,
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
+    borderLeftColor: Colors.light.primary,
   },
   timeText: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.primary,
-    backgroundColor: Colors.primary + '10',
+    color: Colors.light.primary,
+    backgroundColor: Colors.light.primary + '10',
     padding: 12,
     borderRadius: 8,
     textAlign: 'center',
@@ -219,7 +214,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   toolItem: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.light.card,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -228,7 +223,7 @@ const styles = StyleSheet.create({
   },
   toolText: {
     fontSize: 16,
-    color: Colors.text.primary,
+    color: Colors.light.text,
     lineHeight: 20,
   },
   checkpointsContainer: {
@@ -243,7 +238,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -251,18 +246,18 @@ const styles = StyleSheet.create({
   checkpointNumberText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.background.primary,
+    color: Colors.light.background,
   },
   checkpointText: {
     flex: 1,
     fontSize: 16,
-    color: Colors.text.primary,
+    color: Colors.light.text,
     lineHeight: 22,
   },
   modalFooter: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: Colors.light.border,
     gap: 12,
   },
   acceptButton: {
@@ -274,6 +269,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: Colors.light.subtext,
   },
 });

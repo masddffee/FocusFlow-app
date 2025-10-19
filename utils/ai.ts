@@ -807,7 +807,7 @@ function detectTaskType(title: string, description: string): "exam_preparation" 
   const descLower = description.toLowerCase();
   
   // Exam preparation detection
-  const examKeywords = ['exam', 'test', 'quiz', 'certification', 'assessment', 'midterm', 'final', 'sat', 'gre', 'gmat', 'ap', 'ielts', 'toefl'];
+  const examKeywords = ['exam', 'test', 'quiz', 'certification', 'assessment', 'midterm', 'final', 'sat', 'gre', 'gmat', 'ap', 'ielts', 'toefl', '段考', '考試', '測驗', '期中考', '期末考', '模擬考', '檢定', '會考', '學測', '指考', '統測'];
   if (examKeywords.some(keyword => titleLower.includes(keyword) || descLower.includes(keyword))) {
     return "exam_preparation";
   }
@@ -2326,10 +2326,16 @@ ${qa.answer}
 }
 
 // Add translation functionality for existing tasks
+/**
+ * @deprecated SECURITY RISK: This function uses makeAIRequest() which exposes API keys in frontend
+ * TODO: Create backend API endpoint /translate-tasks for secure translation
+ * Use backend API endpoints from utils/api.ts instead.
+ */
 export async function translateTaskContent(
   tasks: Task[],
   targetLanguage: "en" | "zh"
 ): Promise<Task[]> {
+  console.warn('⚠️ DEPRECATED: translateTaskContent() exposes API keys. Create backend translation API instead.');
   const languagePrompts = {
     en: {
       systemPrompt: "You are a professional translator specializing in educational content translation. Translate the following task content to English while preserving the original meaning, structure, and educational value.",

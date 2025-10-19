@@ -19,11 +19,14 @@ const fs = require('fs').promises;
 const axios = require('axios');
 const { performance } = require('perf_hooks');
 
+// 🔧 修復：正確加載父目錄的 .env 文件
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 // === Test Configuration ===
 const TEST_CONFIG = {
   // Backend configuration
   backend: {
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'http://127.0.0.1:3000', // 🔧 修復：使用 IPv4 地址避免連接問題
     healthCheckEndpoint: '/api/health-check',
     jobsEndpoint: '/api/jobs',
     timeout: 30000

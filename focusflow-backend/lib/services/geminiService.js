@@ -133,6 +133,25 @@ const RESPONSE_SCHEMAS = {
     required: ["subtasks"]
   },
 
+  // 任務分析的 Schema
+  taskAnalysis: {
+    type: SchemaType.OBJECT,
+    properties: {
+      complexity: { 
+        type: SchemaType.STRING,
+        enum: ["low", "medium", "high"]
+      },
+      estimatedSubtasks: { type: SchemaType.NUMBER },
+      learningStages: {
+        type: SchemaType.ARRAY,
+        items: { type: SchemaType.STRING }
+      },
+      recommendedApproach: { type: SchemaType.STRING },
+      timeEstimate: { type: SchemaType.NUMBER }
+    },
+    required: ["complexity", "estimatedSubtasks", "learningStages", "recommendedApproach"]
+  },
+
   // 學習計劃生成的 Schema
   learningPlan: {
     type: SchemaType.OBJECT,
@@ -406,6 +425,15 @@ class GeminiService {
     const maxRetries = options.maxRetries || 1; // 🔧 進一步減少重試次數，加快處理速度
     let lastError = null;
     
+    // 🚀 性能優化配置
+    const optimizedOptions = {
+      model: options.model || 'gemini-1.5-flash', // 使用更快的 Flash 模型
+      temperature: options.temperature !== undefined ? options.temperature : 0.2,
+      maxTokens: options.maxTokens || 3000,
+      timeout: Math.min(options.timeout || 15000, 25000), // 限制最大超時
+      ...options
+    };
+    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (!this.genAI) {
@@ -413,11 +441,11 @@ class GeminiService {
         }
 
         const model = this.genAI.getGenerativeModel({ 
-          model: options.model || this.defaultModel 
+          model: optimizedOptions.model 
         });
 
         // 🆕 取得指定的 schema
-        const schemaType = options.schemaType || 'subtasks';
+        const schemaType = optimizedOptions.schemaType || 'subtasks';
         const responseSchema = RESPONSE_SCHEMAS[schemaType];
         
         if (!responseSchema) {
@@ -425,7 +453,7 @@ class GeminiService {
         }
 
         logger.info(`[Attempt ${attempt}/${maxRetries}] Calling Gemini with structured output (${schemaType})`);
-        logger.debug(`Model: ${options.model || this.defaultModel}`);
+        logger.debug(`Model: ${optimizedOptions.model}, Temperature: ${optimizedOptions.temperature}, MaxTokens: ${optimizedOptions.maxTokens}`);
 
         // 🔧 簡化：使用穩定的配置，不做複雜的適應性調整
         const requestConfig = {
@@ -438,9 +466,9 @@ class GeminiService {
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: responseSchema,
-            maxOutputTokens: this.defaultMaxTokens,
-            temperature: 0.1, // 保持低溫度確保穩定性
-            topP: 0.8,
+            maxOutputTokens: optimizedOptions.maxTokens,
+            temperature: optimizedOptions.temperature,
+            topP: 0.9, // 稍微提高創造性同時保持穩定
           }
         };
 
@@ -774,6 +802,46 @@ class GeminiService {
       return JSON.stringify(result);
     } catch (error) {
       console.error('❌ Structured call failed in legacy mode:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 🚀 並行處理多個 Gemini 請求以提升性能
+   * @param {Array} requests - 請求陣列 [{systemPrompt, userContent, options}, ...]
+   * @returns {Promise<Array>} - 處理結果陣列
+   */
+  async callGeminiParallel(requests) {
+    const startTime = Date.now();
+    
+    try {
+      logger.info(`[PARALLEL] Starting ${requests.length} parallel Gemini calls...`);
+      
+      const promises = requests.map(async (request, index) => {
+        try {
+          const result = await this.callGeminiStructured(
+            request.systemPrompt,
+            request.userContent,
+            { ...request.options, requestId: `parallel-${index}` }
+          );
+          return { success: true, result, index };
+        } catch (error) {
+          logger.error(`[PARALLEL] Request ${index} failed:`, error);
+          return { success: false, error: error.message, index };
+        }
+      });
+
+      const results = await Promise.all(promises);
+      const totalTime = Date.now() - startTime;
+      
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.length - successCount;
+      
+      logger.info(`[PARALLEL] Completed in ${totalTime}ms: ${successCount} success, ${failureCount} failures`);
+      
+      return results;
+    } catch (error) {
+      logger.error('[PARALLEL] Parallel processing failed:', error);
       throw error;
     }
   }

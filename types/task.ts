@@ -50,10 +50,12 @@ export interface SpacedRepetitionData {
 export interface ClarifyingQuestion {
   id: string;
   question: string;
-  type: "text" | "choice" | "scale";
+  type: "text" | "choice" | "scale" | "diagnostic_test";
   options?: string[]; // For choice type questions
   required: boolean;
   category?: "goal" | "level" | "method" | "timeline" | "resources" | "context" | "proficiency";
+  // 🆕 透明度提升字段
+  rationale?: string; // 解釋為何提出這個問題的原因
 }
 
 export interface TaskClarification {
@@ -67,6 +69,9 @@ export interface EnhancedSubtask {
   id: string;
   title?: string; // Enhanced: specific, goal-focused title with action verb
   text: string; // Detailed description specifying exact topics, chapters, problem types, or activities
+  howToStart?: string; // 🆕 Specific first action to begin this subtask
+  successCriteria?: string; // 🆕 Clear completion indicators
+  nextSteps?: string; // 🆕 What to do after completing this subtask
   estimatedDuration?: number; // in minutes (deprecated, use aiEstimatedDuration)
   userEstimatedDuration?: number; // user's manual override
   aiEstimatedDuration?: number; // AI's suggestion based on complexity and depth

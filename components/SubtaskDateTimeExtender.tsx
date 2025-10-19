@@ -14,7 +14,6 @@ import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
-import { log } from "@/lib/logger";
 
 interface SubtaskDateTimeExtenderProps {
   visible: boolean;
@@ -95,10 +94,9 @@ export default function SubtaskDateTimeExtender({
       });
       
       setAvailableTimeSlots(availableSlots);
-      log.info(`計算可用時間段: ${date}, 找到 ${availableSlots.length} 個可用時段`);
       
     } catch (error) {
-      log.error("計算可用時間段失敗:", error);
+      console.error("計算可用時間段失敗:", error);
       setAvailableTimeSlots([]);
     }
   };
@@ -166,7 +164,6 @@ export default function SubtaskDateTimeExtender({
     setSelectedDate(dateString);
     setSelectedTimeSlot(null);
     setConflictWarning("");
-    log.info(`選擇日期: ${dateString}`);
   };
 
   const handleTimeSlotSelect = (slot: { start: string; end: string }) => {
@@ -177,7 +174,6 @@ export default function SubtaskDateTimeExtender({
     
     setSelectedTimeSlot(adjustedSlot);
     setConflictWarning("");
-    log.info(`選擇時間段: ${adjustedSlot.start} - ${adjustedSlot.end}`);
   };
 
   const handleConfirm = () => {
@@ -192,9 +188,8 @@ export default function SubtaskDateTimeExtender({
     try {
       onExtensionComplete(selectedDate, selectedTimeSlot);
       onClose();
-      log.info(`子任務延長完成: ${subtaskId} -> ${selectedDate} ${selectedTimeSlot.start}-${selectedTimeSlot.end}`);
     } catch (error) {
-      log.error("子任務延長失敗:", error);
+      console.error("子任務延長失敗:", error);
       Alert.alert(
         language === 'zh' ? "延長失敗" : "Extension Failed",
         language === 'zh' ? "無法延長子任務，請稍後再試" : "Unable to extend subtask, please try again later"

@@ -94,7 +94,7 @@ export const useSettingsStore = create<SettingsState>()(
       darkMode: false,
       availableTimeSlots: defaultTimeSlots,
       autoSchedulingEnabled: true,
-      language: "en" as AppLanguage,
+      language: "zh" as AppLanguage,
       
       setHasCompletedOnboarding: (value) => set({ hasCompletedOnboarding: value }),
       setUsername: (value) => set({ username: value }),

@@ -33,6 +33,5 @@
     "dist",
     "tests",
     "e2e-tests"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

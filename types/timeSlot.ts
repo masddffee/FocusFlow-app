@@ -14,10 +14,15 @@ export interface DayTimeSlots {
 }
 
 export interface ScheduledTask {
-  taskId: string;
+  id: string; // 🆕 排程任務的唯一標識
+  taskId: string; // 關聯的主任務 ID
+  title: string; // 🆕 排程任務的標題
   date: string; // Format: "YYYY-MM-DD"
   timeSlot: TimeSlot;
   duration: number; // in minutes
+  // 🆕 可選的子任務資訊
+  subtaskId?: string; // 如果這是子任務的排程
+  subtaskTitle?: string; // 子任務標題
 }
 
 export interface CalendarEvent {

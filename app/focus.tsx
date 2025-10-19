@@ -25,7 +25,6 @@ if (Platform.OS !== 'web') {
   try {
     Haptics = require('expo-haptics');
   } catch (error) {
-    console.log('Haptics not available');
   }
 }
 
@@ -60,7 +59,6 @@ export default function FocusScreen() {
   const calculateTaskInfo = React.useCallback(() => {
     if (!taskId) return null;
     
-    console.log(`🔍 Focus: Analyzing taskId: ${taskId}`);
     
     // 檢查是否為子任務（包含下劃線）
     if (taskId.includes('_')) {
@@ -88,7 +86,6 @@ export default function FocusScreen() {
         subtaskId = parts.slice(1).join('_');
       }
       
-      console.log(`📝 Focus: Parsed - Main: ${mainTaskId}, Sub: ${subtaskId}, Segmented: ${isSegmented}, Segment: ${segmentIndex}`);
       
       const mainTask = tasks.find(t => t.id === mainTaskId);
       if (!mainTask || !mainTask.subtasks) {
@@ -123,9 +120,7 @@ export default function FocusScreen() {
       // 如果沒有剩餘時間，但允許額外學習
       if (remainingTime <= 0) {
         suggestedDuration = 25; // 預設 25 分鐘額外學習
-        console.log(`📚 Focus: Subtask completed, allowing additional study time: ${suggestedDuration}min`);
       } else {
-        console.log(`⏱️ Focus: Remaining time: ${remainingTime}min, suggested: ${suggestedDuration}min`);
       }
       
       const subtaskTitle = subtask.title || subtask.text?.substring(0, 50) || `子任務 ${subtask.order || ''}`;
@@ -177,7 +172,6 @@ export default function FocusScreen() {
         }
       }
       
-      console.log(`📋 Focus: Regular task - Duration: ${suggestedDuration}min`);
       
       return {
         ...task,
@@ -198,21 +192,12 @@ export default function FocusScreen() {
     setTaskInfo(info);
     
     if (info) {
-      console.log(`✅ Focus: Task info initialized:`, {
-        title: info.title,
-        isSubtask: info.isSubtask,
-        suggestedDuration: info.suggestedDuration,
-        remainingTime: info.remainingTime,
-        progressPercentage: info.progressPercentage
-      });
     }
   }, [calculateTaskInfo]);
 
   // 🆕 智能啟動 timer
   useEffect(() => {
     if (taskInfo && !isRunning && !currentTaskId) {
-      console.log(`🚀 Focus: Auto-starting timer for ${taskInfo.isSubtask ? 'subtask' : 'task'}: ${taskInfo.title}`);
-      console.log(`⏱️ Focus: Duration: ${taskInfo.suggestedDuration}min (${taskInfo.suggestedDurationSeconds}s)`);
       
       try {
         startTimer(taskId!, taskInfo.suggestedDurationSeconds);
@@ -260,8 +245,7 @@ export default function FocusScreen() {
         try {
           Haptics.selectionAsync();
         } catch (error) {
-          console.log('Haptics not available');
-        }
+              }
       }
       
       // Add session to stats
@@ -280,7 +264,6 @@ export default function FocusScreen() {
             `Focus session completed: ${actualMinutes}min on ${new Date().toLocaleDateString()}`
           );
           
-          console.log(`✅ Focus: Updated subtask progress - ${taskInfo.mainTaskId}/${taskInfo.subtaskId}: +${actualMinutes}min`);
         } catch (progressError) {
           console.error("❌ Focus: Failed to update subtask progress:", progressError);
         }
@@ -332,7 +315,6 @@ export default function FocusScreen() {
         return;
       }
       
-      console.log(`▶️ Focus: Starting timer for ${taskInfo.title}`);
       startTimer(taskId!, taskInfo.suggestedDurationSeconds);
     } catch (error) {
       console.error("❌ Focus: Start error:", error);
@@ -342,7 +324,6 @@ export default function FocusScreen() {
 
   const handlePause = () => {
     try {
-      console.log(`⏸️ Focus: Pausing timer`);
       pauseTimer();
     } catch (error) {
       console.error("❌ Focus: Pause error:", error);
@@ -352,7 +333,6 @@ export default function FocusScreen() {
 
   const handleResume = () => {
     try {
-      console.log(`▶️ Focus: Resuming timer`);
       resumeTimer();
     } catch (error) {
       console.error("❌ Focus: Resume error:", error);
@@ -370,7 +350,6 @@ export default function FocusScreen() {
         {
             text: t('focus.stopAndSave'),
           onPress: () => {
-              console.log(`⏹️ Focus: Stopping timer and saving progress`);
               
               // 🆕 計算實際學習時間並更新進度
               if (taskInfo?.isSubtask && taskInfo.mainTaskId && taskInfo.subtaskId) {
@@ -387,7 +366,6 @@ export default function FocusScreen() {
                       `Partial session: ${elapsedMinutes}min on ${new Date().toLocaleDateString()}`
                     );
                     
-                    console.log(`✅ Focus: Updated partial progress - ${taskInfo.mainTaskId}/${taskInfo.subtaskId}: +${elapsedMinutes}min`);
                   } catch (progressError) {
                     console.error("❌ Focus: Failed to update partial progress:", progressError);
                   }
@@ -417,7 +395,6 @@ export default function FocusScreen() {
             text: t('focus.reset'),
             style: "destructive",
           onPress: () => {
-              console.log(`🔄 Focus: Resetting timer`);
               resetTimer();
             },
         },

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { X, ArrowRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { log } from '@/lib/logger';
+// 🔧 緊急修復：移除有問題的 logger 導入
 import Colors from '@/constants/colors';
 import Theme from '@/constants/theme';
 import Button from '@/components/Button';
@@ -25,6 +25,10 @@ interface PersonalizationModalProps {
   onClose: () => void;
   onResponseChange: (questionId: string, response: string) => void;
   onComplete: () => void;
+  // 🆕 透明度提升屬性
+  diagnosticInsight?: string; // AI的初始診斷洞察
+  questioningStrategy?: string; // 提問策略說明
+  sufficiencyReasoning?: string; // 判斷邏輯說明
 }
 
 export default function PersonalizationModal({
@@ -34,7 +38,10 @@ export default function PersonalizationModal({
   isAnalyzing,
   onClose,
   onResponseChange,
-  onComplete
+  onComplete,
+  diagnosticInsight,
+  questioningStrategy,
+  sufficiencyReasoning
 }: PersonalizationModalProps) {
   const { t } = useTranslation();
 
@@ -43,10 +50,6 @@ export default function PersonalizationModal({
   );
 
   const handleComplete = () => {
-    log.info('Personalization questions completed', { 
-      questionCount: questions.length,
-      responseCount: Object.keys(responses).length 
-    });
     onComplete();
   };
 
@@ -63,7 +66,7 @@ export default function PersonalizationModal({
             {t('addTask.personalizationTitle')}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={Colors.text.secondary} />
+            <X size={24} color={Colors.light.subtext} />
           </TouchableOpacity>
         </View>
 
@@ -71,6 +74,28 @@ export default function PersonalizationModal({
           <Text style={styles.modalDescription}>
             {t('addTask.personalizationDescription')}
           </Text>
+          
+          {/* 🆕 AI 診斷洞察 */}
+          {diagnosticInsight && (
+            <View style={styles.insightContainer}>
+              <View style={styles.insightHeader}>
+                <Text style={styles.insightIcon}>🤖</Text>
+                <Text style={styles.insightTitle}>AI Analysis:</Text>
+              </View>
+              <Text style={styles.insightText}>{diagnosticInsight}</Text>
+            </View>
+          )}
+          
+          {/* 🆕 提問策略說明 */}
+          {questioningStrategy && (
+            <View style={styles.strategyContainer}>
+              <View style={styles.strategyHeader}>
+                <Text style={styles.strategyIcon}>🎯</Text>
+                <Text style={styles.strategyTitle}>Why these questions:</Text>
+              </View>
+              <Text style={styles.strategyText}>{questioningStrategy}</Text>
+            </View>
+          )}
 
           {questions.map((question, index) => (
             <View key={question.id} style={styles.questionContainer}>
@@ -78,6 +103,15 @@ export default function PersonalizationModal({
                 {index + 1}. {question.question}
                 {question.required && <Text style={styles.required}> *</Text>}
               </Text>
+              
+              {/* 🆕 問題原因說明 */}
+              {question.rationale && (
+                <View style={styles.rationaleContainer}>
+                  <Text style={styles.rationaleText}>
+                    💡 {question.rationale}
+                  </Text>
+                </View>
+              )}
               
               {question.type === 'choice' && question.options ? (
                 <View style={styles.optionsContainer}>
@@ -139,7 +173,7 @@ export default function PersonalizationModal({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.light.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -148,12 +182,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    borderBottomColor: Colors.light.border,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: Colors.light.text,
   },
   closeButton: {
     padding: 4,
@@ -164,7 +198,7 @@ const styles = StyleSheet.create({
   },
   modalDescription: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: Colors.light.subtext,
     marginTop: 16,
     marginBottom: 24,
     lineHeight: 22,
@@ -175,7 +209,7 @@ const styles = StyleSheet.create({
   questionTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.text.primary,
+    color: Colors.light.text,
     marginBottom: 12,
     lineHeight: 22,
   },
@@ -184,12 +218,12 @@ const styles = StyleSheet.create({
   },
   responseInput: {
     borderWidth: 1,
-    borderColor: Colors.border.default,
+    borderColor: Colors.light.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: Colors.text.primary,
-    backgroundColor: Colors.background.secondary,
+    color: Colors.light.text,
+    backgroundColor: Colors.light.card,
     minHeight: 80,
   },
   optionsContainer: {
@@ -200,8 +234,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.border.default,
-    backgroundColor: Colors.background.secondary,
+    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.card,
   },
   optionButtonSelected: {
     borderColor: Colors.primary,
@@ -209,7 +243,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: Colors.text.primary,
+    color: Colors.light.text,
   },
   optionTextSelected: {
     color: Colors.primary,
@@ -218,7 +252,7 @@ const styles = StyleSheet.create({
   modalFooter: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: Colors.light.border,
   },
   completeButton: {
     marginBottom: 12,
@@ -231,6 +265,74 @@ const styles = StyleSheet.create({
   },
   analyzingText: {
     fontSize: 14,
-    color: Colors.text.secondary,
+    color: Colors.light.subtext,
+  },
+  // 🆕 透明度 UI 樣式
+  insightContainer: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6'
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  insightIcon: {
+    fontSize: 16,
+    marginRight: 8
+  },
+  insightTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e40af'
+  },
+  insightText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20
+  },
+  strategyContainer: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb'
+  },
+  strategyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6
+  },
+  strategyIcon: {
+    fontSize: 14,
+    marginRight: 6
+  },
+  strategyTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4b5563'
+  },
+  strategyText: {
+    fontSize: 12,
+    color: '#6b7280',
+    lineHeight: 16
+  },
+  rationaleContainer: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 6,
+    marginBottom: 8
+  },
+  rationaleText: {
+    fontSize: 11,
+    color: '#92400e',
+    lineHeight: 14,
+    fontStyle: 'italic'
   },
 });

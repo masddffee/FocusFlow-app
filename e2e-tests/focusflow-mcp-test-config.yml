@@ -49,7 +49,323 @@ testData:
 # 測試流程定義
 testSuites:
   
-  # 測試套件 1: 核心功能流程測試
+  # 🚀 測試套件 1: 動態個人化問題生成測試 (Phase 2 優化驗證)
+  - name: "dynamic-personalization-system"
+    description: "驗證動態個人化問題生成系統 (1-8 問題自適應生成)"
+    priority: "critical"
+    
+    tests:
+      - name: "01-simple-task-personalization"
+        description: "簡單任務個人化問題生成測試 (預期 1-3 問題)"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/add-task"
+            screenshot:
+              name: "simple-task-start"
+              
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: "學習基礎英文單字"
+            
+          - action: "fill"
+            selector: "[data-testid='task-description-input']"
+            value: "每天背誦10個新單字"
+            screenshot:
+              name: "simple-task-filled"
+              
+          - action: "click"
+            selector: "[data-testid='smart-generate-button']"
+            
+          - action: "waitForSelector"
+            selector: "[data-testid='personalization-modal']"
+            timeout: 15000
+            screenshot:
+              name: "simple-task-personalization-modal"
+              
+          - action: "verify"
+            type: "elementCount"
+            selector: "[data-testid='question-item']"
+            expectedCount: { min: 1, max: 3 }
+            errorMessage: "簡單任務個人化問題數量不在預期範圍 (1-3 個)"
+            screenshot:
+              name: "simple-task-question-count"
+              onError: true
+              
+          - action: "verifyTransparency"
+            checks:
+              - hasQuestionRationale: true
+              - hasComplexityExplanation: true
+              - hasSufficiencyScore: true
+            screenshot:
+              name: "simple-task-transparency"
+              onError: true
+
+      - name: "02-complex-task-personalization" 
+        description: "複雜任務個人化問題生成測試 (預期 6-8 問題)"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/add-task"
+            screenshot:
+              name: "complex-task-start"
+              
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: "{{ testData.complexTask.title }}"
+            
+          - action: "fill" 
+            selector: "[data-testid='task-description-input']"
+            value: "{{ testData.complexTask.description }}"
+            screenshot:
+              name: "complex-task-filled"
+              
+          - action: "click"
+            selector: "[data-testid='smart-generate-button']"
+            
+          - action: "waitForSelector"
+            selector: "[data-testid='personalization-modal']"
+            timeout: 15000
+            screenshot:
+              name: "complex-task-personalization-modal"
+              
+          - action: "verify"
+            type: "elementCount"
+            selector: "[data-testid='question-item']"
+            expectedCount: { min: 6, max: 8 }
+            errorMessage: "複雜任務個人化問題數量不在預期範圍 (6-8 個)"
+            screenshot:
+              name: "complex-task-question-count"
+              onError: true
+              
+          - action: "verifyQuestionQuality"
+            checks:
+              - hasDiagnosticQuestions: true
+              - hasSkillAssessment: true  
+              - hasTimeConstraintQuestions: true
+              - hasPreferenceQuestions: true
+            screenshot:
+              name: "complex-task-question-quality"
+              onError: true
+
+      - name: "03-medium-task-personalization"
+        description: "中等任務個人化問題生成測試 (預期 3-5 問題)"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/add-task"
+            screenshot:
+              name: "medium-task-start"
+              
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: "{{ testData.validTask.title }}"
+            
+          - action: "fill"
+            selector: "[data-testid='task-description-input']"
+            value: "{{ testData.validTask.description }}"
+            screenshot:
+              name: "medium-task-filled"
+              
+          - action: "click"
+            selector: "[data-testid='smart-generate-button']"
+            
+          - action: "waitForSelector"
+            selector: "[data-testid='personalization-modal']"
+            timeout: 15000
+            screenshot:
+              name: "medium-task-personalization-modal"
+              
+          - action: "verify"
+            type: "elementCount"
+            selector: "[data-testid='question-item']"
+            expectedCount: { min: 3, max: 5 }
+            errorMessage: "中等任務個人化問題數量不在預期範圍 (3-5 個)"
+            screenshot:
+              name: "medium-task-question-count"
+              onError: true
+
+  # 🚀 測試套件 2: 分段式生成性能優化測試 (Phase 4 優化驗證)
+  - name: "segmented-generation-performance"
+    description: "驗證分段式生成系統性能優化 (框架→展開→個人化)"
+    priority: "high"
+    
+    tests:
+      - name: "01-segmented-generation-progress"
+        description: "分段式生成進度追蹤測試"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/add-task"
+            
+          - action: "fill"
+            selector: "[data-testid='task-title-input']"
+            value: "{{ testData.complexTask.title }}"
+            
+          - action: "fill"
+            selector: "[data-testid='task-description-input']"
+            value: "{{ testData.complexTask.description }}"
+            
+          - action: "fillQuestions"  
+            answers:
+              experience: "beginner"
+              timeAvailable: "1-2 hours daily"
+              learningStyle: "structured learning"
+            screenshot:
+              name: "complex-personalization-completed"
+              
+          - action: "click"
+            selector: "[data-testid='complete-personalization-button']"
+            
+          - action: "waitForSelector"
+            selector: "[data-testid='generation-progress-modal']"
+            timeout: 5000
+            screenshot:
+              name: "progress-modal-appeared"
+              
+          - action: "verifyProgressStages"
+            expectedStages:
+              - name: "framework"
+                message: "正在生成學習框架"
+                expectedProgress: { min: 10, max: 30 }
+              - name: "details"
+                message: "正在展開"
+                expectedProgress: { min: 30, max: 70 }
+              - name: "personalization"
+                message: "應用個人化調整"
+                expectedProgress: { min: 80, max: 95 }
+              - name: "complete"
+                message: "子任務生成完成"
+                expectedProgress: 100
+            screenshot:
+              name: "progress-stages-verified"
+              onError: true
+              
+          - action: "measurePerformance"
+            metric: "totalGenerationTime"
+            expectedMax: 25000  # 25秒內完成 (比原來40-60秒快)
+            screenshot:
+              name: "performance-measurement"
+              onError: true
+
+      - name: "02-performance-monitoring-integration"
+        description: "性能監控儀表板整合測試"
+        steps:
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/profile"
+            
+          - action: "scrollToElement"
+            selector: "[data-testid='performance-monitor-button']"
+            
+          - action: "click"
+            selector: "[data-testid='performance-monitor-button']"
+            screenshot:
+              name: "performance-monitor-opened"
+              
+          - action: "waitForSelector"
+            selector: "[data-testid='performance-metrics-container']"
+            timeout: 5000
+            
+          - action: "verifyPerformanceMetrics"
+            expectedMetrics:
+              - name: "AI 響應時間"
+                unit: "ms"
+                expectedMax: 2000
+              - name: "子任務生成速度"
+                unit: "tasks/min"
+                expectedMin: 6.0
+              - name: "用戶流程完成率"
+                unit: "%"
+                expectedMin: 80
+              - name: "錯誤發生率"
+                unit: "%"
+                expectedMax: 5
+            screenshot:
+              name: "performance-metrics-verified"
+              onError: true
+              
+          - action: "click"
+            selector: "[data-testid='refresh-metrics-button']"
+            
+          - action: "waitForUpdate"
+            selector: "[data-testid='performance-metrics-container']"
+            timeout: 3000
+            screenshot:
+              name: "metrics-refreshed"
+
+  # 🚀 測試套件 3: 排程同步系統測試 (Phase 3 優化驗證)
+  - name: "scheduling-synchronization"
+    description: "驗證任務排程與 scheduledTasks 狀態同步"
+    priority: "high"
+    
+    tests:
+      - name: "01-task-scheduling-flow"
+        description: "完整任務排程流程測試"
+        steps:
+          - action: "createTaskWithScheduling"
+            taskData:
+              title: "測試排程任務"
+              description: "用於驗證排程同步功能"
+              enableScheduling: true
+            screenshot:
+              name: "task-with-scheduling-created"
+              
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/tasks"
+            
+          - action: "waitForSelector"
+            selector: "[data-testid='scheduled-tasks-section']"
+            timeout: 5000
+            
+          - action: "verify"
+            type: "elementVisible"
+            selector: "[data-testid='scheduled-task-item']"
+            errorMessage: "排程任務未在任務列表中顯示"
+            screenshot:
+              name: "scheduled-task-visible"
+              onError: true
+              
+          - action: "verifyScheduleSync"
+            checks:
+              - taskStoreHasTask: true
+              - scheduledTasksHasEntry: true
+              - idsMatch: true
+              - timeSlotsMatch: true
+            screenshot:
+              name: "schedule-sync-verified"
+              onError: true
+
+      - name: "02-subtask-scheduling-sync"
+        description: "子任務排程同步測試"
+        steps:
+          - action: "createComplexTask"
+            withSubtasks: true
+            enableScheduling: true
+            
+          - action: "navigate"
+            target: "{{ environment.baseUrl }}/tasks"
+            
+          - action: "expandTask"
+            selector: "[data-testid='complex-task-item']"
+            
+          - action: "verifySubtaskSchedules"
+            checks:
+              - hasScheduledSubtasks: true
+              - subtaskIdsCorrect: true
+              - parentTaskIdCorrect: true
+              - timeSlotAssignments: true
+            screenshot:
+              name: "subtask-schedules-verified"
+              onError: true
+              
+          - action: "markSubtaskComplete"
+            subtaskIndex: 0
+            
+          - action: "verifyScheduleCleanup"
+            checks:
+              - completedSubtaskScheduleRemoved: true
+              - remainingSchedulesIntact: true
+            screenshot:
+              name: "schedule-cleanup-verified"
+              onError: true
+
+  # 測試套件 4: 核心功能流程測試
   - name: "complete-user-journey"
     description: "完整的用戶使用流程測試"
     priority: "critical"
@@ -407,14 +723,43 @@ reporting:
     - name: "AI 響應時間"
       description: "AI API 平均響應時間"
       unit: "ms"
+      threshold: 2000
       
     - name: "任務生成成功率"
       description: "智能任務生成成功率"
       unit: "%"
+      threshold: 90
       
     - name: "用戶流程完成時間"
       description: "完整用戶流程平均完成時間"
       unit: "seconds"
+      threshold: 30
+      
+    # 🚀 Phase 優化新增指標
+    - name: "動態問題生成準確度"
+      description: "個人化問題數量是否符合任務複雜度預期"
+      unit: "%"
+      threshold: 85
+      
+    - name: "分段式生成性能改善"
+      description: "相比單次生成的性能提升百分比"
+      unit: "%"
+      threshold: 30
+      
+    - name: "排程同步一致性"
+      description: "taskStore 和 scheduledTasks 狀態同步準確率"
+      unit: "%"
+      threshold: 95
+      
+    - name: "透明度功能可見性"
+      description: "AI 決策透明度元素的可見率"
+      unit: "%"
+      threshold: 90
+      
+    - name: "子任務指引完整性"
+      description: "子任務包含行動指引的完整率"
+      unit: "%"
+      threshold: 80
 
 # 性能監控配置
 performance:

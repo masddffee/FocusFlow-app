@@ -33,7 +33,6 @@ import { useTaskStore } from "@/store/taskStore";
 import { useTimerStore } from "@/store/timerStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { formatDuration } from "@/utils/timeUtils";
-import { log } from "@/lib/logger";
 
 export default function TaskDetailScreen() {
   const { t } = useTranslation();
@@ -54,11 +53,17 @@ export default function TaskDetailScreen() {
   const sessions = getSessionsByTaskId(taskId);
   
   const totalTimeSpent = sessions.reduce((total, session) => total + session.duration, 0);
+  
+  // 🔧 調試：記錄子任務狀態以便排查同步問題
+  useEffect(() => {
+    if (task) {
+    } else {
+    }
+  }, [task, taskId]);
 
   // 檢查是否需要打開延長截止日期對話框
   useEffect(() => {
     if (action === "extendDeadline") {
-      log.info(`自動打開延長截止日期對話框: ${taskId}`);
       setShowExtendDeadlineModal(true);
     }
   }, [action, taskId]);
@@ -145,7 +150,6 @@ export default function TaskDetailScreen() {
         dueDate: newDeadline
       });
 
-      log.info(`任務截止日期已延長: ${taskId} -> ${newDeadline}`);
 
       Alert.alert(
         language === 'zh' ? "延長成功" : "Extension Successful",
@@ -159,7 +163,7 @@ export default function TaskDetailScreen() {
       setNewDeadline("");
 
     } catch (error) {
-      log.error("延長截止日期失敗:", error);
+      console.error("延長截止日期失敗:", error);
       Alert.alert(
         language === 'zh' ? "延長失敗" : "Extension Failed",
         language === 'zh' ? "無法延長截止日期，請稍後再試" : "Unable to extend deadline, please try again later"
@@ -532,6 +536,41 @@ export default function TaskDetailScreen() {
                           {subtask.text}
                         </Text>
                       )}
+                      
+                      {/* 🆕 Action Guidance */}
+                      {(subtask.howToStart || subtask.successCriteria || subtask.nextSteps) && (
+                        <View style={styles.guidanceContainer}>
+                          {subtask.howToStart && (
+                            <View style={styles.guidanceItem}>
+                              <View style={styles.guidanceHeader}>
+                                <Text style={styles.guidanceIcon}>🚀</Text>
+                                <Text style={styles.guidanceTitle}>How to Start:</Text>
+                              </View>
+                              <Text style={styles.guidanceText}>{subtask.howToStart}</Text>
+                            </View>
+                          )}
+                          
+                          {subtask.successCriteria && (
+                            <View style={styles.guidanceItem}>
+                              <View style={styles.guidanceHeader}>
+                                <Text style={styles.guidanceIcon}>✅</Text>
+                                <Text style={styles.guidanceTitle}>Success Criteria:</Text>
+                              </View>
+                              <Text style={styles.guidanceText}>{subtask.successCriteria}</Text>
+                            </View>
+                          )}
+                          
+                          {subtask.nextSteps && (
+                            <View style={styles.guidanceItem}>
+                              <View style={styles.guidanceHeader}>
+                                <Text style={styles.guidanceIcon}>➡️</Text>
+                                <Text style={styles.guidanceTitle}>Next Steps:</Text>
+                              </View>
+                              <Text style={styles.guidanceText}>{subtask.nextSteps}</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
 
                       {/* Expanded Resources */}
                       {expandedSubtasks.has(subtask.id) && subtask.recommendedResources && subtask.recommendedResources.length > 0 && (
@@ -550,6 +589,18 @@ export default function TaskDetailScreen() {
                       )}
 
                       <View style={styles.subtaskMeta}>
+                        {/* 🔧 修復：顯示排程日期信息 */}
+                        {subtask.startDate && (
+                          <View style={styles.subtaskSchedule}>
+                            <Calendar size={12} color={Colors.light.primary} />
+                            <Text style={styles.subtaskScheduleText}>
+                              {new Date(subtask.startDate).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
+                              {subtask.endDate && subtask.endDate !== subtask.startDate && 
+                                ` - ${new Date(subtask.endDate).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}`
+                              }
+                            </Text>
+                          </View>
+                        )}
                         {(subtask.aiEstimatedDuration || subtask.userEstimatedDuration) && (
                           <View style={styles.subtaskDuration}>
                             <Clock size={12} color={Colors.light.subtext} />
@@ -1033,6 +1084,17 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.sizes.sm,
     color: Colors.light.subtext,
   },
+  subtaskSchedule: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginRight: 8,
+  },
+  subtaskScheduleText: {
+    fontSize: Theme.typography.sizes.sm,
+    color: Colors.light.primary,
+    fontWeight: '500',
+  },
   phaseBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1190,5 +1252,37 @@ const styles = StyleSheet.create({
   },
   disabledButtonText: {
     color: Colors.light.card,
+  },
+  // 🆕 Guidance styles
+  guidanceContainer: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.light.primary
+  },
+  guidanceItem: {
+    marginBottom: 8
+  },
+  guidanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  guidanceIcon: {
+    fontSize: 12,
+    marginRight: 6
+  },
+  guidanceTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.primary
+  },
+  guidanceText: {
+    fontSize: 12,
+    color: Colors.light.text,
+    lineHeight: 16,
+    marginLeft: 18
   },
 });

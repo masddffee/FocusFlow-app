@@ -4,7 +4,6 @@
 
 ## 🚀 特色功能
 
-- **安全的 API 密鑰管理**: Anthropic API 密鑰只存儲在後端環境變數中
 - **智能任務分析**: 自動檢測任務類型並生成個人化問題
 - **增強子任務生成**: 基於用戶熟練度和時間限制的 AI 驅動子任務創建
 - **學習計劃生成**: 全面的個人化學習策略制定
@@ -111,7 +110,7 @@ focusflow-backend/
 
 | 變數名 | 描述 | 預設值 |
 |--------|------|--------|
-| `ANTHROPIC_API_KEY` | Anthropic API 密鑰 | (必需) |
+| `Gemine_API_KEY` | Gemine API 密鑰 | (必需) |
 | `PORT` | 服務器端口 | 8080 |
 | `NODE_ENV` | 運行環境 | development |
 | `CORS_ORIGIN` | CORS 允許的來源 | http://localhost:8081 |
@@ -127,7 +126,7 @@ focusflow-backend/
 - **503**: Anthropic 服務不可用
 
 ### 信用額度不足
-如果 Anthropic API 信用額度不足，健康檢查將返回：
+如果 Gemine API 信用額度不足，健康檢查將返回：
 ```json
 {
   "status": "credit_limit",

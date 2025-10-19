@@ -39,12 +39,12 @@ describe('Scheduling Order Logic Tests', () => {
       expect(SCHEDULING_MODES.flexible).toBeDefined();
       expect(SCHEDULING_MODES.strict).toBeDefined();
       
-      expect(SCHEDULING_MODES.flexible.mode).toBe('flexible');
-      expect(SCHEDULING_MODES.strict.mode).toBe('strict');
+      expect(SCHEDULING_MODES.flexible.name).toBe('Flexible');
+      expect(SCHEDULING_MODES.strict.name).toBe('Strict');
       
       // Verify that modes have the correct configurations for order preservation
-      expect(SCHEDULING_MODES.flexible.description).toContain('彈性模式');
-      expect(SCHEDULING_MODES.strict.description).toContain('嚴格模式');
+      expect(SCHEDULING_MODES.flexible.description).toContain('彈性排程');
+      expect(SCHEDULING_MODES.strict.description).toContain('嚴格按時間表');
     });
 
     it('validates subtask order field integrity', () => {

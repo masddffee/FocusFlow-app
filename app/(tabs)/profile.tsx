@@ -22,7 +22,8 @@ import {
   LogOut,
   CalendarDays,
   X,
-  Languages
+  Languages,
+  BarChart3
 } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import i18n from "@/constants/i18n";
@@ -35,10 +36,12 @@ import { useTaskStore } from "@/store/taskStore";
 import { requestNotificationPermissions, requestCalendarPermissions } from "@/utils/permissions";
 import { restartApp, canAutoRestart } from "@/utils/appRestart";
 import TimeSlotPicker from "@/components/TimeSlotPicker";
+import PerformanceMonitor from "@/components/PerformanceMonitor";
 import { TimeSlot } from "@/types/timeSlot";
 
 export default function ProfileScreen() {
   const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
   const { t } = useTranslation();
   
   const {
@@ -476,6 +479,19 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('profile.app')}</Text>
           
+          <TouchableOpacity 
+            style={styles.settingItem} 
+            onPress={() => setShowPerformanceMonitor(true)}
+          >
+            <View style={styles.settingInfo}>
+              <BarChart3 size={20} color={Colors.light.primary} />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingText}>性能監控儀表板</Text>
+                <Text style={styles.settingValue}>查看 AI 生成性能與系統狀態</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+          
           <TouchableOpacity style={styles.settingItem} onPress={handleResetOnboarding}>
             <View style={styles.settingInfo}>
               <LogOut size={20} color={Colors.light.error} />
@@ -520,6 +536,12 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+      
+      {/* 🚀 Performance Monitor Modal */}
+      <PerformanceMonitor
+        visible={showPerformanceMonitor}
+        onClose={() => setShowPerformanceMonitor(false)}
+      />
     </View>
   );
 }

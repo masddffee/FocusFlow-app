@@ -82,7 +82,6 @@ export const useTimerStore = create<TimerState>()(
             }
           }
           
-          console.log(`⏰ TimerStore: Starting timer - Task: ${taskId}, Duration: ${Math.floor(validDuration/60)}min (${validDuration}s)`);
           
           // 🆕 解析子任務信息
           let isSubtask = false;
@@ -101,7 +100,6 @@ export const useTimerStore = create<TimerState>()(
               extractedSubtaskId = parts.slice(1).join('_');
             }
             
-            console.log(`📝 TimerStore: Subtask detected - Main: ${mainTaskId}, Sub: ${extractedSubtaskId}`);
           }
           
           set({
@@ -125,7 +123,6 @@ export const useTimerStore = create<TimerState>()(
             throw new Error("Invalid task ID");
           }
           
-          console.log(`📚 TimerStore: Starting session - Task: ${taskId}`);
           
           set({
             isRunning: true,
@@ -142,7 +139,6 @@ export const useTimerStore = create<TimerState>()(
 
       pauseTimer: () => {
         try {
-          console.log(`⏸️ TimerStore: Pausing timer`);
           set({ isPaused: true });
         } catch (error) {
           console.error("❌ TimerStore: Pause timer error:", error);
@@ -152,7 +148,6 @@ export const useTimerStore = create<TimerState>()(
 
       resumeTimer: () => {
         try {
-          console.log(`▶️ TimerStore: Resuming timer`);
           set({ isPaused: false });
         } catch (error) {
           console.error("❌ TimerStore: Resume timer error:", error);
@@ -163,7 +158,6 @@ export const useTimerStore = create<TimerState>()(
       stopTimer: () => {
         try {
           const state = get();
-          console.log(`⏹️ TimerStore: Stopping timer - Task: ${state.currentTaskId}`);
           
           if (state.currentTaskId && state.currentTime > 0) {
             // Calculate actual duration (target - remaining)
@@ -202,7 +196,6 @@ export const useTimerStore = create<TimerState>()(
                 actualDuration, // 實際學習時長
               };
               
-              console.log(`💾 TimerStore: Saving incomplete session - Duration: ${Math.floor(actualDuration/60)}min`);
               
               set({
                 isRunning: false,
@@ -216,7 +209,6 @@ export const useTimerStore = create<TimerState>()(
               });
             } else {
               // No meaningful time elapsed
-              console.log(`🚫 TimerStore: No meaningful time elapsed, not saving session`);
               set({
                 isRunning: false,
                 isPaused: false,
@@ -254,7 +246,6 @@ export const useTimerStore = create<TimerState>()(
       resetTimer: () => {
         try {
           const state = get();
-          console.log(`🔄 TimerStore: Resetting timer`);
           set({
             isRunning: false,
             isPaused: false,
@@ -277,7 +268,6 @@ export const useTimerStore = create<TimerState>()(
             
             if (newTime <= 0) {
               // Timer completed - trigger completion
-              console.log(`🎉 TimerStore: Timer completed for task: ${state.currentTaskId}`);
               get().completeSession();
             } else {
               set({ currentTime: newTime });
@@ -292,7 +282,6 @@ export const useTimerStore = create<TimerState>()(
       completeSession: () => {
         try {
           const state = get();
-          console.log(`✅ TimerStore: Completing session for task: ${state.currentTaskId}`);
           
           if (state.currentTaskId) {
             // 🆕 檢查是否為子任務並加入相關信息
@@ -326,7 +315,6 @@ export const useTimerStore = create<TimerState>()(
               actualDuration: state.targetTime, // 完整完成的時長
             };
             
-            console.log(`💾 TimerStore: Saving completed session - Duration: ${Math.floor(state.targetTime/60)}min`);
             
             set({
               isRunning: false,
@@ -432,7 +420,6 @@ export const useTimerStore = create<TimerState>()(
           
           const taskId = `${mainTaskId}_${subtaskId}${segmentIndex ? `_segment_${segmentIndex}` : ''}`;
           
-          console.log(`🎯 TimerStore: Starting subtask session - Task: ${taskId}, Duration: ${Math.floor(validDuration/60)}min`);
           
           set({
             isRunning: true,

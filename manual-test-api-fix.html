@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow API 手動測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .loading {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .subtask {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+        .subtask-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        .subtask-text {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .subtask-meta {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .progress {
+            margin-top: 10px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+        .metrics {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 FocusFlow Smart Generate API 測試</h1>
+        <p>此工具用於測試修復後的 Smart Generate 功能是否正常運作。</p>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label for="title">任務標題：</label>
+                <input type="text" id="title" value="學習 Python 機器學習" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">任務描述：</label>
+                <textarea id="description" placeholder="詳細描述您的學習目標和背景...">我想學習 Python 機器學習的基礎知識，包括數據處理、模型訓練和評估。我有基礎的 Python 經驗，但對機器學習完全陌生。</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="taskType">任務類型：</label>
+                <select id="taskType">
+                    <option value="skill_learning">技能學習</option>
+                    <option value="exam_preparation">考試準備</option>
+                    <option value="project_completion">專案完成</option>
+                    <option value="habit_building">習慣養成</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="proficiency">目前程度：</label>
+                <select id="proficiency">
+                    <option value="beginner">初學者</option>
+                    <option value="novice">新手</option>
+                    <option value="intermediate">中級</option>
+                    <option value="advanced">進階</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="target">目標程度：</label>
+                <select id="target">
+                    <option value="novice">新手</option>
+                    <option value="intermediate">中級</option>
+                    <option value="advanced">進階</option>
+                    <option value="expert">專家</option>
+                </select>
+            </div>
+
+            <button type="submit" id="generateBtn">🚀 生成學習計劃</button>
+            <button type="button" id="clearBtn">🗑️ 清空結果</button>
+        </form>
+
+        <div id="results" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('testForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const results = document.getElementById('results');
+
+        let startTime = 0;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await generateSubtasks();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            results.style.display = 'none';
+            results.innerHTML = '';
+        });
+
+        async function generateSubtasks() {
+            startTime = Date.now();
+            generateBtn.disabled = true;
+            generateBtn.textContent = '🔄 生成中...';
+
+            showResults('loading', '🚀 正在生成學習計劃，請稍候...', true);
+
+            try {
+                const requestData = {
+                    title: document.getElementById('title').value,
+                    description: document.getElementById('description').value,
+                    taskType: document.getElementById('taskType').value,
+                    currentProficiency: document.getElementById('proficiency').value,
+                    targetProficiency: document.getElementById('target').value,
+                    language: 'zh'
+                };
+
+                console.log('發送請求數據:', requestData);
+
+                const response = await fetch('http://localhost:3000/api/subtasks-direct', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('API 響應:', data);
+
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+
+                if (data.success && data.subtasks && data.subtasks.length > 0) {
+                    displaySuccess(data, duration);
+                } else {
+                    throw new Error(data.error || '未能生成子任務');
+                }
+
+            } catch (error) {
+                console.error('API 錯誤:', error);
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                showResults('error', `❌ 錯誤：${error.message}<br><br>⏱️ 失敗時間：${duration}ms (${(duration/1000).toFixed(2)}秒)`);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🚀 生成學習計劃';
+            }
+        }
+
+        function displaySuccess(data, duration) {
+            let html = `
+                <div class="success">
+                    <h3>🎉 生成成功！</h3>
+                    <p><strong>⏱️ 處理時間：</strong>${duration}ms (${(duration/1000).toFixed(2)}秒)</p>
+                    <p><strong>📋 子任務數量：</strong>${data.subtasks.length} 個</p>
+            `;
+
+            if (data.metrics) {
+                html += `
+                    <div class="metrics">
+                        <strong>📊 詳細指標：</strong><br>
+                        • AI 處理時間：${data.metrics.modelMs}ms<br>
+                        • 佇列時間：${data.metrics.queueMs}ms<br>
+                        • 總處理時間：${data.metrics.totalMs}ms
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+
+            // 顯示子任務
+            html += '<h3>📝 生成的學習子任務：</h3>';
+            data.subtasks.forEach((subtask, index) => {
+                html += `
+                    <div class="subtask">
+                        <div class="subtask-title">${index + 1}. ${subtask.title || '未命名任務'}</div>
+                        <div class="subtask-text">${subtask.text}</div>
+                        <div class="subtask-meta">
+                            🕒 預估時間：${subtask.aiEstimatedDuration || 60} 分鐘 | 
+                            📊 難度：${subtask.difficulty || 'medium'} | 
+                            🎯 階段：${subtask.phase || 'practice'}
+                        </div>
+                `;
+
+                if (subtask.recommendedResources && subtask.recommendedResources.length > 0) {
+                    html += `
+                        <div class="subtask-meta" style="margin-top: 5px;">
+                            📚 推薦資源：${subtask.recommendedResources.slice(0, 2).join(', ')}
+                        </div>
+                    `;
+                }
+
+                html += '</div>';
+            });
+
+            // 顯示推理信息
+            if (data.reasoning) {
+                html += `
+                    <div class="metrics">
+                        <strong>🧠 AI 推理過程：</strong><br>
+                        ${data.reasoning.quantityReasoning || '未提供推理信息'}
+                    </div>
+                `;
+            }
+
+            showResults('success', html);
+        }
+
+        function showResults(type, content, showProgress = false) {
+            results.className = `results ${type}`;
+            results.innerHTML = content;
+            
+            if (showProgress) {
+                results.innerHTML += `
+                    <div class="progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                `;
+                
+                // 模擬進度條
+                let progress = 0;
+                const progressFill = results.querySelector('.progress-fill');
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 10;
+                    if (progress > 95) progress = 95;
+                    progressFill.style.width = progress + '%';
+                }, 500);
+                
+                // 清理進度條
+                setTimeout(() => {
+                    clearInterval(progressInterval);
+                }, 30000);
+            }
+            
+            results.style.display = 'block';
+        }
+
+        // 頁面載入時顯示狀態
+        window.addEventListener('load', () => {
+            console.log('🎯 FocusFlow API 測試工具已載入');
+            console.log('後端 API 地址:', 'http://localhost:3000/api/subtasks-direct');
+        });
+    </script>
+</body>
+</html>

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Calendar, Clock, Settings, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { log } from '@/lib/logger';
+// 🔧 緊急修復：移除有問題的 logger 導入
 import Colors from '@/constants/colors';
 import Theme from '@/constants/theme';
 import { SchedulingMode, SCHEDULING_MODES } from '@/utils/scheduling';
@@ -37,17 +37,14 @@ export default function SchedulingOptions({
   const { t } = useTranslation();
 
   const handleAutoScheduleToggle = (enabled: boolean) => {
-    log.info('Auto-schedule toggled', { enabled });
     onAutoScheduleChange(enabled);
   };
 
   const handleSchedulingModeChange = (mode: SchedulingMode) => {
-    log.info('Scheduling mode changed', { mode });
     onSchedulingModeChange(mode);
   };
 
   const handleStartNextDayToggle = (enabled: boolean) => {
-    log.info('Start next day toggled', { enabled });
     onStartNextDayChange(enabled);
   };
 

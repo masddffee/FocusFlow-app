@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Plus, Trash2, Edit3, Clock, BarChart3 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { log } from '@/lib/logger';
+// 🔧 緊急修復：移除有問題的 logger 導入
 import Colors from '@/constants/colors';
 import Theme from '@/constants/theme';
 import Button from '@/components/Button';
@@ -68,7 +68,6 @@ export default function SubtaskManager({
         phase: 'practice'
       };
       
-      log.info('Manual subtask added', { title: newSubtask.trim() });
       onSubtasksChange([...subtasks, newSubtaskObj]);
       onNewSubtaskChange('');
     }
@@ -85,7 +84,6 @@ export default function SubtaskManager({
           text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
-            log.info('Subtask removed', { title: subtaskTitle });
             const updatedSubtasks = subtasks.filter((_, i) => i !== index);
             onSubtasksChange(updatedSubtasks);
           }
@@ -112,7 +110,6 @@ export default function SubtaskManager({
         : subtask
     );
     
-    log.info('Subtask duration updated', { subtaskId, duration });
     onSubtasksChange(updatedSubtasks);
     onEditingChange(null);
     onTempDurationChange('');
@@ -127,7 +124,6 @@ export default function SubtaskManager({
     if (subtasks.length === 0) return;
 
     onEstimatingChange(true);
-    log.info('Estimating durations for all subtasks', { count: subtasks.length });
 
     try {
       const updatedSubtasks = await Promise.all(
@@ -139,16 +135,15 @@ export default function SubtaskManager({
               aiEstimatedDuration: result.success ? result.estimatedDuration : subtask.aiEstimatedDuration
             };
           } catch (error) {
-            log.error('Failed to estimate subtask duration', error, 'SubtaskManager');
+            console.error('Failed to estimate subtask duration:', error);
             return subtask;
           }
         })
       );
       
       onSubtasksChange(updatedSubtasks);
-      log.info('Duration estimation completed');
     } catch (error) {
-      log.error('Batch duration estimation failed', error, 'SubtaskManager');
+      console.error('Batch duration estimation failed:', error);
       Alert.alert(t('addTask.error'), t('addTask.estimationFailed'));
     } finally {
       onEstimatingChange(false);

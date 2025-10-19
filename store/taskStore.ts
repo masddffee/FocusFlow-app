@@ -30,7 +30,7 @@ interface TaskState {
   reviewTasks: ReviewTask[];
   
   // Task management
-  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "completed">) => string;
+  addTask: (task: Partial<Task> & { title: string }) => string; // 🔧 修復：允許接受包含ID的任務
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   toggleTaskCompletion: (id: string) => void;
@@ -417,20 +417,30 @@ export const useTaskStore = create<TaskState>()(
       addTask: (taskData) => {
         try {
           const now = new Date().toISOString();
-          const newTask: Task = {
-            id: Date.now().toString(),
-            ...taskData,
-            completed: false,
-            createdAt: now,
-            updatedAt: now,
+          
+          // 🎯 Phase 4: 增強的 ID 生成策略
+          const generateUniqueTaskId = () => {
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substr(2, 5);
+            return `task-${timestamp}-${random}`;
           };
           
-          console.log(`📝 Adding task to store: ${newTask.id} - ${newTask.title}`);
+          const newTask: Task = {
+            id: taskData.id || generateUniqueTaskId(), // 🎯 使用更強健的 ID 生成
+            ...taskData,
+            completed: taskData.completed ?? false,
+            createdAt: taskData.createdAt || now,
+            updatedAt: taskData.updatedAt || now,
+          };
           
-          // 🔧 使用同步方式更新狀態，確保立即生效
+          
+          // 🎯 Phase 4: 改進的同步狀態更新（帶有 ID 追蹤）
           set((state) => {
             const updatedTasks = [...state.tasks, newTask];
-            console.log(`📊 Store updated. Total tasks: ${updatedTasks.length}`);
+            console.log(`[ID-CONSISTENT] Task added to store: ${newTask.id}`, { 
+              title: newTask.title, 
+              subtasks: newTask.subtasks?.length || 0 
+            });
             return { tasks: updatedTasks };
           });
           
@@ -449,7 +459,7 @@ export const useTaskStore = create<TaskState>()(
             throw new Error("Failed to add task to store");
           }
           
-          console.log(`✅ Task successfully added to store: ${newTask.id}`);
+          console.log(`[ID-CONSISTENT] Task creation successful: ${newTask.id}`);
           return newTask.id; // 返回新任務的 ID
         } catch (error) {
           console.error("Add task error:", error);
@@ -545,6 +555,24 @@ export const useTaskStore = create<TaskState>()(
                         if (!subtask.completed && updatedSubtask.completed && !subtask.spacedRepetition) {
                           const { initializeSpacedRepetition } = require('@/utils/spacedRepetition');
                           updatedSubtask.spacedRepetition = initializeSpacedRepetition();
+                        }
+                        
+                        // 🔧 修復：子任務完成時清理相關排程任務
+                        if (!subtask.completed && updatedSubtask.completed) {
+                          // 子任務初次完成，移除其排程
+                          setTimeout(() => {
+                            const currentState = get();
+                            const scheduledTasksToRemove = currentState.scheduledTasks.filter(st => 
+                              st.subtaskId === subtaskId || st.id === `${taskId}-${subtaskId}`
+                            );
+                            if (scheduledTasksToRemove.length > 0) {
+                              currentState.updateScheduledTasks(
+                                currentState.scheduledTasks.filter(st => 
+                                  st.subtaskId !== subtaskId && st.id !== `${taskId}-${subtaskId}`
+                                )
+                              );
+                            }
+                          }, 0);
                         }
                         
                         return updatedSubtask;
@@ -729,19 +757,16 @@ export const useTaskStore = create<TaskState>()(
           set((state) => ({
             // 🆕 修正：支援移除所有相關的排程記錄，包括子任務和片段
             scheduledTasks: state.scheduledTasks.filter((st) => {
-              // 精確匹配
+              // 🔧 修復：適配新的 ID 格式（使用 '-' 分隔）
+              
+              // 1. 精確匹配
               if (st.taskId === taskId) return false;
               
-              // 如果提供的 taskId 是主任務ID，清理所有相關子任務
-              if (st.taskId.includes('_') && st.taskId.split('_')[0] === taskId) return false;
+              // 2. 按 ScheduledTask ID 格式匹配（parentTaskId-subtaskId）
+              if (st.id && st.id.includes('-') && st.id.startsWith(taskId + '-')) return false;
               
-              // 如果提供的 taskId 是子任務ID，清理對應的片段
-              if (taskId.includes('_') && st.taskId.includes(taskId)) {
-                // 檢查是否為該子任務的片段
-                if (st.taskId.startsWith(`${taskId}_segment_`) || st.taskId === taskId) {
-                  return false;
-                }
-              }
+              // 3. 按 subtaskId 匹配（如果有的話）
+              if (st.subtaskId === taskId) return false;
               
               return true;
             }),
@@ -981,7 +1006,6 @@ export const useTaskStore = create<TaskState>()(
            
            if (validScheduledTasks.length !== state.scheduledTasks.length) {
              const cleanedCount = state.scheduledTasks.length - validScheduledTasks.length;
-             console.log(`Cleaned up ${cleanedCount} orphaned scheduled task records`);
              set({ scheduledTasks: validScheduledTasks });
            }
          } catch (error) {
@@ -1037,9 +1061,18 @@ export const useTaskStore = create<TaskState>()(
         try {
           // 取得所有已排程任務
           const scheduledTasks = get().scheduledTasks;
+          
           // 動態計算所有被佔用的時段
           const { getTrueOccupiedTimeSlots } = require('@/utils/scheduling');
+          
+          // 驗證函數是否存在
+          if (typeof getTrueOccupiedTimeSlots !== 'function') {
+            console.error('❌ [TASK-STORE] getTrueOccupiedTimeSlots function not found in @/utils/scheduling');
+            return;
+          }
+          
           const occupied = getTrueOccupiedTimeSlots(scheduledTasks);
+          
           // 若有 useSettingsStore，則同步 blockedTimeSlots 或 availableTimeSlots
           try {
             const { useSettingsStore } = require('@/store/settingsStore');
@@ -1053,7 +1086,11 @@ export const useTaskStore = create<TaskState>()(
             // 無法同步到 settingsStore 時忽略
           }
         } catch (error) {
-          console.error("Rebuild time availability index error:", error);
+          console.error("❌ [TASK-STORE] Rebuild time availability index error:", error);
+          // 確保錯誤不會阻止其他操作
+          if (error.message?.includes('getTrueOccupiedTimeSlots')) {
+            console.error('🔧 [TASK-STORE] Missing getTrueOccupiedTimeSlots function - please check @/utils/scheduling');
+          }
         }
       },
     }),
@@ -1124,11 +1161,8 @@ setTimeout(() => {
     const { valid, orphaned } = taskStore.validateScheduledTasks();
     
     if (orphaned.length > 0) {
-      console.log(`Found ${orphaned.length} orphaned scheduled task records on startup`);
       taskStore.cleanupOrphanedScheduledTasks();
-      console.log(`Cleaned up orphaned scheduled tasks on startup`);
     } else {
-      console.log(`All ${valid.length} scheduled task records are valid`);
     }
   } catch (error) {
     console.error('Initial scheduled tasks cleanup error:', error);

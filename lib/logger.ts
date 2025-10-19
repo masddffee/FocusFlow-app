@@ -33,8 +33,26 @@ class Logger {
   private maxLogSize: number = 1000; // 最大保存日誌數量
 
   private constructor() {
-    // 根據環境變數設定日誌層級
-    const envLevel = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'ERROR' : 'DEBUG');
+    // 🔧 修復：React Native 環境兼容性
+    let envLevel = 'DEBUG'; // 默認值
+    
+    try {
+      // 檢測運行環境
+      if (typeof process !== 'undefined' && process.env) {
+        // Node.js 環境 (後端)
+        envLevel = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'ERROR' : 'DEBUG');
+      } else if (typeof global !== 'undefined' && (global as any).__DEV__ !== undefined) {
+        // React Native 環境 (前端)
+        envLevel = (global as any).__DEV__ ? 'DEBUG' : 'ERROR';
+      } else if (typeof window !== 'undefined') {
+        // Web 環境 (Expo Web)
+        envLevel = process.env.NODE_ENV === 'production' ? 'ERROR' : 'DEBUG';
+      }
+    } catch (error) {
+      // 安全後備：任何環境檢測失敗都使用默認值
+      envLevel = 'DEBUG';
+    }
+    
     this.currentLevel = this.parseLogLevel(envLevel);
   }
 
@@ -201,29 +219,121 @@ class Logger {
   }
 }
 
-// 創建全域實例
-const logger = Logger.getInstance();
+// 創建全域實例 (安全模式)
+let logger: Logger;
+try {
+  logger = Logger.getInstance();
+} catch (error) {
+  console.warn('[LOGGER] Initialization failed, using console fallback:', error);
+  // 創建一個安全的後備對象
+  logger = {
+    debug: (message: string, data?: any, context?: string) => console.log(`[DEBUG] [${context || 'App'}] ${message}`, data || ''),
+    info: (message: string, data?: any, context?: string) => console.log(`[INFO] [${context || 'App'}] ${message}`, data || ''),
+    warn: (message: string, data?: any, context?: string) => console.warn(`[WARN] [${context || 'App'}] ${message}`, data || ''),
+    error: (message: string, error?: Error | any, context?: string) => console.error(`[ERROR] [${context || 'App'}] ${message}`, error || ''),
+    timeStart: (label: string) => console.time(label),
+    timeEnd: (label: string) => console.timeEnd(label),
+    setLevel: () => {},
+    setContext: () => {},
+    getLogs: () => [],
+    getLogsByLevel: () => [],
+    clearLogs: () => {},
+    getStats: () => ({ total: 0, byLevel: {} })
+  } as any;
+}
 
-// 導出便捷函數
+// 導出便捷函數 (安全模式)
 export const log = {
-  debug: (message: string, data?: any, context?: string) => logger.debug(message, data, context),
-  info: (message: string, data?: any, context?: string) => logger.info(message, data, context),
-  warn: (message: string, data?: any, context?: string) => logger.warn(message, data, context),
-  error: (message: string, error?: Error | any, context?: string) => logger.error(message, error, context),
+  debug: (message: string, data?: any, context?: string) => {
+    try {
+      logger.debug(message, data, context);
+    } catch (error) {
+      console.log(`[DEBUG] [${context || 'App'}] ${message}`, data || '');
+    }
+  },
+  info: (message: string, data?: any, context?: string) => {
+    try {
+      logger.info(message, data, context);
+    } catch (error) {
+      console.log(`[INFO] [${context || 'App'}] ${message}`, data || '');
+    }
+  },
+  warn: (message: string, data?: any, context?: string) => {
+    try {
+      logger.warn(message, data, context);
+    } catch (error) {
+      console.warn(`[WARN] [${context || 'App'}] ${message}`, data || '');
+    }
+  },
+  error: (message: string, error?: Error | any, context?: string) => {
+    try {
+      logger.error(message, error, context);
+    } catch (err) {
+      console.error(`[ERROR] [${context || 'App'}] ${message}`, error || '');
+    }
+  },
   
-  // 效能監控
-  timeStart: (label: string) => logger.timeStart(label),
-  timeEnd: (label: string) => logger.timeEnd(label),
+  // 效能監控 (安全模式)
+  timeStart: (label: string) => {
+    try {
+      logger.timeStart(label);
+    } catch (error) {
+      console.time(label);
+    }
+  },
+  timeEnd: (label: string) => {
+    try {
+      logger.timeEnd(label);
+    } catch (error) {
+      console.timeEnd(label);
+    }
+  },
   
-  // 配置方法
-  setLevel: (level: LogLevel) => logger.setLevel(level),
-  setContext: (context: string) => logger.setContext(context),
+  // 配置方法 (安全模式)
+  setLevel: (level: LogLevel) => {
+    try {
+      logger.setLevel(level);
+    } catch (error) {
+      // Silent fail for React Native compatibility
+    }
+  },
+  setContext: (context: string) => {
+    try {
+      logger.setContext(context);
+    } catch (error) {
+      // Silent fail for React Native compatibility
+    }
+  },
   
-  // 查詢方法
-  getLogs: (count?: number) => logger.getLogs(count),
-  getLogsByLevel: (level: LogLevel, count?: number) => logger.getLogsByLevel(level, count),
-  clearLogs: () => logger.clearLogs(),
-  getStats: () => logger.getStats()
+  // 查詢方法 (安全模式)
+  getLogs: (count?: number) => {
+    try {
+      return logger.getLogs(count);
+    } catch (error) {
+      return [];
+    }
+  },
+  getLogsByLevel: (level: LogLevel, count?: number) => {
+    try {
+      return logger.getLogsByLevel(level, count);
+    } catch (error) {
+      return [];
+    }
+  },
+  clearLogs: () => {
+    try {
+      logger.clearLogs();
+    } catch (error) {
+      // Silent fail for React Native compatibility
+    }
+  },
+  getStats: () => {
+    try {
+      return logger.getStats();
+    } catch (error) {
+      return { total: 0, byLevel: {} };
+    }
+  }
 };
 
 // 向後兼容的全域方法 (用於逐步遷移)

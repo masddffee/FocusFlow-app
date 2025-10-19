@@ -15,7 +15,7 @@ class BatchProcessingService {
       'subtasks-generation': 5,  // 子任務生成批量大小
       'productivity-tips': 4,    // 生產力建議批量大小
       'learning-questions': 6,   // 學習問題批量大小
-      'personalization-questions': 3 // 個人化問題批量大小
+      'personalization-questions': 10 // 🔧 修復：增加批次大小，讓 AI 決定最適數量
     };
     
     this.batchTimeouts = {

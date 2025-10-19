@@ -1,0 +1,20 @@
+{
+  "summary": {
+    "totalTests": 0,
+    "passed": 0,
+    "failed": 0,
+    "duration": 0
+  },
+  "aiFixValidation": {
+    "timeEstimationFix": false,
+    "responseQualityFix": false,
+    "processingSpeedFix": false,
+    "noFallbackDependency": true
+  },
+  "detailedResults": [],
+  "performanceMetrics": {
+    "averageProcessingTime": null,
+    "averageResponseLength": 0,
+    "apiReliabilityRate": null
+  }
+}

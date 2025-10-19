@@ -27,7 +27,7 @@ const colors = {
 
 class MCPTestRunner {
   constructor() {
-    this.backendUrl = 'http://localhost:3000';
+    this.backendUrl = 'http://127.0.0.1:3000'; // 🔧 修復：使用 IPv4 地址
     this.testScript = path.join(__dirname, 'mcp-integration-test.js');
     this.resultDir = path.join(__dirname, '../test-results');
   }
@@ -73,7 +73,9 @@ class MCPTestRunner {
       return false;
     }
 
-    // Check environment variables
+    // Check environment variables - 加載父目錄的 .env 文件
+    require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+    
     const requiredEnvVars = ['GEMINI_API_KEY'];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
     
@@ -85,6 +87,7 @@ class MCPTestRunner {
       this.log('   Some tests may fail without proper API keys', 'yellow');
     } else {
       this.log('✅ Environment variables are set', 'green');
+      this.log(`   GEMINI_API_KEY: ${process.env.GEMINI_API_KEY.substring(0, 10)}...`, 'green');
     }
 
     // Ensure result directory exists
