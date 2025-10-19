@@ -36,6 +36,11 @@ jobs:
           echo "NODE_ENV=test" > .env.test
           echo "PLAYWRIGHT_TEST=true" >> .env.test
           
+      - name: Install backend dependencies
+        run: |
+          cd focusflow-backend
+          npm install --legacy-peer-deps
+          
       - name: Start backend server
         run: |
           npm run backend &
@@ -43,6 +48,7 @@ jobs:
           curl -f http://localhost:3000 || exit 1
         env:
           NODE_ENV: test
+          GEMINI_API_KEY: "test_key_for_ci"
           
       - name: Start frontend server
         run: |
