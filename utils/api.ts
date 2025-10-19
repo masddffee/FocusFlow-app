@@ -1,5 +1,6 @@
 import i18n from '../constants/i18n';
 import { getConfig } from '../config/appConfig';
+import { log } from '@/lib/logger';
 
 // API configuration - 使用統一配置系統
 const getApiBaseUrl = (): string => {
@@ -212,18 +213,18 @@ export async function submitJob(
   options: Record<string, any> = {}
 ): Promise<JobSubmissionResult> {
   try {
-    console.log(`🚀 [JOB-API] Submitting ${type} job...`);
+    log.info(`Submitting ${type} job`, { type, params }, 'JOB-API');
     
     const response = await apiRequest<JobSubmissionResult>('/jobs', {
       method: 'POST',
       body: { type, params, options }
     });
     
-    console.log(`✅ [JOB-API] Job submitted successfully: ${response.jobId}`);
+    log.info(`Job submitted successfully: ${response.jobId}`, { jobId: response.jobId }, 'JOB-API');
     return response;
     
   } catch (error) {
-    console.error(`❌ [JOB-API] Failed to submit ${type} job:`, error);
+    log.error(`Failed to submit ${type} job`, error, 'JOB-API');
     throw error;
   }
 }
@@ -239,7 +240,7 @@ export async function pollJobStatus(jobId: string): Promise<JobStatusResult> {
     return response;
     
   } catch (error) {
-    console.error(`❌ [JOB-API] Failed to poll job ${jobId}:`, error);
+    log.error(`Failed to poll job ${jobId}`, error, 'JOB-API');
     throw error;
   }
 }
@@ -251,17 +252,17 @@ export async function pollJobStatus(jobId: string): Promise<JobStatusResult> {
  */
 export async function cancelJob(jobId: string): Promise<{ success: boolean; message: string }> {
   try {
-    console.log(`🗑️ [JOB-API] Cancelling job: ${jobId}`);
+    log.info(`Cancelling job: ${jobId}`, { jobId }, 'JOB-API');
     
     const response = await apiRequest<{ success: boolean; message: string }>(`/jobs/${jobId}`, {
       method: 'DELETE'
     });
     
-    console.log(`✅ [JOB-API] Job cancellation result:`, response);
+    log.info('Job cancellation result', response, 'JOB-API');
     return response;
     
   } catch (error) {
-    console.error(`❌ [JOB-API] Failed to cancel job ${jobId}:`, error);
+    log.error(`Failed to cancel job ${jobId}`, error, 'JOB-API');
     throw error;
   }
 }
@@ -291,12 +292,12 @@ export async function pollUntilComplete(
       
       // 檢查是否完成
       if (status.status === JOB_STATUS.COMPLETED) {
-        console.log(`✅ [JOB-API] Job ${jobId} completed successfully`);
+        log.info(`Job ${jobId} completed successfully`, { jobId }, 'JOB-API');
         return status;
       }
       
       if (status.status === JOB_STATUS.FAILED) {
-        console.error(`❌ [JOB-API] Job ${jobId} failed:`, status.error);
+        log.error(`Job ${jobId} failed`, status.error, 'JOB-API');
         throw new ApiError(
           status.error?.message || 'Job failed',
           undefined,
@@ -314,7 +315,7 @@ export async function pollUntilComplete(
         throw error;
       }
       
-      console.warn(`⚠️ [JOB-API] Poll attempt ${pollCount + 1} failed for job ${jobId}:`, error);
+      log.warn(`Poll attempt ${pollCount + 1} failed for job ${jobId}`, error, 'JOB-API');
       
       // 如果是網路錯誤，等待後重試
       if (pollCount < maxPolls - 1) {
@@ -405,7 +406,7 @@ export async function getDynamicQuestions(
   description?: string, 
   language: "en" | "zh" = "en"
 ): Promise<any> {
-  console.warn('⚠️ getDynamicQuestions is deprecated. Use submitPersonalizationJob + pollUntilComplete instead.');
+  log.warn('getDynamicQuestions is deprecated. Use submitPersonalizationJob + pollUntilComplete instead.', undefined, 'API');
   
   const jobResult = await submitPersonalizationJob({ title, description, language });
   const finalResult = await pollUntilComplete(jobResult.jobId);
@@ -427,7 +428,7 @@ export async function generateEnhancedSubtasks(params: {
   targetProficiency?: string;
   language?: "en" | "zh";
 }): Promise<any> {
-  console.warn('⚠️ generateEnhancedSubtasks is deprecated. Use submitSubtaskGenerationJob + pollUntilComplete instead.');
+  log.warn('generateEnhancedSubtasks is deprecated. Use submitSubtaskGenerationJob + pollUntilComplete instead.', undefined, 'API');
   
   const jobResult = await submitSubtaskGenerationJob(params);
   const finalResult = await pollUntilComplete(jobResult.jobId);
@@ -500,7 +501,7 @@ export async function generateUnifiedLearningPlan(params: {
   targetProficiency?: string;
   clarificationResponses?: Record<string, string>;
 }): Promise<any> {
-  console.log('🚀 [API] Calling direct unified plan generation...');
+  log.info('Calling direct unified plan generation', { params }, 'API');
   
   try {
     const response = await apiRequest<any>('/generate-unified-plan', {
@@ -509,15 +510,15 @@ export async function generateUnifiedLearningPlan(params: {
       timeout: 30000 // 30秒超時，給 AI 足夠時間
     });
 
-    console.log('✅ [API] Direct generation successful:', {
+    log.info('Direct generation successful', {
       stage: response.stage,
       processingTime: response.processingTime,
       subtaskCount: response.subtasks?.length || 0
-    });
+    }, 'API');
 
     return response;
   } catch (error) {
-    console.error('❌ [API] Direct generation failed:', error);
+    log.error('Direct generation failed', error, 'API');
     throw error;
   }
 }
@@ -627,7 +628,7 @@ export async function estimateTaskDuration(
     
     return response.fallback || 60;
   } catch (error) {
-    console.error('Task duration estimation failed:', error);
+    log.error('Task duration estimation failed', error, 'API');
     return 60; // 默認 1 小時
   }
 }
@@ -652,7 +653,7 @@ export async function estimateSubtaskDuration(
     
     return response.fallback || 30;
   } catch (error) {
-    console.error('Subtask duration estimation failed:', error);
+    log.error('Subtask duration estimation failed', error, 'API');
     return 30; // 默認 30 分鐘
   }
 }
