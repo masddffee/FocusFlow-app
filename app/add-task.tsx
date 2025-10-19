@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { 
   StyleSheet, 
   Text, 
@@ -13,7 +13,7 @@ import {
   Modal
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Plus, Trash2, Save, Zap, Brain, HelpCircle, ArrowRight, Clock, Edit3, Lightbulb, MessageCircle, AlertCircle, BookOpen, ExternalLink, Calendar } from "lucide-react-native";
+import { Plus, Trash2, Save, Zap, Brain, HelpCircle, ArrowRight, Clock, Edit3, Lightbulb, AlertCircle, BookOpen, ExternalLink, Calendar } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
@@ -21,19 +21,16 @@ import Button from "@/components/Button";
 import DatePicker from "@/components/DatePicker";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
-import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel, LearningPhase } from "@/types/task";
+import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel } from "@/types/task";
 import { 
-  getDynamicQuestions,
   generateEnhancedSubtasks as backendGenerateSubtasks,
-  generatePlan,
   generateUnifiedLearningPlan,
-  convertUnifiedPlanToAppFormat,
-  evaluateInputQualitySafely,
   estimateTaskDuration,
   estimateSubtaskDuration
 } from "@/utils/api";
-import { findAvailableTimeSlot, scheduleSubtasks, convertSubtaskSchedulesToTasks } from "@/utils/scheduling";
+import { findAvailableTimeSlot, scheduleSubtasks, convertSubtaskSchedulesToTasks, analyzeSchedulingFeasibility, generateSchedulingSuggestions } from "@/utils/scheduling";
 import { calculateDaysUntil, getTimeConstraintLevel, getTimeConstraintMessage } from "@/utils/timeUtils";
+import { log } from "@/lib/logger";
 // Remove redundant import - now using getDynamicQuestions from API
 
 export default function AddTaskScreen() {
@@ -49,12 +46,11 @@ export default function AddTaskScreen() {
   const [subtasks, setSubtasks] = useState<EnhancedSubtask[]>([]);
   const [newSubtask, setNewSubtask] = useState("");
   const [autoSchedule, setAutoSchedule] = useState(true);
-  // 🔧 移除複雜的排程模式變數
-  const [showSchedulingOptions, setShowSchedulingOptions] = useState(false);
+  // 🔧 移除複雜的排程模式變數 - showSchedulingOptions removed as unused
   
   // Enhanced clarification workflow states
   const [showQualityAlert, setShowQualityAlert] = useState(false);
-  const [qualityIssues, setQualityIssues] = useState<string[]>([]);
+  const [qualityIssues] = useState<string[]>([]);
   const [showPersonalizationModal, setShowPersonalizationModal] = useState(false);
   const [clarifyingQuestions, setClarifyingQuestions] = useState<ClarifyingQuestion[]>([]);
   const [clarificationResponses, setClarificationResponses] = useState<Record<string, string>>({});
@@ -127,7 +123,7 @@ export default function AddTaskScreen() {
     setClarifyingQuestions([]);
     setClarificationResponses({});
     try {
-      console.log("🚀 Using unified learning plan generation...");
+      log.info("🚀 Using unified learning plan generation...");
       const currentLanguage = useSettingsStore.getState().language;
       // 第一次只請求個人化問題
       const unifiedResponse = await generateUnifiedLearningPlan({
@@ -173,7 +169,7 @@ export default function AddTaskScreen() {
         }
       }
     } catch (error) {
-      console.error("❌ Unified learning plan generation failed:", error);
+      log.error("❌ Unified learning plan generation failed:", error);
       Alert.alert("❌ 錯誤", "無法生成學習計劃。請檢查網路連接或稍後再試。");
     } finally {
       setIsAnalyzing(false);
@@ -209,7 +205,7 @@ export default function AddTaskScreen() {
       const finalTargetProficiency = targetProf ?? targetProficiency;
       
       // Calculate time constraint based on due date
-      const { availableDays, timeContext } = calculateTimeConstraint(dueDate);
+      const { availableDays } = calculateTimeConstraint(dueDate);
       
       // Generate enhanced subtasks with comprehensive context
       const currentLanguage = useSettingsStore.getState().language;
@@ -233,7 +229,7 @@ export default function AddTaskScreen() {
         Alert.alert("Error", "Could not generate subtasks. Please try again or add them manually.");
       }
     } catch (error) {
-      console.error("Generate subtasks error:", error);
+      log.error("Generate subtasks error:", error);
       Alert.alert("Error", "Failed to generate subtasks. Please try again later.");
     } finally {
       setIsGeneratingSubtasks(false);
@@ -318,7 +314,7 @@ export default function AddTaskScreen() {
         Alert.alert("Error", "Could not generate personalized subtasks. Please try again or add them manually.");
       }
     } catch (error) {
-      console.error("Personalization complete error:", error);
+      log.error("Personalization complete error:", error);
       Alert.alert("Error", "Failed to create personalized plan. Please try again later.");
     } finally {
       setIsGeneratingSubtasks(false);
@@ -393,7 +389,7 @@ export default function AddTaskScreen() {
       try {
         estimatedDuration = await estimateSubtaskDuration(newSubtask.trim(), difficulty as string);
       } catch (error) {
-        console.error("Failed to estimate subtask duration:", error);
+        log.error("Failed to estimate subtask duration:", error);
       }
 
       // 🔧 修復：計算安全的順序值，確保不會與現有子任務衝突
@@ -481,7 +477,7 @@ export default function AddTaskScreen() {
         try {
           totalDuration = await estimateTaskDuration(title, description, difficulty as string, subtasks);
         } catch (error) {
-          console.error("Duration estimation failed:", error);
+          log.error("Duration estimation failed:", error);
           totalDuration = 60; // Default to 1 hour
         }
       }
@@ -539,7 +535,7 @@ export default function AddTaskScreen() {
                 {
                   startDate: new Date(),
                   maxDaysToSearch: dueDate ? Math.max(30, calculateDaysUntil(dueDate)) : 90,
-                  bufferBetweenSubtasks: schedulingMode === 'strict' ? 3 : 5,
+                  bufferBetweenSubtasks: 5,
                   respectPhaseOrder: false,
                   dailyMaxHours: null,
                 }
@@ -589,8 +585,8 @@ export default function AddTaskScreen() {
               if (schedulingResult.success) {
                 // Convert subtask schedules to scheduled tasks and save them
                 const subtaskScheduledTasks = convertSubtaskSchedulesToTasks(
-                  newTaskId,
-                  schedulingResult.scheduledSubtasks
+                  schedulingResult.scheduledSubtasks,
+                  newTaskId
                 );
                 
                 // Add all scheduled subtasks
@@ -674,7 +670,7 @@ export default function AddTaskScreen() {
               }
             }
           } catch (schedulingError) {
-            console.error("Auto-scheduling error:", schedulingError);
+            log.error("Auto-scheduling error:", schedulingError);
             Alert.alert(
               "Task Created",
               `Task created successfully with estimated duration of ${totalDuration} minutes. Auto-scheduling failed, but you can schedule it manually from the tasks screen.`,
@@ -690,7 +686,7 @@ export default function AddTaskScreen() {
         }
       }
     } catch (error) {
-      console.error("Save task error:", error);
+      log.error("Save task error:", error);
       Alert.alert("Error", "Failed to save task. Please try again.");
     } finally {
       setIsEstimatingDuration(false);
@@ -1294,7 +1290,7 @@ export default function AddTaskScreen() {
           </View>
           
           <ScrollView style={styles.modalContent}>
-            {clarifyingQuestions.map((question, index) => (
+            {clarifyingQuestions.map((question) => (
               <View key={question.id} style={styles.questionContainer}>
                 <View style={styles.questionHeader}>
                   <HelpCircle size={16} color={Colors.light.primary} />

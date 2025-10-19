@@ -490,7 +490,7 @@ export function handleApiError(error: unknown, fallbackMessage?: string): string
   return fallbackMessage || i18n.t('errors.unknownError');
 }
 
-// 統一學習計劃生成（呼叫 Job API）
+// 🎯 統一學習計劃生成（簡化直接 API 調用）
 export async function generateUnifiedLearningPlan(params: {
   title: string;
   description?: string;
@@ -500,10 +500,26 @@ export async function generateUnifiedLearningPlan(params: {
   targetProficiency?: string;
   clarificationResponses?: Record<string, string>;
 }): Promise<any> {
-  // 這裡直接呼叫 submitLearningPlanJob，然後 pollUntilComplete
-  const jobResult = await submitLearningPlanJob(params);
-  const finalResult = await pollUntilComplete(jobResult.jobId);
-  return finalResult.result || finalResult; // 兼容不同後端格式
+  console.log('🚀 [API] Calling direct unified plan generation...');
+  
+  try {
+    const response = await apiRequest<any>('/generate-unified-plan', {
+      method: 'POST',
+      body: params,
+      timeout: 30000 // 30秒超時，給 AI 足夠時間
+    });
+
+    console.log('✅ [API] Direct generation successful:', {
+      stage: response.stage,
+      processingTime: response.processingTime,
+      subtaskCount: response.subtasks?.length || 0
+    });
+
+    return response;
+  } catch (error) {
+    console.error('❌ [API] Direct generation failed:', error);
+    throw error;
+  }
 }
 
 // 安全的輸入品質評估（可用 Job API 或 fallback）

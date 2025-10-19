@@ -1,6 +1,7 @@
 import { Task, EnhancedSubtask } from "@/types/task";
 import { TimeSlot, DayTimeSlots, ScheduledTask, CalendarEvent, DayOfWeek } from "@/types/timeSlot";
 import { calculateDaysUntil } from "@/utils/timeUtils";
+import { log } from "@/lib/logger";
 
 // 🔧 核心修復：簡化的排程選項
 interface SchedulingOptions {
@@ -23,6 +24,26 @@ export interface SchedulingResult {
   scheduledSubtasks: SubtaskSchedule[];
   unscheduledSubtasks: string[];
   message: string;
+  totalScheduledMinutes?: number;
+  completionDate?: string;
+}
+
+// 🆕 新增：排程可行性分析介面
+export interface SchedulingFeasibilityAnalysis {
+  isFeasible: boolean;
+  totalRequiredMinutes: number;
+  totalAvailableMinutes: number;
+  conflictingSubtasks: string[];
+  suggestedAdjustments: string[];
+  feasibilityScore: number; // 0-1 分數
+}
+
+// 🆕 新增：排程建議介面
+export interface SchedulingSuggestions {
+  shouldProceed: boolean;
+  userMessage: string;
+  alternatives: string[];
+  riskLevel: 'low' | 'medium' | 'high';
 }
 
 export function timeToMinutes(time: string): number {
@@ -30,7 +51,7 @@ export function timeToMinutes(time: string): number {
     const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   } catch (error) {
-    console.error("Time to minutes error:", error);
+    log.error("Time to minutes error:", error);
     return 0;
   }
 }
@@ -41,7 +62,7 @@ export function minutesToTime(minutes: number): string {
     const mins = minutes % 60;
     return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
   } catch (error) {
-    console.error("Minutes to time error:", error);
+    log.error("Minutes to time error:", error);
     return "00:00";
   }
 }
@@ -51,7 +72,7 @@ export function getDayOfWeek(date: Date): DayOfWeek {
     const days: DayOfWeek[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     return days[date.getDay()];
   } catch (error) {
-    console.error("Get day of week error:", error);
+    log.error("Get day of week error:", error);
     return "monday";
   }
 }
@@ -60,7 +81,7 @@ export function getDateString(date: Date): string {
   try {
     return date.toISOString().split("T")[0];
   } catch (error) {
-    console.error("Get date string error:", error);
+    log.error("Get date string error:", error);
     return new Date().toISOString().split("T")[0];
   }
 }
@@ -71,7 +92,7 @@ export function addDays(date: Date, days: number): Date {
     result.setDate(result.getDate() + days);
     return result;
   } catch (error) {
-    console.error("Add days error:", error);
+    log.error("Add days error:", error);
     return new Date();
   }
 }
@@ -206,7 +227,7 @@ export function scheduleSubtasks(
     };
 
   } catch (error) {
-    console.error("Schedule subtasks error:", error);
+    log.error("Schedule subtasks error:", error);
     return {
       success: false,
       scheduledSubtasks: [],
@@ -299,7 +320,7 @@ export function findAvailableTimeSlot(
 
     return null;
   } catch (error) {
-    console.error("Find available time slot error:", error);
+    log.error("Find available time slot error:", error);
     return null;
   }
 }
@@ -331,7 +352,7 @@ export function calculateTaskPriority(task: Task): number {
     
     return priority;
   } catch (error) {
-    console.error("Calculate task priority error:", error);
+    log.error("Calculate task priority error:", error);
     return 0;
   }
 }
@@ -372,7 +393,7 @@ export function scheduleMultipleTasks(
     
     return newScheduledTasks;
   } catch (error) {
-    console.error("Schedule multiple tasks error:", error);
+    log.error("Schedule multiple tasks error:", error);
     return [];
   }
 }
@@ -428,7 +449,178 @@ export function rescheduleConflictingTasks(
     
     return [...nonConflictingTasks, ...rescheduledTasks];
   } catch (error) {
-    console.error("Reschedule conflicting tasks error:", error);
+    log.error("Reschedule conflicting tasks error:", error);
     return scheduledTasks;
+  }
+}
+
+// 🆕 新增：排程可行性分析函數
+export function analyzeSchedulingFeasibility(
+  task: Task,
+  availableTimeSlots: DayTimeSlots,
+  existingScheduledTasks: ScheduledTask[],
+  calendarEvents: CalendarEvent[],
+  options: {
+    startDate: Date;
+    maxDaysToSearch: number;
+    bufferBetweenSubtasks?: number;
+    respectPhaseOrder?: boolean;
+    dailyMaxHours?: number | null;
+  }
+): SchedulingFeasibilityAnalysis {
+  try {
+    const { startDate, maxDaysToSearch, bufferBetweenSubtasks = 5, dailyMaxHours } = options;
+    const subtasks = task.subtasks || [];
+    
+    // 計算總需求時間
+    const totalRequiredMinutes = subtasks.reduce((total, subtask) => {
+      return total + getSubtaskDuration(subtask);
+    }, 0);
+    
+    // 計算總可用時間
+    let totalAvailableMinutes = 0;
+    for (let dayOffset = 0; dayOffset < maxDaysToSearch; dayOffset++) {
+      const targetDate = addDays(startDate, dayOffset);
+      const dayOfWeek = getDayOfWeek(targetDate);
+      const daySlots = availableTimeSlots[dayOfWeek] || [];
+      
+      for (const slot of daySlots) {
+        const slotDuration = timeToMinutes(slot.end) - timeToMinutes(slot.start);
+        totalAvailableMinutes += slotDuration;
+      }
+      
+      // 如果有每日最大小時限制
+      if (dailyMaxHours) {
+        const maxDailyMinutes = dailyMaxHours * 60;
+        const dayTotal = daySlots.reduce((total, slot) => {
+          return total + (timeToMinutes(slot.end) - timeToMinutes(slot.start));
+        }, 0);
+        if (dayTotal > maxDailyMinutes) {
+          totalAvailableMinutes -= (dayTotal - maxDailyMinutes);
+        }
+      }
+    }
+    
+    // 分析衝突子任務
+    const conflictingSubtasks: string[] = [];
+    const suggestedAdjustments: string[] = [];
+    
+    // 基本可行性檢查
+    const basicFeasibility = totalAvailableMinutes >= totalRequiredMinutes;
+    
+    if (!basicFeasibility) {
+      const shortfallHours = Math.ceil((totalRequiredMinutes - totalAvailableMinutes) / 60);
+      suggestedAdjustments.push(`需要額外 ${shortfallHours} 小時的可用時間`);
+      suggestedAdjustments.push('考慮延長截止日期');
+      suggestedAdjustments.push('減少子任務數量或縮短時長');
+    }
+    
+    // 計算可行性分數
+    const feasibilityScore = Math.min(1, totalAvailableMinutes / totalRequiredMinutes);
+    
+    // 進階分析：模擬實際排程
+    const mockSchedulingResult = scheduleSubtasks(
+      subtasks,
+      availableTimeSlots,
+      existingScheduledTasks,
+      calendarEvents,
+      { startDate, maxDaysToSearch }
+    );
+    
+    const isFeasible = mockSchedulingResult.success && feasibilityScore >= 0.8;
+    
+    if (!isFeasible) {
+      conflictingSubtasks.push(...mockSchedulingResult.unscheduledSubtasks);
+      
+      if (mockSchedulingResult.unscheduledSubtasks.length > 0) {
+        suggestedAdjustments.push('增加每日可用學習時間');
+        suggestedAdjustments.push('調整時間槽設定');
+      }
+    }
+    
+    return {
+      isFeasible,
+      totalRequiredMinutes,
+      totalAvailableMinutes,
+      conflictingSubtasks,
+      suggestedAdjustments,
+      feasibilityScore
+    };
+    
+  } catch (error) {
+    log.error("Analyze scheduling feasibility error:", error);
+    return {
+      isFeasible: false,
+      totalRequiredMinutes: 0,
+      totalAvailableMinutes: 0,
+      conflictingSubtasks: [],
+      suggestedAdjustments: ['系統分析錯誤，請稍後重試'],
+      feasibilityScore: 0
+    };
+  }
+}
+
+// 🆕 新增：生成排程建議函數
+export function generateSchedulingSuggestions(
+  analysis: SchedulingFeasibilityAnalysis,
+  task: Task
+): SchedulingSuggestions {
+  try {
+    const { isFeasible, feasibilityScore, totalRequiredMinutes, totalAvailableMinutes, suggestedAdjustments } = analysis;
+    
+    let shouldProceed = true;
+    let userMessage = '';
+    let alternatives: string[] = [];
+    let riskLevel: 'low' | 'medium' | 'high' = 'low';
+    
+    if (!isFeasible) {
+      shouldProceed = false;
+      riskLevel = 'high';
+      
+      const requiredHours = Math.ceil(totalRequiredMinutes / 60);
+      const availableHours = Math.floor(totalAvailableMinutes / 60);
+      
+      userMessage = `無法完全排程此任務。需要 ${requiredHours} 小時，但只有 ${availableHours} 小時可用。\n\n建議調整：\n${suggestedAdjustments.map(adj => `• ${adj}`).join('\n')}`;
+      
+      alternatives = [
+        '延長任務截止日期',
+        '增加每日可用時間',
+        '將任務拆分為較小部分',
+        '調整子任務時長估計',
+        '暫時跳過部分子任務'
+      ];
+      
+    } else if (feasibilityScore < 0.9) {
+      riskLevel = 'medium';
+      
+      userMessage = `排程略顯緊湊（${Math.round(feasibilityScore * 100)}% 可行性）。建議調整以獲得更好的排程彈性。\n\n${suggestedAdjustments.length > 0 ? '建議：\n' + suggestedAdjustments.map(adj => `• ${adj}`).join('\n') : ''}`;
+      
+      alternatives = [
+        '稍微延長截止日期以增加彈性',
+        '適度增加每日學習時間',
+        '預留緩衝時間應對意外狀況'
+      ];
+      
+    } else {
+      riskLevel = 'low';
+      userMessage = `排程可行性良好（${Math.round(feasibilityScore * 100)}%）。系統將自動為您安排最佳時間。`;
+      alternatives = [];
+    }
+    
+    return {
+      shouldProceed,
+      userMessage,
+      alternatives,
+      riskLevel
+    };
+    
+  } catch (error) {
+    log.error("Generate scheduling suggestions error:", error);
+    return {
+      shouldProceed: false,
+      userMessage: '無法分析排程建議，請稍後重試。',
+      alternatives: [],
+      riskLevel: 'high'
+    };
   }
 }

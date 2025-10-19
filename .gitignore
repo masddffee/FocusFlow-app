@@ -30,6 +30,10 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.local
+.env.production
+.env.staging
 .env*.local
 
 # typescript
@@ -71,6 +75,10 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.local
+.env.production
+.env.staging
 .env*.local
 
 # typescript

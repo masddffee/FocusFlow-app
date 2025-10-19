@@ -269,6 +269,137 @@ router.post('/generate-plan', async (req, res) => {
 });
 
 // ==========================================
+// 🆕 簡化的直接 API 端點（無需 JobQueue）
+// ==========================================
+
+/**
+ * 🎯 直接生成統一學習計劃 - 簡單同步實現
+ * 替代複雜的 JobQueue 系統，直接返回結果
+ */
+router.post('/generate-unified-plan', async (req, res) => {
+  const startTime = Date.now();
+  const { 
+    title, 
+    description = '', 
+    language = 'zh',
+    taskType = 'skill_learning',
+    currentProficiency = 'beginner',
+    targetProficiency = 'intermediate',
+    clarificationResponses = {}
+  } = req.body;
+
+  // 基本驗證
+  if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Task title is required',
+      code: 'MISSING_TITLE'
+    });
+  }
+
+  try {
+    logger.info(`🚀 [UNIFIED-PLAN] Starting direct generation for: ${title}`);
+
+    // 決定是否需要個人化問題
+    const needsPersonalization = !clarificationResponses || Object.keys(clarificationResponses).length === 0;
+    
+    if (needsPersonalization) {
+      // 第一階段：生成個人化問題
+      logger.info('🔍 [UNIFIED-PLAN] Generating personalization questions...');
+      
+      const personalizationPrompt = constructDiagnosticPrompt({
+        title,
+        description,
+        language,
+        taskType,
+        currentProficiency,
+        targetProficiency
+      });
+
+      const questionResponse = await geminiService.callGeminiStructured(
+        personalizationPrompt.systemMessage,
+        personalizationPrompt.userMessage,
+        {
+          schemaType: 'personalizationQuestions',
+          maxTokens: 1500,
+          temperature: 0.2,
+          model: aiConfig.defaultModel
+        }
+      );
+
+      if (questionResponse && questionResponse.questions && questionResponse.questions.length > 0) {
+        logger.info(`✅ [UNIFIED-PLAN] Generated ${questionResponse.questions.length} personalization questions`);
+        return res.status(200).json({
+          success: true,
+          stage: 'personalization',
+          personalizationQuestions: questionResponse.questions,
+          processingTime: Date.now() - startTime
+        });
+      }
+    }
+
+    // 第二階段：生成完整學習計劃和子任務
+    logger.info('🎓 [UNIFIED-PLAN] Generating complete learning plan...');
+    
+    const learningPlanPrompt = constructUltimateLearningPlanPrompt({
+      title,
+      description,
+      language,
+      taskType,
+      currentProficiency,
+      targetProficiency,
+      clarificationResponses
+    });
+
+    const planResponse = await geminiService.callGeminiStructured(
+      learningPlanPrompt.systemMessage,
+      learningPlanPrompt.userMessage,
+      {
+        schemaType: 'ultimateLearningPlan',
+        maxTokens: 4000,
+        temperature: 0.1,
+        model: aiConfig.defaultModel
+      }
+    );
+
+    if (planResponse && planResponse.learningPlan && planResponse.subtasks) {
+      logger.info(`✅ [UNIFIED-PLAN] Generated plan with ${planResponse.subtasks.length} subtasks`);
+      
+      // 添加處理時間和成功指標
+      const response = {
+        success: true,
+        stage: 'complete',
+        learningPlan: planResponse.learningPlan,
+        subtasks: planResponse.subtasks,
+        processingTime: Date.now() - startTime,
+        metadata: {
+          taskType,
+          subtaskCount: planResponse.subtasks.length,
+          proficiencyProgression: `${currentProficiency} → ${targetProficiency}`,
+          language
+        }
+      };
+
+      return res.status(200).json(response);
+    } else {
+      throw new Error('AI 未能生成有效的學習計劃結構');
+    }
+
+  } catch (error) {
+    logger.error('[UNIFIED-PLAN] Generation failed:', error.message);
+    
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate learning plan',
+      message: error.message || 'AI service encountered an error',
+      code: 'GENERATION_FAILED',
+      processingTime: Date.now() - startTime,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// ==========================================
 // 🆕 學習問題生成端點
 // ==========================================
 router.post('/generate-learning-questions', async (req, res) => {
