@@ -274,19 +274,6 @@ NODE_ENV=development
 
 此專案採用 MIT 授權條款 - 詳見 [LICENSE](LICENSE) 檔案
 
-## 🙏 致謝
-
-- **Google Gemini** - 提供強大的 AI 能力
-- **Expo** - 優秀的 React Native 開發框架
-- **React Native 社群** - 豐富的組件與工具
-- **所有貢獻者** - 感謝每一位參與開發的開發者
-
-## 📞 聯絡方式
-
-- **專案主頁**: [GitHub Repository](https://github.com/your-username/FocusFlow)
-- **問題回報**: [GitHub Issues](https://github.com/your-username/FocusFlow/issues)
-- **功能建議**: [GitHub Discussions](https://github.com/your-username/FocusFlow/discussions)
-
 ---
 
 **讓學習更智慧，讓專注更有效 - FocusFlow 陪伴您的每一步成長之路** 🌱
