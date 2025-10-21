@@ -272,7 +272,7 @@ NODE_ENV=development
 
 ## 📄 授權
 
-此專案採用 MIT 授權條款 - 詳見 [LICENSE](LICENSE) 檔案
+此專案採用 MIT 授權條款
 
 ---
 
