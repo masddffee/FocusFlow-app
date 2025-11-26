@@ -1,0 +1,241 @@
+flowchart TD
+
+%% =======================================================
+%% 0. 全局樣式定義 (System Architecture Design System)
+%% =======================================================
+classDef default font-family:'Arial',font-size:14px;
+%% 泳道標題 (Lane Headers)
+classDef laneTitle fill:#37474F,stroke:#263238,stroke-width:0px,color:#FFFFFF,font-size:16px,font-weight:bold;
+
+%% 節點樣式 (Node Styles)
+%% User: 暖色系，代表人類意圖
+classDef userStep fill:#FFF3E0,stroke:#EF6C00,stroke-width:2px,color:#E65100,rx:5,ry:5;
+
+%% UI: 冷色系，代表前端介面
+classDef uiStep fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1,rx:5,ry:5;
+
+%% Backend: 綠色系，代表邏輯運算
+classDef beStep fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20,rx:2,ry:2;
+
+%% Database: 深灰色，圓柱體
+classDef dbNode fill:#CFD8DC,stroke:#455A64,stroke-width:3px,color:#263238,shape:cylinder;
+
+%% Decision: 黃色系，菱形
+classDef decision fill:#FFFDE7,stroke:#FBC02D,stroke-width:2px,color:#F57F17,shape:diamond;
+
+%% Start/End
+classDef terminator fill:#212121,stroke:#000000,color:#fff,rx:10,ry:10;
+
+
+%% =======================================================
+%% 流程一：建立新學習計畫 (Smart Diagnosis Flow)
+%% =======================================================
+subgraph FLOW1 ["📘 <b>Scenario 1: 建立新學習計畫 (Smart Diagnosis & Scheduling)</b>"]
+    direction TB
+    
+    subgraph U_Lane1 ["👤 使用者旅程"]
+        direction TB
+        U1("U1: 想要系統化學習<br/>或準備考試")
+        U2("U2: 決定建立新任務")
+        U3("U3: 閱讀 AI 診斷結果<br/>與學習計畫")
+        U4{"U4: 接受計畫？"}
+        U5("U5: 微調計畫<br/>(刪改/調整時間)")
+        U6("U6: 確認開始")
+    end
+
+    subgraph UI_Lane1 ["📱 前端 UI (App)"]
+        direction TB
+        F1("F1: Home<br/>按『＋ 建立學習任務』")
+        F2("F2: Step1 輸入<br/>標題 / 類型 / 截止日")
+        F3("F3: 按『下一步』<br/>啟動 AI 問答")
+        F4("F4: Step2 顯示<br/>診斷問題 Q(n)")
+        F5("F5: 填答並送出")
+        F6("F6: 更新畫面<br/>下一題 or 完成")
+        F7("F7: Step3 顯示摘要<br/>難度 / 總時數")
+        F8("F8: 設定偏好<br/>優先級 / Auto-Schedule")
+        F9("F9: 按『⚡ 生成計畫』")
+        F10("F10: Task Detail<br/>Modules / Subtasks / 進度")
+    end
+    subgraph BE_Lane1 ["🔧 後端 (Intelligence Engine)"]
+        direction TB
+        subgraph BE_Diag ["🧠 Smart Diagnosis"]
+            B1[["B1: POST /tasks/diagnosis<br/>接收輸入 & 回答"]]
+            B2[["B2: 分析資訊缺口<br/>(Goal & Background)"]]
+            B3{"B3: 資訊<br/>足夠？"}
+            B4[["B4: 生成下一題<br/>(Question + Type)"]]
+            B5[["B5: 計算最終結果<br/>難度 / 深度 / 時數"]]
+        end
+
+        subgraph BE_Plan ["⚙️ Plan Generation"]
+            B6[["B6: StudyPlan 模組<br/>拆解 Modules / Milestones"]]
+            B7[["B7: Subtask Generator<br/>產生詳細子任務屬性"]]
+        end
+
+        subgraph BE_Sched ["📅 Storage & Scheduling"]
+            B8[["B8: 寫入 TaskDB"]]
+            B9{"B9: 開啟<br/>Auto-Sched?"}
+            B10[["B10: 讀取 UserProfile<br/>(可用時間)"]]
+            B11[["B11: 讀取 ScheduleDB<br/>(衝突檢測)"]]
+            B12[["B12: 分配 CalendarBlocks"]]
+            B13[["B13: Call Calendar Sync API"]]
+            B14[["B14: 回傳完整 Payload<br/>(Task + Schedule)"]]
+        end
+    end
+
+    %% 連線邏輯
+    U1 --> U2 --> F1 --> F2 --> F3
+    F3 --> B1 --> B2 --> B3
+    B3 -->|No: 追問| B4 --> F4 --> F5 --> B1
+    B3 -->|Yes: 完成| B5 --> F7
+    F5 --> F6 --> F4
+    F7 --> F8 --> F9 --> B6 --> B7 --> B8
+    
+    B8 --> B9
+    B9 -->|No| B14
+    B9 -->|Yes| B10 --> B11 --> B12 --> B14
+    B12 --> B13
+    
+    B14 --> F10 --> U3
+    U3 --> U4
+    U4 -->|No| U5 --> F10
+    U4 -->|Yes| U6 --> F10
+end
+
+
+%% =======================================================
+%% 流程二：執行子任務 (Execution Flow)
+%% =======================================================
+subgraph FLOW2 ["▶️ <b>Scenario 2: 執行與專注 (Execution & Tracking)</b>"]
+    direction TB
+
+    subgraph U_Lane2 ["👤 使用者"]
+        U2_1("U1: 想開始學習")
+        U2_2("U2: 選擇子任務")
+        U2_3("U3: 進入專注狀態")
+        U2_4("U4: 專注回顧<br/>(完成度/難度)")
+        U2_5{"U5: 繼續<br/>下一個？"}
+        U2_6("U6: 休息/結束")
+    end
+
+    subgraph UI_Lane2 ["📱 前端 UI"]
+        F2_1("F1: Home 推薦<br/>『下一步建議』")
+        F2_2("F2: Task Detail")
+        F2_3("F3: 點選子任務")
+        F2_4("F4: 按『開始專注』")
+        F2_5("F5: 計時器運作<br/>(倒數/暫停)")
+        F2_6("F6: 分心監控<br/>(Foreground Check)")
+        F2_7{"F7: 白名單<br/>App？"}
+        F2_8("F8: Block UI / 提醒")
+        F2_9("F9: 結束畫面")
+        F2_10("F10: 回顧表單")
+        F2_11("F11: 更新進度條")
+    end
+
+    subgraph BE_Lane2 ["🔧 後端 (Focus Engine)"]
+        B2_1[["B1: POST /focus/start"]]
+        B2_2[["B2: Create Session"]]
+        B2_3[["B3: POST /focus/distraction"]]
+        B2_4[["B4: Log Distraction"]]
+        B2_5[["B5: POST /focus/end"]]
+        B2_6[["B6: Update Session Status"]]
+        B2_7[["B7: Update Subtask Progress"]]
+        B2_8{"B8: 完全<br/>完成？"}
+        B2_9[["B9: 觸發重排程訊號"]]
+        B2_10[["B10: Reschedule Remaining"]]
+    end
+
+    %% 連線邏輯
+    U2_1 --> F2_1 --> F2_2 --> F2_3 --> U2_2
+    F2_3 --> F2_4 --> U2_3
+    
+    F2_4 --> B2_1 --> B2_2 --> F2_5
+    
+    F2_5 --> F2_6 --> F2_7
+    F2_7 -->|Yes| F2_5
+    F2_7 -->|No| F2_8 --> F2_5
+    F2_6 -->|Alert| B2_3 --> B2_4
+    
+    F2_5 --> F2_9 --> F2_10 --> U2_4
+    F2_10 --> B2_5 --> B2_6 --> B2_7 --> B2_8
+    B2_8 -->|Partial| B2_9 --> B2_10
+    B2_7 --> F2_11 --> U2_5
+    
+    U2_5 -->|Yes| F2_2
+    U2_5 -->|No| U2_6
+end
+
+%% =======================================================
+%% 流程三：回顧與調整 (Review Flow)
+%% =======================================================
+subgraph FLOW3 ["📈 <b>Scenario 3: 回顧與策略調整 (Review & Re-strategy)</b>"]
+    direction TB
+    subgraph U_Lane3 ["👤 使用者"]
+        U3_1("U1: 想確認進步狀況")
+        U3_2("U2: 打開 Statistics")
+        U3_3("U3: 閱讀圖表與建議")
+        U3_4{"U4: 調整<br/>策略？"}
+        U3_5("U5: 調整偏好設定")
+        U3_6("U6: 回到 Home 繼續")
+    end
+
+    subgraph UI_Lane3 ["📱 前端 UI"]
+        F3_1("F1: Statistics 頁面")
+        F3_2("F2: 請求 Stats & Tips")
+        F3_3("F3: 顯示儀表板<br/>(Streak/Completion)")
+        F3_4("F4: Profile/Settings")
+        F3_5("F5: 修改參數<br/>(時間/自動排程)")
+        F3_6("F6: 儲存設定")
+    end
+
+    subgraph BE_Lane3 ["🔧 後端 (Analytics)"]
+        B3_1[["B1: GET /stats/summary"]]
+        B3_2[["B2: Aggregate Data<br/>(Sessions/Tasks)"]]
+        B3_3[["B3: Calc Metrics"]]
+        B3_4[["B4: Gen Natural Lang Summary"]]
+        B3_5[["B5: Gen Productivity Tip"]]
+        B3_6[["B6: Return Stats payload"]]
+        
+        B3_7[["B7: POST /user/settings"]]
+        B3_8[["B8: Update Profile"]]
+        B3_9{"B9: 影響<br/>排程？"}
+        B3_10[["B10: Fetch Pending Tasks"]]
+        B3_11[["B11: Recalculate CalendarBlocks"]]
+    end
+
+    %% 連線邏輯
+    U3_1 --> U3_2 --> F3_1 --> F3_2 --> B3_1
+    B3_1 --> B3_2 --> B3_3 --> B3_4 --> B3_5 --> B3_6 --> F3_3 --> U3_3
+    
+    U3_3 --> U3_4
+    U3_4 -->|No| U3_6
+    U3_4 -->|Yes| U3_5 --> F3_4 --> F3_5 --> F3_6 --> B3_7
+    
+    B3_7 --> B3_8 --> B3_9
+    B3_9 -->|No| F3_1
+    B3_9 -->|Yes| B3_10 --> B3_11
+    B3_11 --> U3_6
+end
+
+%% 資料庫節點 (Shared Data Layer)
+subgraph DataLayer ["📊 Shared Data Layer"]
+    D1[("TaskDB")]
+    D2[("UserDB")]
+    D3[("ScheduleDB")]
+    D4[("FocusDB")]
+    D5[("CalendarAPI")]
+end
+
+%% 連結資料庫
+B8 & B2_7 & B3_10 & B3_2 --> D1
+B10 & B3_8 & B2_2 --> D2
+B11 & B12 & B3_11 & B2_10 --> D3
+B2_2 & B2_4 & B2_6 & B3_2 --> D4
+B13 --> D5
+
+%% 樣式套用
+class U1,U2,U3,U4,U5,U6,U2_1,U2_2,U2_3,U2_4,U2_5,U2_6,U3_1,U3_2,U3_3,U3_4,U3_5,U3_6 userStep
+class F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F2_1,F2_2,F2_3,F2_4,F2_5,F2_6,F2_7,F2_8,F2_9,F2_10,F2_11,F3_1,F3_2,F3_3,F3_4,F3_5,F3_6 uiStep
+class B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,B12,B13,B14,B2_1,B2_2,B2_3,B2_4,B2_5,B2_6,B2_7,B2_8,B2_9,B2_10,B3_1,B3_2,B3_3,B3_4,B3_5,B3_6,B3_7,B3_8,B3_9,B3_10,B3_11 beStep
+class D1,D2,D3,D4,D5 dbNode
+class U4,B3,B9,U2_5,F2_7,B2_8,U3_4,B3_9 decision
+class U_Lane1,UI_Lane1,BE_Lane1,BE_Diag,BE_Plan,BE_Sched,U_Lane2,UI_Lane2,BE_Lane2,U_Lane3,UI_Lane3,BE_Lane3 laneTitle

@@ -85,3 +85,12 @@ yarn-error.*
 *.tsbuildinfo
 
 # @end expo-cli
+
+# Testing
+test-results/
+playwright-report/
+coverage/
+
+# IDE
+.vscode/
+.idea/

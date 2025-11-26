@@ -11,7 +11,10 @@
     "start:tunnel": "expo start --tunnel",
     "backend": "cd focusflow-backend && node index.js",
     "dev": "concurrently \"npm run backend\" \"npm run start\"",
-    "dev:web": "concurrently \"npm run backend\" \"npm run web\""
+    "dev:web": "concurrently \"npm run backend\" \"npm run web\"",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
@@ -55,6 +58,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo/ngrok": "^4.1.0",
+    "@playwright/test": "^1.54.1",
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.73.0",
     "concurrently": "^9.2.0",

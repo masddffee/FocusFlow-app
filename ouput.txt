@@ -1,0 +1,137 @@
+.
+├── app
+│   ├── _layout.tsx
+│   ├── (tabs)
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx
+│   │   ├── profile.tsx
+│   │   ├── stats.tsx
+│   │   └── tasks.tsx
+│   ├── +not-found.tsx
+│   ├── add-task.tsx
+│   ├── focus.tsx
+│   ├── learning-feedback.tsx
+│   ├── modal.tsx
+│   ├── onboarding.tsx
+│   └── task-detail.tsx
+├── app.json
+├── App.tsx
+├── assets
+│   └── images
+│       ├── adaptive-icon.png
+│       ├── favicon.png
+│       ├── icon.png
+│       └── splash-icon.png
+├── babel.config.js
+├── bun.lock
+├── CLAUDE.md
+├── components
+│   ├── Button.tsx
+│   ├── CompanionView.tsx
+│   ├── DatePicker.tsx
+│   ├── ErrorBoundary.tsx
+│   ├── FocusTimer.tsx
+│   ├── LoadingScreen.tsx
+│   ├── OnboardingStep.tsx
+│   ├── PerformanceMonitor.tsx
+│   ├── ProgressChart.tsx
+│   ├── ReflectionModal.tsx
+│   ├── ScheduleItem.tsx
+│   ├── SubtaskDateTimeExtender.tsx
+│   ├── task-creation
+│   │   ├── LearningPlanModal.tsx
+│   │   ├── PersonalizationModal.tsx
+│   │   ├── QualityAlert.tsx
+│   │   ├── SchedulingOptions.tsx
+│   │   ├── SubtaskDisplay.tsx
+│   │   ├── SubtaskManager.tsx
+│   │   ├── TaskBasicForm.tsx
+│   │   └── TaskSettings.tsx
+│   ├── TaskItem.tsx
+│   ├── TimeSlotPicker.tsx
+│   ├── WebCompatibleIcons.tsx
+│   ├── WeekCalendar.tsx
+│   └── WheelTimePicker.tsx
+├── config
+│   └── appConfig.ts
+├── constants
+│   ├── colors.ts
+│   ├── i18n.ts
+│   └── theme.ts
+├── expo-env.d.ts
+├── focusflow-backend
+│   ├── cache
+│   ├── config
+│   │   └── serverConfig.js
+│   ├── index.js
+│   ├── lib
+│   │   ├── prompts
+│   │   │   ├── main_prompt.js
+│   │   │   └── personalization_prompt.js
+│   │   └── services
+│   │       ├── batchProcessingService.js
+│   │       ├── cacheService.js
+│   │       ├── compressionService.js
+│   │       ├── costMonitoringService.js
+│   │       ├── geminiService.js
+│   │       └── schemaFactory.js
+│   ├── monitoring
+│   │   └── tracking-data.json
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── routes
+│   │   └── ai_router.js
+│   └── tsconfig.json
+├── hooks
+│   ├── useTaskCreation.ts
+│   └── useTaskGeneration.ts
+├── index.js
+├── lib
+│   ├── errors
+│   │   └── errorHandler.ts
+│   └── logger.ts
+├── metro.config.js
+├── ouput.txt
+├── package-lock.json
+├── package.json
+├── playwright-report
+│   ├── data
+│   │   ├── 00719b4001c17a2928680fc3a1381ad594c12e97.png
+│   │   └── e9a672d6408e4bc509e7140b3d57671ec8539abf.md
+│   └── index.html
+├── playwright.config.ts
+├── README.md
+├── store
+│   ├── settingsStore.ts
+│   ├── statsStore.ts
+│   ├── taskStore.ts
+│   └── timerStore.ts
+├── test-results
+│   └── quick-health-check-應用健康檢查-基本頁面互動-chromium
+│       ├── error-context.md
+│       └── test-failed-1.png
+├── tests
+│   ├── ai-functionality.spec.ts
+│   ├── basic-functionality.spec.ts
+│   ├── navigation.spec.ts
+│   ├── quick-health-check.spec.ts
+│   └── task-creation.spec.ts
+├── tsconfig.json
+├── types
+│   ├── task.ts
+│   └── timeSlot.ts
+└── utils
+    ├── ai.ts
+    ├── api.ts
+    ├── appRestart.ts
+    ├── intelligentReschedule.ts
+    ├── permissions.ts
+    ├── scheduling-types.ts
+    ├── scheduling-utils.ts
+    ├── scheduling.ts
+    ├── spacedRepetition.ts
+    ├── subtaskExtension.ts
+    ├── subtaskProgress.ts
+    └── timeUtils.ts
+
+28 directories, 107 files
