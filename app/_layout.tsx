@@ -4,6 +4,8 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "@/constants/i18n";
+import { log } from "@/lib/logger";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -19,7 +21,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (error) {
-      console.error(error);
+      log.error('Font loading error', error, 'LAYOUT');
       throw error;
     }
   }, [error]);
@@ -39,27 +41,29 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   return (
-    <Stack
-      screenOptions={{
-        headerBackTitle: "Back",
-        headerStyle: {
-          backgroundColor: "#FFFFFF",
-        },
-        headerShadowVisible: false,
-        headerTitleStyle: {
-          fontWeight: "600",
-        },
-        contentStyle: {
-          backgroundColor: "#FFFFFF",
-        },
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-      <Stack.Screen name="add-task" options={{ presentation: "card" }} />
-      <Stack.Screen name="task-detail" options={{ presentation: "card" }} />
-      <Stack.Screen name="focus" options={{ presentation: "fullScreenModal" }} />
-      <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-    </Stack>
+    <ErrorBoundary>
+      <Stack
+        screenOptions={{
+          headerBackTitle: "Back",
+          headerStyle: {
+            backgroundColor: "#FFFFFF",
+          },
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontWeight: "600",
+          },
+          contentStyle: {
+            backgroundColor: "#FFFFFF",
+          },
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="add-task" options={{ presentation: "card" }} />
+        <Stack.Screen name="task-detail" options={{ presentation: "card" }} />
+        <Stack.Screen name="focus" options={{ presentation: "fullScreenModal" }} />
+        <Stack.Screen name="learning-feedback" options={{ presentation: "card" }} />
+      </Stack>
+    </ErrorBoundary>
   );
 }

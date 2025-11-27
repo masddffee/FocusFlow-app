@@ -646,16 +646,166 @@ export async function estimateSubtaskDuration(
         timeout: 10000
       }
     );
-    
+
     if (response.success && response.estimatedDuration) {
       return response.estimatedDuration;
     }
-    
+
     return response.fallback || 30;
   } catch (error) {
     log.error('Subtask duration estimation failed', error, 'API');
     return 30; // 默認 30 分鐘
   }
+}
+
+// ==========================================
+// 🆕 直接 API 函數（Phase 1.1）
+// ==========================================
+
+/**
+ * 生成子任務（直接 API，75% 性能提升）
+ */
+export async function generateSubtasksDirect(params: {
+  title: string;
+  description?: string;
+  taskType?: string;
+  currentProficiency?: string;
+  targetProficiency?: string;
+  clarificationResponses?: Record<string, string>;
+  language?: "en" | "zh";
+}): Promise<{
+  success: boolean;
+  subtasks: any[];
+  message?: string;
+  metrics?: {
+    totalTokens: number;
+    processingTime: number;
+    cacheHit: boolean;
+  };
+}> {
+  try {
+    log.info('Calling generateSubtasksDirect', { title: params.title }, 'API');
+
+    const response = await apiRequest<{
+      success: boolean;
+      subtasks: any[];
+      message?: string;
+      metrics?: any;
+    }>('/ai/subtasks-direct', {
+      method: 'POST',
+      body: params
+    });
+
+    return response;
+
+  } catch (error) {
+    log.error('generateSubtasksDirect failed', error, 'API');
+    throw error;
+  }
+}
+
+/**
+ * 生成個人化問題（直接 API）
+ */
+export async function generatePersonalizationQuestions(params: {
+  title: string;
+  description?: string;
+  taskType?: string;
+  language?: "en" | "zh";
+}): Promise<{
+  success: boolean;
+  questions: any[];
+  message?: string;
+}> {
+  try {
+    const response = await apiRequest<{
+      success: boolean;
+      questions: any[];
+      message?: string;
+    }>('/ai/personalization-direct', {
+      method: 'POST',
+      body: params
+    });
+
+    return response;
+
+  } catch (error) {
+    log.error('generatePersonalizationQuestions failed', error, 'API');
+    throw error;
+  }
+}
+
+/**
+ * 智能任務規劃（直接 API）
+ */
+export async function generateTaskPlanningDirect(params: {
+  title: string;
+  description?: string;
+  taskType?: string;
+  currentProficiency?: string;
+  targetProficiency?: string;
+  clarificationResponses?: Record<string, string>;
+  language?: "en" | "zh";
+}): Promise<{
+  success: boolean;
+  learningPlan?: any;
+  subtasks: any[];
+  personalizationQuestions?: any[];
+  message?: string;
+  metrics?: any;
+}> {
+  try {
+    const response = await apiRequest<any>('/ai/task-planning-direct', {
+      method: 'POST',
+      body: params
+    });
+
+    return response;
+
+  } catch (error) {
+    log.error('generateTaskPlanningDirect failed', error, 'API');
+    throw error;
+  }
+}
+
+// ==========================================
+// 🆕 工具函數
+// ==========================================
+
+/**
+ * 檢查直接 API 回應是否成功
+ */
+export function isDirectApiSuccess(response: any): boolean {
+  return response && response.success === true;
+}
+
+/**
+ * 檢查是否需要個人化問題
+ */
+export function needsPersonalization(response: any): boolean {
+  return response &&
+         response.personalizationQuestions &&
+         Array.isArray(response.personalizationQuestions) &&
+         response.personalizationQuestions.length > 0;
+}
+
+/**
+ * 取得 API 訊息
+ */
+export function getDirectApiMessage(response: any): string {
+  return response?.message || '';
+}
+
+/**
+ * 取得性能指標
+ */
+export function getPerformanceMetrics(response: any): {
+  totalTokens: number;
+  processingTime: number;
+  cacheHit: boolean;
+  costSavings?: number;
+} | null {
+  return response?.metrics || null;
 }
 
 export default {
@@ -673,5 +823,12 @@ export default {
   generatePlan,
   generateLearningQuestionsSafely,
   estimateTaskDuration,
-  estimateSubtaskDuration
+  estimateSubtaskDuration,
+  generateSubtasksDirect,
+  generatePersonalizationQuestions,
+  generateTaskPlanningDirect,
+  isDirectApiSuccess,
+  needsPersonalization,
+  getDirectApiMessage,
+  getPerformanceMetrics
 }; 

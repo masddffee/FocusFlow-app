@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/colors';
 import Theme from '@/constants/theme';
+import { log } from '@/lib/logger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -37,9 +38,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       error,
       errorInfo,
     });
-    
-    // Log the error to console for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    // Log the error to unified logging system
+    log.error('ErrorBoundary caught an error', { error, errorInfo }, 'ERROR_BOUNDARY');
   }
 
   handleRetry = () => {
