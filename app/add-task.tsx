@@ -22,6 +22,8 @@ import DatePicker from "@/components/DatePicker";
 import PersonalizationModal from "@/components/task-creation/modals/PersonalizationModal";
 import LearningPlanModal from "@/components/task-creation/modals/LearningPlanModal";
 import QualityAlertModal from "@/components/task-creation/modals/QualityAlertModal";
+import TaskBasicForm from "@/components/task-creation/forms/TaskBasicForm";
+import TaskSettings from "@/components/task-creation/forms/TaskSettings";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel } from "@/types/task";
@@ -813,51 +815,18 @@ export default function AddTaskScreen() {
       />
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.taskTitle')}</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t('addTask.taskTitlePlaceholder')}
-            placeholderTextColor={Colors.light.subtext}
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.description')}</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder={t('addTask.descriptionPlaceholder')}
-            placeholderTextColor={Colors.light.subtext}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
-
-        {/* Task Type Detection Display */}
-        {detectedTaskType && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('addTask.aiDetectedType')}</Text>
-            <View style={styles.detectedTypeContainer}>
-              <View style={[
-                styles.detectedTypeBadge,
-                { backgroundColor: Colors.light.primary }
-              ]}>
-                <Text style={styles.detectedTypeIcon}>{getTaskTypeIcon(detectedTaskType)}</Text>
-                <Text style={styles.detectedTypeText}>
-                  {t(`taskTypes.${detectedTaskType}`)}
-                </Text>
-              </View>
-              <Text style={styles.detectedTypeDescription}>
-                {getTaskTypeDescription(detectedTaskType)}
-              </Text>
-            </View>
-          </View>
-        )}
+        <TaskBasicForm
+          title={title}
+          description={description}
+          dueDate={dueDate}
+          detectedTaskType={detectedTaskType}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          onDueDateChange={setDueDate}
+          calculateTimeConstraint={calculateTimeConstraint}
+          getTaskTypeIcon={getTaskTypeIcon}
+          getTaskTypeDescription={getTaskTypeDescription}
+        />
 
         {/* Quality Alert Modal */}
         <QualityAlertModal
@@ -866,176 +835,17 @@ export default function AddTaskScreen() {
           onContinue={handleQualityAlertContinue}
           onSkip={handleQualityAlertSkip}
         />
-        
-        <View style={styles.inputGroup}>
-          <View style={styles.dueDateHeader}>
-            <Text style={styles.label}>Due Date (Optional)</Text>
-            <Calendar size={16} color={Colors.light.primary} />
-          </View>
-          <DatePicker
-            selectedDate={dueDate}
-            onDateSelect={setDueDate}
-            placeholder={t('addTask.dueDatePlaceholder')}
-            minDate={new Date()}
-          />
-          {dueDate && (
-            <View style={styles.timeConstraintInfo}>
-              <Text style={styles.timeConstraintText}>
-                {calculateTimeConstraint(dueDate).timeContext}
-              </Text>
-            </View>
-          )}
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.priority')}</Text>
-          <View style={styles.difficultyContainer}>
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                priority === "low" && styles.difficultyButtonActive,
-                priority === "low" && { backgroundColor: Colors.light.success },
-              ]}
-              onPress={() => setPriority("low")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  priority === "low" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('priority.low')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                priority === "medium" && styles.difficultyButtonActive,
-                priority === "medium" && { backgroundColor: Colors.light.warning },
-              ]}
-              onPress={() => setPriority("medium")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  priority === "medium" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('priority.medium')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                priority === "high" && styles.difficultyButtonActive,
-                priority === "high" && { backgroundColor: Colors.light.error },
-              ]}
-              onPress={() => setPriority("high")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  priority === "high" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('priority.high')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.difficulty')}</Text>
-          <View style={styles.difficultyContainer}>
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                difficulty === "easy" && styles.difficultyButtonActive,
-                difficulty === "easy" && { backgroundColor: Colors.light.success },
-              ]}
-              onPress={() => setDifficulty("easy")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  difficulty === "easy" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('difficulty.easy')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                difficulty === "medium" && styles.difficultyButtonActive,
-                difficulty === "medium" && { backgroundColor: Colors.light.warning },
-              ]}
-              onPress={() => setDifficulty("medium")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  difficulty === "medium" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('difficulty.medium')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                difficulty === "hard" && styles.difficultyButtonActive,
-                difficulty === "hard" && { backgroundColor: Colors.light.error },
-              ]}
-              onPress={() => setDifficulty("hard")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  difficulty === "hard" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('difficulty.hard')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        {autoSchedulingEnabled && !taskId && (
-          <View style={styles.inputGroup}>
-            <View style={styles.autoScheduleContainer}>
-              <View style={styles.autoScheduleInfo}>
-                <Zap size={20} color={Colors.light.primary} />
-                <View style={styles.autoScheduleText}>
-                  <Text style={styles.autoScheduleTitle}>AI Auto-Schedule</Text>
-                  <Text style={styles.autoScheduleDescription}>
-                    Automatically estimate duration and find the best time slot based on your availability, task priority, and deadline
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[
-                  styles.toggleButton,
-                  autoSchedule && styles.toggleButtonActive,
-                ]}
-                onPress={() => setAutoSchedule(!autoSchedule)}
-              >
-                <View
-                  style={[
-                    styles.toggleIndicator,
-                    autoSchedule && styles.toggleIndicatorActive,
-                  ]}
-                />
-              </TouchableOpacity>
-            </View>
-            
-            {/* 🔧 簡化：移除複雜的排程選項UI */}
-          </View>
-        )}
+
+        <TaskSettings
+          priority={priority}
+          difficulty={difficulty}
+          autoSchedule={autoSchedule}
+          autoSchedulingEnabled={autoSchedulingEnabled}
+          isEditMode={!!taskId}
+          onPriorityChange={setPriority}
+          onDifficultyChange={setDifficulty}
+          onAutoScheduleChange={setAutoSchedule}
+        />
         
         <View style={styles.inputGroup}>
           <View style={styles.subtaskHeader}>
