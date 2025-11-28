@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  ScrollView,
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  TextInput, 
+  ScrollView, 
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -19,16 +19,13 @@ import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
 import Button from "@/components/Button";
 import DatePicker from "@/components/DatePicker";
-import PersonalizationModal from "@/components/task-creation/modals/PersonalizationModal";
-import LearningPlanModal from "@/components/task-creation/modals/LearningPlanModal";
-import QualityAlertModal from "@/components/task-creation/modals/QualityAlertModal";
-import TaskBasicForm from "@/components/task-creation/forms/TaskBasicForm";
-import TaskSettings from "@/components/task-creation/forms/TaskSettings";
-import SubtaskDisplay from "@/components/task-creation/subtasks/SubtaskDisplay";
+import PersonalizationModal from "@/components/task-creation/PersonalizationModal";
+import LearningPlanModal from "@/components/task-creation/LearningPlanModal";
+import QualityAlert from "@/components/task-creation/QualityAlert";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel } from "@/types/task";
-import {
+import { 
   generateEnhancedSubtasks as backendGenerateSubtasks,
   generateUnifiedLearningPlan,
   estimateTaskDuration,
@@ -50,6 +47,7 @@ export default function AddTaskScreen() {
   const [difficulty, setDifficulty] = useState<TaskDifficulty | "">("");
   const [priority, setPriority] = useState<"low" | "medium" | "high" | "">("");
   const [subtasks, setSubtasks] = useState<EnhancedSubtask[]>([]);
+  const [newSubtask, setNewSubtask] = useState("");
   const [autoSchedule, setAutoSchedule] = useState(true);
   // 🔧 移除複雜的排程模式變數 - showSchedulingOptions removed as unused
   
@@ -69,7 +67,11 @@ export default function AddTaskScreen() {
   // Proficiency tracking states (internal only, not displayed)
   const [currentProficiency, setCurrentProficiency] = useState<ProficiencyLevel>("beginner");
   const [targetProficiency, setTargetProficiency] = useState<ProficiencyLevel>("intermediate");
-
+  
+  // Time estimation states
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [tempDuration, setTempDuration] = useState("");
+  
   const { tasks, addTask, updateTask, scheduledTasks, addScheduledTask } = useTaskStore();
   const { availableTimeSlots, autoSchedulingEnabled } = useSettingsStore();
   
@@ -429,12 +431,27 @@ export default function AddTaskScreen() {
     setSubtasks(subtasks.filter(subtask => subtask.id !== id));
   };
 
-  const handleSubtaskDurationUpdate = (subtaskId: string, duration: number) => {
-    setSubtasks(subtasks.map(subtask =>
-      subtask.id === subtaskId
-        ? { ...subtask, userEstimatedDuration: duration }
-        : subtask
-    ));
+  const handleSubtaskDurationEdit = (subtaskId: string, currentDuration: number) => {
+    setEditingSubtaskId(subtaskId);
+    setTempDuration(currentDuration.toString());
+  };
+
+  const handleSubtaskDurationSave = (subtaskId: string) => {
+    const duration = parseInt(tempDuration);
+    if (!isNaN(duration) && duration > 0) {
+      setSubtasks(subtasks.map(subtask => 
+        subtask.id === subtaskId 
+          ? { ...subtask, userEstimatedDuration: duration }
+          : subtask
+      ));
+    }
+    setEditingSubtaskId(null);
+    setTempDuration("");
+  };
+
+  const handleSubtaskDurationCancel = () => {
+    setEditingSubtaskId(null);
+    setTempDuration("");
   };
 
   const handleSave = async () => {
@@ -796,53 +813,410 @@ export default function AddTaskScreen() {
       />
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <TaskBasicForm
-          title={title}
-          description={description}
-          dueDate={dueDate}
-          detectedTaskType={detectedTaskType}
-          onTitleChange={setTitle}
-          onDescriptionChange={setDescription}
-          onDueDateChange={setDueDate}
-          calculateTimeConstraint={calculateTimeConstraint}
-          getTaskTypeIcon={getTaskTypeIcon}
-          getTaskTypeDescription={getTaskTypeDescription}
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('addTask.taskTitle')}</Text>
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholder={t('addTask.taskTitlePlaceholder')}
+            placeholderTextColor={Colors.light.subtext}
+          />
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('addTask.description')}</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder={t('addTask.descriptionPlaceholder')}
+            placeholderTextColor={Colors.light.subtext}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </View>
+
+        {/* Task Type Detection Display */}
+        {detectedTaskType && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t('addTask.aiDetectedType')}</Text>
+            <View style={styles.detectedTypeContainer}>
+              <View style={[
+                styles.detectedTypeBadge,
+                { backgroundColor: Colors.light.primary }
+              ]}>
+                <Text style={styles.detectedTypeIcon}>{getTaskTypeIcon(detectedTaskType)}</Text>
+                <Text style={styles.detectedTypeText}>
+                  {t(`taskTypes.${detectedTaskType}`)}
+                </Text>
+              </View>
+              <Text style={styles.detectedTypeDescription}>
+                {getTaskTypeDescription(detectedTaskType)}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Quality Alert Modal */}
-        <QualityAlertModal
+        <QualityAlert
           visible={showQualityAlert}
-          qualityIssues={qualityIssues}
-          onContinue={handleQualityAlertContinue}
-          onSkip={handleQualityAlertSkip}
+          issues={qualityIssues}
+          onClose={() => setShowQualityAlert(false)}
+          onContinue={handleQualityAlertSkip}
+          onImprove={handleQualityAlertContinue}
         />
+        
+        <View style={styles.inputGroup}>
+          <View style={styles.dueDateHeader}>
+            <Text style={styles.label}>Due Date (Optional)</Text>
+            <Calendar size={16} color={Colors.light.primary} />
+          </View>
+          <DatePicker
+            selectedDate={dueDate}
+            onDateSelect={setDueDate}
+            placeholder={t('addTask.dueDatePlaceholder')}
+            minDate={new Date()}
+          />
+          {dueDate && (
+            <View style={styles.timeConstraintInfo}>
+              <Text style={styles.timeConstraintText}>
+                {calculateTimeConstraint(dueDate).timeContext}
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('addTask.priority')}</Text>
+          <View style={styles.difficultyContainer}>
+            <TouchableOpacity
+              style={[
+                styles.difficultyButton,
+                priority === "low" && styles.difficultyButtonActive,
+                priority === "low" && { backgroundColor: Colors.light.success },
+              ]}
+              onPress={() => setPriority("low")}
+            >
+              <Text
+                style={[
+                  styles.difficultyText,
+                  priority === "low" && styles.difficultyTextActive,
+                ]}
+              >
+                {t('priority.low')}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.difficultyButton,
+                priority === "medium" && styles.difficultyButtonActive,
+                priority === "medium" && { backgroundColor: Colors.light.warning },
+              ]}
+              onPress={() => setPriority("medium")}
+            >
+              <Text
+                style={[
+                  styles.difficultyText,
+                  priority === "medium" && styles.difficultyTextActive,
+                ]}
+              >
+                {t('priority.medium')}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.difficultyButton,
+                priority === "high" && styles.difficultyButtonActive,
+                priority === "high" && { backgroundColor: Colors.light.error },
+              ]}
+              onPress={() => setPriority("high")}
+            >
+              <Text
+                style={[
+                  styles.difficultyText,
+                  priority === "high" && styles.difficultyTextActive,
+                ]}
+              >
+                {t('priority.high')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>{t('addTask.difficulty')}</Text>
+          <View style={styles.difficultyContainer}>
+            <TouchableOpacity
+              style={[
+                styles.difficultyButton,
+                difficulty === "easy" && styles.difficultyButtonActive,
+                difficulty === "easy" && { backgroundColor: Colors.light.success },
+              ]}
+              onPress={() => setDifficulty("easy")}
+            >
+              <Text
+                style={[
+                  styles.difficultyText,
+                  difficulty === "easy" && styles.difficultyTextActive,
+                ]}
+              >
+                {t('difficulty.easy')}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.difficultyButton,
+                difficulty === "medium" && styles.difficultyButtonActive,
+                difficulty === "medium" && { backgroundColor: Colors.light.warning },
+              ]}
+              onPress={() => setDifficulty("medium")}
+            >
+              <Text
+                style={[
+                  styles.difficultyText,
+                  difficulty === "medium" && styles.difficultyTextActive,
+                ]}
+              >
+                {t('difficulty.medium')}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.difficultyButton,
+                difficulty === "hard" && styles.difficultyButtonActive,
+                difficulty === "hard" && { backgroundColor: Colors.light.error },
+              ]}
+              onPress={() => setDifficulty("hard")}
+            >
+              <Text
+                style={[
+                  styles.difficultyText,
+                  difficulty === "hard" && styles.difficultyTextActive,
+                ]}
+              >
+                {t('difficulty.hard')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {autoSchedulingEnabled && !taskId && (
+          <View style={styles.inputGroup}>
+            <View style={styles.autoScheduleContainer}>
+              <View style={styles.autoScheduleInfo}>
+                <Zap size={20} color={Colors.light.primary} />
+                <View style={styles.autoScheduleText}>
+                  <Text style={styles.autoScheduleTitle}>AI Auto-Schedule</Text>
+                  <Text style={styles.autoScheduleDescription}>
+                    Automatically estimate duration and find the best time slot based on your availability, task priority, and deadline
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.toggleButton,
+                  autoSchedule && styles.toggleButtonActive,
+                ]}
+                onPress={() => setAutoSchedule(!autoSchedule)}
+              >
+                <View
+                  style={[
+                    styles.toggleIndicator,
+                    autoSchedule && styles.toggleIndicatorActive,
+                  ]}
+                />
+              </TouchableOpacity>
+            </View>
+            
+            {/* 🔧 簡化：移除複雜的排程選項UI */}
+          </View>
+        )}
+        
+        <View style={styles.inputGroup}>
+          <View style={styles.subtaskHeader}>
+            <Text style={styles.label}>Subtasks</Text>
+            <Button
+              title="Smart Generate"
+              onPress={handleSmartGenerate}
+              variant="outline"
+              size="small"
+              loading={isAnalyzing || isGeneratingSubtasks}
+              icon={<Brain size={16} color={Colors.light.primary} />}
+            />
+          </View>
 
-        <TaskSettings
-          priority={priority}
-          difficulty={difficulty}
-          autoSchedule={autoSchedule}
-          autoSchedulingEnabled={autoSchedulingEnabled}
-          isEditMode={!!taskId}
-          onPriorityChange={setPriority}
-          onDifficultyChange={setDifficulty}
-          onAutoScheduleChange={setAutoSchedule}
-        />
+          {subtasks.length > 0 && (
+            <>
+              <View style={styles.timeEstimateContainer}>
+                <Text style={styles.timeEstimateText}>
+                  Total estimated time: {getTotalEstimatedTime()} minutes ({Math.round(getTotalEstimatedTime() / 60 * 10) / 10} hours)
+                </Text>
+              </View>
 
-        <SubtaskDisplay
-          subtasks={subtasks}
-          isAnalyzing={isAnalyzing}
-          isGeneratingSubtasks={isGeneratingSubtasks}
-          onSmartGenerate={handleSmartGenerate}
-          onAddSubtask={handleAddSubtask}
-          onRemoveSubtask={handleRemoveSubtask}
-          onUpdateSubtaskDuration={handleSubtaskDurationUpdate}
-          getTotalEstimatedTime={getTotalEstimatedTime}
-          getPhaseStats={getPhaseStats}
-          getPhaseLabel={getPhaseLabel}
-          getPhaseIcon={getPhaseIcon}
-          getPhaseColor={getPhaseColor}
-          getDifficultyColor={getDifficultyColor}
-        />
+              {/* Phase Distribution */}
+              {subtasks.some(s => s.phase) && (
+                <View style={styles.phaseDistributionContainer}>
+                  <Text style={styles.phaseDistributionTitle}>Learning Phase Distribution</Text>
+                  <View style={styles.phaseDistribution}>
+                    {Object.entries(getPhaseStats()).map(([phase, count]) => (
+                      count > 0 && (
+                        <View key={phase} style={styles.phaseDistributionItem}>
+                          <View style={[
+                            styles.phaseDistributionDot,
+                            { backgroundColor: getPhaseColor(phase) }
+                          ]} />
+                          <Text style={styles.phaseDistributionText}>
+                            {getPhaseLabel(phase)}: {count}
+                          </Text>
+                        </View>
+                      )
+                    ))}
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+          
+          {subtasks.map((subtask) => (
+            <View key={subtask.id} style={styles.subtaskCard}>
+              <View style={styles.subtaskContent}>
+                <View style={styles.subtaskHeader}>
+                  {subtask.title && (
+                    <Text style={styles.subtaskTitle}>
+                      {getPhaseIcon(subtask.phase)} {subtask.title}
+                    </Text>
+                  )}
+                  {subtask.taskType === "exam_preparation" && (
+                    <View style={styles.examBadge}>
+                      <Text style={styles.examBadgeText}>Exam</Text>
+                    </View>
+                  )}
+                  {subtask.isReviewTask && (
+                    <View style={styles.reviewBadge}>
+                      <Text style={styles.reviewBadgeText}>Review</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.subtaskText}>
+                  {subtask.text}
+                </Text>
+                
+                {/* Recommended Resources */}
+                {subtask.recommendedResources && subtask.recommendedResources.length > 0 && (
+                  <View style={styles.resourcesContainer}>
+                    <View style={styles.resourcesHeader}>
+                      <BookOpen size={12} color={Colors.light.primary} />
+                      <Text style={styles.resourcesTitle}>Recommended Resources:</Text>
+                    </View>
+                    {subtask.recommendedResources.slice(0, 3).map((resource, index) => (
+                      <View key={`${subtask.id}-resource-${index}`} style={styles.resourceItem}>
+                        <ExternalLink size={10} color={Colors.light.subtext} />
+                        <Text style={styles.resourceText}>{resource}</Text>
+                      </View>
+                    ))}
+                    {subtask.recommendedResources.length > 3 && (
+                      <Text style={styles.moreResourcesText}>
+                        +{subtask.recommendedResources.length - 3} more resources
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                <View style={styles.subtaskMeta}>
+                  <View style={styles.subtaskDuration}>
+                    <Clock size={12} color={Colors.light.subtext} />
+                    {editingSubtaskId === subtask.id ? (
+                      <View style={styles.durationEditContainer}>
+                        <TextInput
+                          style={styles.durationInput}
+                          value={tempDuration}
+                          onChangeText={setTempDuration}
+                          keyboardType="numeric"
+                          placeholder="60"
+                          autoFocus
+                        />
+                        <TouchableOpacity
+                          onPress={() => handleSubtaskDurationSave(subtask.id)}
+                          style={styles.durationSaveButton}
+                        >
+                          <Text style={styles.durationSaveText}>✓</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleSubtaskDurationCancel}
+                          style={styles.durationCancelButton}
+                        >
+                          <Text style={styles.durationCancelText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => handleSubtaskDurationEdit(
+                          subtask.id,
+                          subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60
+                        )}
+                        style={styles.durationDisplay}
+                      >
+                        <Text style={styles.subtaskDurationText}>
+                          {subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60}m
+                        </Text>
+                        <Edit3 size={10} color={Colors.light.subtext} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {subtask.difficulty && (
+                    <View style={[
+                      styles.difficultyBadge,
+                      { backgroundColor: getDifficultyColor(subtask.difficulty) }
+                    ]}>
+                      <Text style={styles.difficultyBadgeText}>
+                        {subtask.difficulty}
+                      </Text>
+                    </View>
+                  )}
+                  {subtask.phase && (
+                    <View style={[
+                      styles.phaseBadge,
+                      { backgroundColor: getPhaseColor(subtask.phase) }
+                    ]}>
+                      <Text style={styles.phaseBadgeText}>
+                        {getPhaseLabel(subtask.phase)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleRemoveSubtask(subtask.id)}
+                style={styles.removeSubtaskButton}
+              >
+                <Trash2 size={16} color={Colors.light.error} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          
+          <View style={styles.addSubtaskContainer}>
+            <TextInput
+              style={styles.subtaskInput}
+              value={newSubtask}
+              onChangeText={setNewSubtask}
+              placeholder={t('addTask.subtaskPlaceholder')}
+              placeholderTextColor={Colors.light.subtext}
+              onSubmitEditing={handleAddSubtask}
+            />
+            <TouchableOpacity
+              style={styles.addSubtaskButton}
+              onPress={handleAddSubtask}
+            >
+              <Plus size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
       
       <View style={styles.buttonContainer}>
@@ -863,24 +1237,18 @@ export default function AddTaskScreen() {
         visible={showPersonalizationModal}
         questions={clarifyingQuestions}
         responses={clarificationResponses}
-        onResponse={handlePersonalizationResponse}
-        onSubmit={handlePersonalizationComplete}
+        isAnalyzing={isGeneratingSubtasks}
         onClose={() => setShowPersonalizationModal(false)}
-        detectedTaskType={detectedTaskType}
-        getTaskTypeIcon={getTaskTypeIcon}
-        getTaskTypeLabel={getTaskTypeLabel}
-        isGeneratingSubtasks={isGeneratingSubtasks}
+        onResponseChange={handlePersonalizationResponse}
+        onComplete={handlePersonalizationComplete}
       />
 
       {/* Learning Plan Modal */}
       <LearningPlanModal
         visible={showLearningPlan}
-        learningPlan={learningPlan}
-        subtasksCount={subtasks.length}
-        onClose={handleLearningPlanComplete}
-        getTaskTypeLabel={getTaskTypeLabel}
-        getProficiencyLabel={getProficiencyLabel}
-        getPhaseBreakdownText={getPhaseBreakdownText}
+        plan={learningPlan}
+        onClose={() => setShowLearningPlan(false)}
+        onAccept={handleLearningPlanComplete}
       />
     </KeyboardAvoidingView>
   );
@@ -1043,59 +1411,6 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.sizes.sm,
     fontWeight: "600",
     color: Colors.light.primary,
-  },
-  qualityAlertOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Theme.spacing.lg,
-  },
-  qualityAlertContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.xl,
-    width: "100%",
-    maxWidth: 400,
-  },
-  qualityAlertHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Theme.spacing.md,
-  },
-  qualityAlertTitle: {
-    fontSize: Theme.typography.sizes.lg,
-    fontWeight: "600",
-    color: Colors.light.text,
-    marginLeft: Theme.spacing.sm,
-  },
-  qualityAlertMessage: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-    marginBottom: Theme.spacing.md,
-    lineHeight: 22,
-  },
-  qualityIssuesList: {
-    marginBottom: Theme.spacing.md,
-  },
-  qualityIssueItem: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.subtext,
-    marginBottom: Theme.spacing.xs,
-    lineHeight: 20,
-  },
-  qualityAlertSubMessage: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-    marginBottom: Theme.spacing.lg,
-    lineHeight: 22,
-  },
-  qualityAlertButtons: {
-    flexDirection: "row",
-    gap: Theme.spacing.md,
-  },
-  qualityAlertButton: {
-    flex: 1,
   },
   difficultyContainer: {
     flexDirection: "row",
@@ -1435,143 +1750,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     padding: Theme.spacing.sm,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  modalHeader: {
-    padding: Theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  modalTitle: {
-    fontSize: Theme.typography.sizes.xl,
-    fontWeight: "700",
-    color: Colors.light.text,
-    marginBottom: Theme.spacing.xs,
-  },
-  modalSubtitle: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.subtext,
-  },
-  modalContent: {
-    flex: 1,
-    padding: Theme.spacing.lg,
-  },
-  questionContainer: {
-    marginBottom: Theme.spacing.xl,
-  },
-  questionHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: Theme.spacing.md,
-  },
-  questionText: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-    marginLeft: Theme.spacing.sm,
-    flex: 1,
-    lineHeight: 22,
-  },
-  required: {
-    color: Colors.light.error,
-  },
-  questionInput: {
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.md,
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-    backgroundColor: Colors.light.card,
-    textAlignVertical: "top",
-  },
-  choiceContainer: {
-    gap: Theme.spacing.sm,
-  },
-  choiceButton: {
-    paddingVertical: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: Theme.radius.md,
-    backgroundColor: Colors.light.card,
-  },
-  choiceButtonActive: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.primary,
-  },
-  choiceText: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-    textAlign: "center",
-  },
-  choiceTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    padding: Theme.spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-    gap: Theme.spacing.md,
-  },
-  modalButton: {
-    flex: 1,
-  },
-  fullWidthButton: {
-    width: "100%",
-  },
-  planSection: {
-    marginBottom: Theme.spacing.xl,
-  },
-  planSectionTitle: {
-    fontSize: Theme.typography.sizes.lg,
-    fontWeight: "600",
-    color: Colors.light.text,
-    marginBottom: Theme.spacing.md,
-  },
-  planItem: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-    marginBottom: Theme.spacing.sm,
-    lineHeight: 22,
-  },
-  planSubtext: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.subtext,
-    lineHeight: 20,
-    marginBottom: Theme.spacing.md,
-  },
-  phaseBreakdown: {
-    backgroundColor: Colors.light.card,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.md,
-    marginBottom: Theme.spacing.md,
-  },
-  phaseItem: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.text,
-    marginBottom: Theme.spacing.xs,
-    lineHeight: 20,
-  },
-  skillItem: {
-    backgroundColor: Colors.light.card,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
-  },
-  skillName: {
-    fontSize: Theme.typography.sizes.md,
-    fontWeight: "600",
-    color: Colors.light.text,
-  },
-  skillProgress: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.subtext,
-    marginTop: 2,
   },
   // 🆕 排程模式相關樣式
   schedulingOptionsContainer: {
