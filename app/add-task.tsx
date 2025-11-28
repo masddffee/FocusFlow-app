@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  ScrollView, 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  ScrollView,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -19,10 +19,13 @@ import Colors from "@/constants/colors";
 import Theme from "@/constants/theme";
 import Button from "@/components/Button";
 import DatePicker from "@/components/DatePicker";
+import PersonalizationModal from "@/components/task-creation/modals/PersonalizationModal";
+import LearningPlanModal from "@/components/task-creation/modals/LearningPlanModal";
+import QualityAlertModal from "@/components/task-creation/modals/QualityAlertModal";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel } from "@/types/task";
-import { 
+import {
   generateEnhancedSubtasks as backendGenerateSubtasks,
   generateUnifiedLearningPlan,
   estimateTaskDuration,
@@ -857,52 +860,12 @@ export default function AddTaskScreen() {
         )}
 
         {/* Quality Alert Modal */}
-        <Modal
+        <QualityAlertModal
           visible={showQualityAlert}
-          animationType="fade"
-          transparent={true}
-        >
-          <View style={styles.qualityAlertOverlay}>
-            <View style={styles.qualityAlertContainer}>
-              <View style={styles.qualityAlertHeader}>
-                <AlertCircle size={24} color={Colors.light.warning} />
-                <Text style={styles.qualityAlertTitle}>{t('modals.qualityAlert.title')}</Text>
-              </View>
-              
-              <Text style={styles.qualityAlertMessage}>
-                {t('modals.qualityAlert.message')}
-              </Text>
-              
-              <View style={styles.qualityIssuesList}>
-                {qualityIssues.map((issue, index) => (
-                  <Text key={`quality-issue-${index}-${issue.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '')}`} style={styles.qualityIssueItem}>• {issue}</Text>
-                ))}
-              </View>
-              
-              <Text style={styles.qualityAlertSubMessage}>
-                Would you like to answer a few quick questions to get personalized, actionable subtasks with spaced repetition?
-              </Text>
-              
-              <View style={styles.qualityAlertButtons}>
-                <Button
-                  title="Skip for now"
-                  onPress={handleQualityAlertSkip}
-                  variant="outline"
-                  size="small"
-                  style={styles.qualityAlertButton}
-                />
-                <Button
-                  title="Help me improve"
-                  onPress={handleQualityAlertContinue}
-                  variant="primary"
-                  size="small"
-                  style={styles.qualityAlertButton}
-                  icon={<Lightbulb size={16} color="#FFFFFF" />}
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
+          qualityIssues={qualityIssues}
+          onContinue={handleQualityAlertContinue}
+          onSkip={handleQualityAlertSkip}
+        />
         
         <View style={styles.inputGroup}>
           <View style={styles.dueDateHeader}>
@@ -1269,173 +1232,29 @@ export default function AddTaskScreen() {
       </View>
 
       {/* Personalization Modal */}
-      <Modal
+      <PersonalizationModal
         visible={showPersonalizationModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Help us personalize your plan</Text>
-            <Text style={styles.modalSubtitle}>
-              Answer a few questions to get specific, actionable subtasks tailored to your needs with dynamic range calculation
-            </Text>
-            {detectedTaskType && (
-              <View style={styles.detectedTypeInModal}>
-                <Text style={styles.detectedTypeInModalText}>
-                  Detected: {getTaskTypeIcon(detectedTaskType)} {getTaskTypeLabel(detectedTaskType)}
-                </Text>
-              </View>
-            )}
-          </View>
-          
-          <ScrollView style={styles.modalContent}>
-            {clarifyingQuestions.map((question) => (
-              <View key={question.id} style={styles.questionContainer}>
-                <View style={styles.questionHeader}>
-                  <HelpCircle size={16} color={Colors.light.primary} />
-                  <Text style={styles.questionText}>
-                    {question.question}
-                    {question.required && <Text style={styles.required}> *</Text>}
-                  </Text>
-                </View>
-                
-                {question.type === "choice" && question.options ? (
-                  <View style={styles.choiceContainer}>
-                    {question.options.map((option, optionIndex) => (
-                      <TouchableOpacity
-                        key={`${question.id}-option-${optionIndex}`}
-                        style={[
-                          styles.choiceButton,
-                          clarificationResponses[question.id] === option && styles.choiceButtonActive,
-                        ]}
-                        onPress={() => handlePersonalizationResponse(question.id, option)}
-                      >
-                        <Text
-                          style={[
-                            styles.choiceText,
-                            clarificationResponses[question.id] === option && styles.choiceTextActive,
-                          ]}
-                        >
-                          {option}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : (
-                  <TextInput
-                    style={styles.questionInput}
-                    value={clarificationResponses[question.id] || ""}
-                    onChangeText={(text) => handlePersonalizationResponse(question.id, text)}
-                    placeholder="Your answer..."
-                    placeholderTextColor={Colors.light.subtext}
-                    multiline={question.type === "text"}
-                    numberOfLines={question.type === "text" ? 3 : 1}
-                  />
-                )}
-              </View>
-            ))}
-          </ScrollView>
-          
-          <View style={styles.modalButtons}>
-            <Button
-              title="Cancel"
-              onPress={() => setShowPersonalizationModal(false)}
-              variant="outline"
-              style={styles.modalButton}
-            />
-            <Button
-              title="Generate Plan"
-              onPress={handlePersonalizationComplete}
-              variant="primary"
-              style={styles.modalButton}
-              loading={isGeneratingSubtasks}
-              icon={<ArrowRight size={16} color="#FFFFFF" />}
-            />
-          </View>
-        </View>
-      </Modal>
+        questions={clarifyingQuestions}
+        responses={clarificationResponses}
+        onResponse={handlePersonalizationResponse}
+        onSubmit={handlePersonalizationComplete}
+        onClose={() => setShowPersonalizationModal(false)}
+        detectedTaskType={detectedTaskType}
+        getTaskTypeIcon={getTaskTypeIcon}
+        getTaskTypeLabel={getTaskTypeLabel}
+        isGeneratingSubtasks={isGeneratingSubtasks}
+      />
 
       {/* Learning Plan Modal */}
-      <Modal
+      <LearningPlanModal
         visible={showLearningPlan}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              Your Personalized {getTaskTypeLabel(learningPlan?.taskType)} Plan
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              A comprehensive plan based on your goals and preferences with spaced repetition integration
-            </Text>
-          </View>
-          
-          <ScrollView style={styles.modalContent}>
-            {learningPlan && (
-              <>
-                <View style={styles.planSection}>
-                  <Text style={styles.planSectionTitle}>Achievable Goal</Text>
-                  <Text style={styles.planItem}>{learningPlan.achievableGoal}</Text>
-                </View>
-                
-                <View style={styles.planSection}>
-                  <Text style={styles.planSectionTitle}>Recommended Tools & Resources</Text>
-                  {learningPlan.recommendedTools.map((tool, index) => (
-                    <Text key={`learning-tool-${index}-${tool.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')}`} style={styles.planItem}>• {tool}</Text>
-                  ))}
-                </View>
-                
-                <View style={styles.planSection}>
-                  <Text style={styles.planSectionTitle}>Progress Checkpoints</Text>
-                  {learningPlan.checkpoints.map((checkpoint, index) => (
-                    <Text key={`learning-checkpoint-${index}-${checkpoint.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')}`} style={styles.planItem}>• {checkpoint}</Text>
-                  ))}
-                </View>
-
-                {learningPlan.skillBreakdown && learningPlan.skillBreakdown.length > 0 && (
-                  <View style={styles.planSection}>
-                    <Text style={styles.planSectionTitle}>Skill Development Plan</Text>
-                    {learningPlan.skillBreakdown.map((skill, index) => (
-                      <View key={`learning-skill-${index}-${skill.skill.substring(0, 10).replace(/[^a-zA-Z0-9]/g, '')}`} style={styles.skillItem}>
-                        <Text style={styles.skillName}>{skill.skill}</Text>
-                        <Text style={styles.skillProgress}>
-                          {getProficiencyLabel(skill.currentLevel)} → {getProficiencyLabel(skill.targetLevel)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                <View style={styles.planSection}>
-                  <Text style={styles.planSectionTitle}>Generated Subtasks</Text>
-                  <Text style={styles.planSubtext}>
-                    {subtasks.length} specific, actionable subtasks have been created following the enhanced 6-phase methodology with spaced repetition:
-                  </Text>
-                  <View style={styles.phaseBreakdown}>
-                    {getPhaseBreakdownText(learningPlan.taskType).map((phase, index) => (
-                      <Text key={`phase-breakdown-${index}-${phase.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '')}`} style={styles.phaseItem}>{phase}</Text>
-                    ))}
-                  </View>
-                  <Text style={styles.planSubtext}>
-                    You can review and edit them after closing this modal. Spaced repetition will be automatically scheduled for long-term retention.
-                  </Text>
-                </View>
-              </>
-            )}
-          </ScrollView>
-          
-          <View style={styles.modalButtons}>
-            <Button
-              title="Got it!"
-              onPress={handleLearningPlanComplete}
-              variant="primary"
-              style={styles.fullWidthButton}
-            />
-          </View>
-        </View>
-      </Modal>
+        learningPlan={learningPlan}
+        subtasksCount={subtasks.length}
+        onClose={handleLearningPlanComplete}
+        getTaskTypeLabel={getTaskTypeLabel}
+        getProficiencyLabel={getProficiencyLabel}
+        getPhaseBreakdownText={getPhaseBreakdownText}
+      />
     </KeyboardAvoidingView>
   );
 }
