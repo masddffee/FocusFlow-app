@@ -24,6 +24,7 @@ import LearningPlanModal from "@/components/task-creation/modals/LearningPlanMod
 import QualityAlertModal from "@/components/task-creation/modals/QualityAlertModal";
 import TaskBasicForm from "@/components/task-creation/forms/TaskBasicForm";
 import TaskSettings from "@/components/task-creation/forms/TaskSettings";
+import SubtaskDisplay from "@/components/task-creation/subtasks/SubtaskDisplay";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel } from "@/types/task";
@@ -49,7 +50,6 @@ export default function AddTaskScreen() {
   const [difficulty, setDifficulty] = useState<TaskDifficulty | "">("");
   const [priority, setPriority] = useState<"low" | "medium" | "high" | "">("");
   const [subtasks, setSubtasks] = useState<EnhancedSubtask[]>([]);
-  const [newSubtask, setNewSubtask] = useState("");
   const [autoSchedule, setAutoSchedule] = useState(true);
   // 🔧 移除複雜的排程模式變數 - showSchedulingOptions removed as unused
   
@@ -69,11 +69,7 @@ export default function AddTaskScreen() {
   // Proficiency tracking states (internal only, not displayed)
   const [currentProficiency, setCurrentProficiency] = useState<ProficiencyLevel>("beginner");
   const [targetProficiency, setTargetProficiency] = useState<ProficiencyLevel>("intermediate");
-  
-  // Time estimation states
-  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
-  const [tempDuration, setTempDuration] = useState("");
-  
+
   const { tasks, addTask, updateTask, scheduledTasks, addScheduledTask } = useTaskStore();
   const { availableTimeSlots, autoSchedulingEnabled } = useSettingsStore();
   
@@ -433,27 +429,12 @@ export default function AddTaskScreen() {
     setSubtasks(subtasks.filter(subtask => subtask.id !== id));
   };
 
-  const handleSubtaskDurationEdit = (subtaskId: string, currentDuration: number) => {
-    setEditingSubtaskId(subtaskId);
-    setTempDuration(currentDuration.toString());
-  };
-
-  const handleSubtaskDurationSave = (subtaskId: string) => {
-    const duration = parseInt(tempDuration);
-    if (!isNaN(duration) && duration > 0) {
-      setSubtasks(subtasks.map(subtask => 
-        subtask.id === subtaskId 
-          ? { ...subtask, userEstimatedDuration: duration }
-          : subtask
-      ));
-    }
-    setEditingSubtaskId(null);
-    setTempDuration("");
-  };
-
-  const handleSubtaskDurationCancel = () => {
-    setEditingSubtaskId(null);
-    setTempDuration("");
+  const handleSubtaskDurationUpdate = (subtaskId: string, duration: number) => {
+    setSubtasks(subtasks.map(subtask =>
+      subtask.id === subtaskId
+        ? { ...subtask, userEstimatedDuration: duration }
+        : subtask
+    ));
   };
 
   const handleSave = async () => {
@@ -846,186 +827,22 @@ export default function AddTaskScreen() {
           onDifficultyChange={setDifficulty}
           onAutoScheduleChange={setAutoSchedule}
         />
-        
-        <View style={styles.inputGroup}>
-          <View style={styles.subtaskHeader}>
-            <Text style={styles.label}>Subtasks</Text>
-            <Button
-              title="Smart Generate"
-              onPress={handleSmartGenerate}
-              variant="outline"
-              size="small"
-              loading={isAnalyzing || isGeneratingSubtasks}
-              icon={<Brain size={16} color={Colors.light.primary} />}
-            />
-          </View>
 
-          {subtasks.length > 0 && (
-            <>
-              <View style={styles.timeEstimateContainer}>
-                <Text style={styles.timeEstimateText}>
-                  Total estimated time: {getTotalEstimatedTime()} minutes ({Math.round(getTotalEstimatedTime() / 60 * 10) / 10} hours)
-                </Text>
-              </View>
-
-              {/* Phase Distribution */}
-              {subtasks.some(s => s.phase) && (
-                <View style={styles.phaseDistributionContainer}>
-                  <Text style={styles.phaseDistributionTitle}>Learning Phase Distribution</Text>
-                  <View style={styles.phaseDistribution}>
-                    {Object.entries(getPhaseStats()).map(([phase, count]) => (
-                      count > 0 && (
-                        <View key={phase} style={styles.phaseDistributionItem}>
-                          <View style={[
-                            styles.phaseDistributionDot,
-                            { backgroundColor: getPhaseColor(phase) }
-                          ]} />
-                          <Text style={styles.phaseDistributionText}>
-                            {getPhaseLabel(phase)}: {count}
-                          </Text>
-                        </View>
-                      )
-                    ))}
-                  </View>
-                </View>
-              )}
-            </>
-          )}
-          
-          {subtasks.map((subtask) => (
-            <View key={subtask.id} style={styles.subtaskCard}>
-              <View style={styles.subtaskContent}>
-                <View style={styles.subtaskHeader}>
-                  {subtask.title && (
-                    <Text style={styles.subtaskTitle}>
-                      {getPhaseIcon(subtask.phase)} {subtask.title}
-                    </Text>
-                  )}
-                  {subtask.taskType === "exam_preparation" && (
-                    <View style={styles.examBadge}>
-                      <Text style={styles.examBadgeText}>Exam</Text>
-                    </View>
-                  )}
-                  {subtask.isReviewTask && (
-                    <View style={styles.reviewBadge}>
-                      <Text style={styles.reviewBadgeText}>Review</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.subtaskText}>
-                  {subtask.text}
-                </Text>
-                
-                {/* Recommended Resources */}
-                {subtask.recommendedResources && subtask.recommendedResources.length > 0 && (
-                  <View style={styles.resourcesContainer}>
-                    <View style={styles.resourcesHeader}>
-                      <BookOpen size={12} color={Colors.light.primary} />
-                      <Text style={styles.resourcesTitle}>Recommended Resources:</Text>
-                    </View>
-                    {subtask.recommendedResources.slice(0, 3).map((resource, index) => (
-                      <View key={`${subtask.id}-resource-${index}`} style={styles.resourceItem}>
-                        <ExternalLink size={10} color={Colors.light.subtext} />
-                        <Text style={styles.resourceText}>{resource}</Text>
-                      </View>
-                    ))}
-                    {subtask.recommendedResources.length > 3 && (
-                      <Text style={styles.moreResourcesText}>
-                        +{subtask.recommendedResources.length - 3} more resources
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                <View style={styles.subtaskMeta}>
-                  <View style={styles.subtaskDuration}>
-                    <Clock size={12} color={Colors.light.subtext} />
-                    {editingSubtaskId === subtask.id ? (
-                      <View style={styles.durationEditContainer}>
-                        <TextInput
-                          style={styles.durationInput}
-                          value={tempDuration}
-                          onChangeText={setTempDuration}
-                          keyboardType="numeric"
-                          placeholder="60"
-                          autoFocus
-                        />
-                        <TouchableOpacity
-                          onPress={() => handleSubtaskDurationSave(subtask.id)}
-                          style={styles.durationSaveButton}
-                        >
-                          <Text style={styles.durationSaveText}>✓</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={handleSubtaskDurationCancel}
-                          style={styles.durationCancelButton}
-                        >
-                          <Text style={styles.durationCancelText}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={() => handleSubtaskDurationEdit(
-                          subtask.id,
-                          subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60
-                        )}
-                        style={styles.durationDisplay}
-                      >
-                        <Text style={styles.subtaskDurationText}>
-                          {subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60}m
-                        </Text>
-                        <Edit3 size={10} color={Colors.light.subtext} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  {subtask.difficulty && (
-                    <View style={[
-                      styles.difficultyBadge,
-                      { backgroundColor: getDifficultyColor(subtask.difficulty) }
-                    ]}>
-                      <Text style={styles.difficultyBadgeText}>
-                        {subtask.difficulty}
-                      </Text>
-                    </View>
-                  )}
-                  {subtask.phase && (
-                    <View style={[
-                      styles.phaseBadge,
-                      { backgroundColor: getPhaseColor(subtask.phase) }
-                    ]}>
-                      <Text style={styles.phaseBadgeText}>
-                        {getPhaseLabel(subtask.phase)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => handleRemoveSubtask(subtask.id)}
-                style={styles.removeSubtaskButton}
-              >
-                <Trash2 size={16} color={Colors.light.error} />
-              </TouchableOpacity>
-            </View>
-          ))}
-          
-          <View style={styles.addSubtaskContainer}>
-            <TextInput
-              style={styles.subtaskInput}
-              value={newSubtask}
-              onChangeText={setNewSubtask}
-              placeholder={t('addTask.subtaskPlaceholder')}
-              placeholderTextColor={Colors.light.subtext}
-              onSubmitEditing={handleAddSubtask}
-            />
-            <TouchableOpacity
-              style={styles.addSubtaskButton}
-              onPress={handleAddSubtask}
-            >
-              <Plus size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <SubtaskDisplay
+          subtasks={subtasks}
+          isAnalyzing={isAnalyzing}
+          isGeneratingSubtasks={isGeneratingSubtasks}
+          onSmartGenerate={handleSmartGenerate}
+          onAddSubtask={handleAddSubtask}
+          onRemoveSubtask={handleRemoveSubtask}
+          onUpdateSubtaskDuration={handleSubtaskDurationUpdate}
+          getTotalEstimatedTime={getTotalEstimatedTime}
+          getPhaseStats={getPhaseStats}
+          getPhaseLabel={getPhaseLabel}
+          getPhaseIcon={getPhaseIcon}
+          getPhaseColor={getPhaseColor}
+          getDifficultyColor={getDifficultyColor}
+        />
       </ScrollView>
       
       <View style={styles.buttonContainer}>
