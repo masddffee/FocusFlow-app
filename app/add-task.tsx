@@ -105,12 +105,8 @@ export default function AddTaskScreen() {
     }));
   };
 
-  const handleSmartGenerate = async () => {
-    if (!title.trim()) {
-      Alert.alert(t('errors.required'), t('addTask.taskTitlePlaceholder'));
-      return;
-    }
-
+  // Helper: Reset all generation states
+  const resetGenerationState = () => {
     setIsAnalyzing(true);
     setIsGeneratingSubtasks(true);
     setShowQualityAlert(false);
@@ -119,10 +115,57 @@ export default function AddTaskScreen() {
     setSubtasks([]);
     setClarifyingQuestions([]);
     setClarificationResponses({});
+  };
+
+  // Helper: Process direct generation result
+  const processDirectGenerationResult = (result: any) => {
+    if (result.learningPlan) {
+      setLearningPlan(result.learningPlan);
+      setShowLearningPlan(true);
+    }
+    if (result.subtasks && result.subtasks.length > 0) {
+      setSubtasks(result.subtasks);
+      const { availableDays } = calculateTimeConstraint(dueDate);
+      const contextMessage = getTaskTypeMessage(
+        'skill_learning',
+        result.subtasks.length,
+        availableDays,
+        currentProficiency,
+        targetProficiency
+      );
+      Alert.alert("🤖 AI 學習計劃已生成", `✅ 已生成 ${result.subtasks.length} 個個人化子任務\n\n${contextMessage}`);
+    } else {
+      Alert.alert("⚠️ 警告", "未能生成子任務，請稍後再試。");
+    }
+  };
+
+  // Helper: Generate unified plan without personalization
+  const generateDirectUnifiedPlan = async () => {
+    const currentLanguage = useSettingsStore.getState().language;
+    const result = await generateUnifiedLearningPlan({
+      title: title.trim(),
+      description: description.trim(),
+      language: currentLanguage,
+      taskType: detectedTaskType || 'skill_learning',
+      currentProficiency: currentProficiency,
+      targetProficiency: targetProficiency,
+      clarificationResponses: {}
+    });
+    processDirectGenerationResult(result);
+  };
+
+  const handleSmartGenerate = async () => {
+    if (!title.trim()) {
+      Alert.alert(t('errors.required'), t('addTask.taskTitlePlaceholder'));
+      return;
+    }
+
+    resetGenerationState();
+
     try {
       log.info("🚀 Using unified learning plan generation...");
       const currentLanguage = useSettingsStore.getState().language;
-      // 第一次只請求個人化問題
+
       const unifiedResponse = await generateUnifiedLearningPlan({
         title: title.trim(),
         description: description.trim(),
@@ -131,39 +174,13 @@ export default function AddTaskScreen() {
         currentProficiency: currentProficiency,
         targetProficiency: targetProficiency
       });
+
       const { personalizationQuestions } = unifiedResponse;
       if (personalizationQuestions && personalizationQuestions.length > 0) {
         setClarifyingQuestions(personalizationQuestions);
         setShowPersonalizationModal(true);
       } else {
-        // 沒有個人化問題，直接生成
-        const result = await generateUnifiedLearningPlan({
-          title: title.trim(),
-          description: description.trim(),
-          language: currentLanguage,
-          taskType: detectedTaskType || 'skill_learning',
-          currentProficiency: currentProficiency,
-          targetProficiency: targetProficiency,
-          clarificationResponses: {} // 空
-        });
-        if (result.learningPlan) {
-          setLearningPlan(result.learningPlan);
-          setShowLearningPlan(true);
-        }
-        if (result.subtasks && result.subtasks.length > 0) {
-          setSubtasks(result.subtasks);
-          const { availableDays } = calculateTimeConstraint(dueDate);
-          const contextMessage = getTaskTypeMessage(
-            'skill_learning',
-            result.subtasks.length,
-            availableDays,
-            currentProficiency,
-            targetProficiency
-          );
-          Alert.alert("🤖 AI 學習計劃已生成", `✅ 已生成 ${result.subtasks.length} 個個人化子任務\n\n${contextMessage}`);
-        } else {
-          Alert.alert("⚠️ 警告", "未能生成子任務，請稍後再試。");
-        }
+        await generateDirectUnifiedPlan();
       }
     } catch (error) {
       log.error("❌ Unified learning plan generation failed:", error);
