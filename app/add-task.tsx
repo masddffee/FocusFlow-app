@@ -22,6 +22,8 @@ import DatePicker from "@/components/DatePicker";
 import PersonalizationModal from "@/components/task-creation/PersonalizationModal";
 import LearningPlanModal from "@/components/task-creation/LearningPlanModal";
 import QualityAlert from "@/components/task-creation/QualityAlert";
+import TaskBasicForm from "@/components/task-creation/TaskBasicForm";
+import TaskSettings from "@/components/task-creation/TaskSettings";
 import { useTaskStore } from "@/store/taskStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel } from "@/types/task";
@@ -49,7 +51,9 @@ export default function AddTaskScreen() {
   const [subtasks, setSubtasks] = useState<EnhancedSubtask[]>([]);
   const [newSubtask, setNewSubtask] = useState("");
   const [autoSchedule, setAutoSchedule] = useState(true);
-  // 🔧 移除複雜的排程模式變數 - showSchedulingOptions removed as unused
+  const [schedulingMode, setSchedulingMode] = useState<"balanced" | "focused" | "flexible">("balanced");
+  const [startNextDay, setStartNextDay] = useState(false);
+  const [showSchedulingOptions, setShowSchedulingOptions] = useState(false);
   
   // Enhanced clarification workflow states
   const [showQualityAlert, setShowQualityAlert] = useState(false);
@@ -813,51 +817,31 @@ export default function AddTaskScreen() {
       />
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.taskTitle')}</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t('addTask.taskTitlePlaceholder')}
-            placeholderTextColor={Colors.light.subtext}
-          />
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.description')}</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder={t('addTask.descriptionPlaceholder')}
-            placeholderTextColor={Colors.light.subtext}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
+        <TaskBasicForm
+          title={title}
+          description={description}
+          onTitleChange={setTitle}
+          onDescriptionChange={setDescription}
+          detectedTaskType={detectedTaskType}
+        />
 
-        {/* Task Type Detection Display */}
-        {detectedTaskType && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('addTask.aiDetectedType')}</Text>
-            <View style={styles.detectedTypeContainer}>
-              <View style={[
-                styles.detectedTypeBadge,
-                { backgroundColor: Colors.light.primary }
-              ]}>
-                <Text style={styles.detectedTypeIcon}>{getTaskTypeIcon(detectedTaskType)}</Text>
-                <Text style={styles.detectedTypeText}>
-                  {t(`taskTypes.${detectedTaskType}`)}
-                </Text>
-              </View>
-              <Text style={styles.detectedTypeDescription}>
-                {getTaskTypeDescription(detectedTaskType)}
-              </Text>
-            </View>
-          </View>
-        )}
+        <TaskSettings
+          dueDate={dueDate}
+          onDueDateChange={setDueDate}
+          timeConstraintMessage={dueDate ? calculateTimeConstraint(dueDate).timeContext : undefined}
+          priority={priority}
+          onPriorityChange={setPriority}
+          difficulty={difficulty}
+          onDifficultyChange={setDifficulty}
+          autoSchedule={autoSchedule}
+          schedulingMode={schedulingMode}
+          startNextDay={startNextDay}
+          showSchedulingOptions={showSchedulingOptions}
+          onAutoScheduleChange={setAutoSchedule}
+          onSchedulingModeChange={setSchedulingMode}
+          onStartNextDayChange={setStartNextDay}
+          onToggleSchedulingOptions={() => setShowSchedulingOptions(!showSchedulingOptions)}
+        />
 
         {/* Quality Alert Modal */}
         <QualityAlert
@@ -867,176 +851,6 @@ export default function AddTaskScreen() {
           onContinue={handleQualityAlertSkip}
           onImprove={handleQualityAlertContinue}
         />
-        
-        <View style={styles.inputGroup}>
-          <View style={styles.dueDateHeader}>
-            <Text style={styles.label}>Due Date (Optional)</Text>
-            <Calendar size={16} color={Colors.light.primary} />
-          </View>
-          <DatePicker
-            selectedDate={dueDate}
-            onDateSelect={setDueDate}
-            placeholder={t('addTask.dueDatePlaceholder')}
-            minDate={new Date()}
-          />
-          {dueDate && (
-            <View style={styles.timeConstraintInfo}>
-              <Text style={styles.timeConstraintText}>
-                {calculateTimeConstraint(dueDate).timeContext}
-              </Text>
-            </View>
-          )}
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.priority')}</Text>
-          <View style={styles.difficultyContainer}>
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                priority === "low" && styles.difficultyButtonActive,
-                priority === "low" && { backgroundColor: Colors.light.success },
-              ]}
-              onPress={() => setPriority("low")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  priority === "low" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('priority.low')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                priority === "medium" && styles.difficultyButtonActive,
-                priority === "medium" && { backgroundColor: Colors.light.warning },
-              ]}
-              onPress={() => setPriority("medium")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  priority === "medium" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('priority.medium')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                priority === "high" && styles.difficultyButtonActive,
-                priority === "high" && { backgroundColor: Colors.light.error },
-              ]}
-              onPress={() => setPriority("high")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  priority === "high" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('priority.high')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('addTask.difficulty')}</Text>
-          <View style={styles.difficultyContainer}>
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                difficulty === "easy" && styles.difficultyButtonActive,
-                difficulty === "easy" && { backgroundColor: Colors.light.success },
-              ]}
-              onPress={() => setDifficulty("easy")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  difficulty === "easy" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('difficulty.easy')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                difficulty === "medium" && styles.difficultyButtonActive,
-                difficulty === "medium" && { backgroundColor: Colors.light.warning },
-              ]}
-              onPress={() => setDifficulty("medium")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  difficulty === "medium" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('difficulty.medium')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.difficultyButton,
-                difficulty === "hard" && styles.difficultyButtonActive,
-                difficulty === "hard" && { backgroundColor: Colors.light.error },
-              ]}
-              onPress={() => setDifficulty("hard")}
-            >
-              <Text
-                style={[
-                  styles.difficultyText,
-                  difficulty === "hard" && styles.difficultyTextActive,
-                ]}
-              >
-                {t('difficulty.hard')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        {autoSchedulingEnabled && !taskId && (
-          <View style={styles.inputGroup}>
-            <View style={styles.autoScheduleContainer}>
-              <View style={styles.autoScheduleInfo}>
-                <Zap size={20} color={Colors.light.primary} />
-                <View style={styles.autoScheduleText}>
-                  <Text style={styles.autoScheduleTitle}>AI Auto-Schedule</Text>
-                  <Text style={styles.autoScheduleDescription}>
-                    Automatically estimate duration and find the best time slot based on your availability, task priority, and deadline
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[
-                  styles.toggleButton,
-                  autoSchedule && styles.toggleButtonActive,
-                ]}
-                onPress={() => setAutoSchedule(!autoSchedule)}
-              >
-                <View
-                  style={[
-                    styles.toggleIndicator,
-                    autoSchedule && styles.toggleIndicatorActive,
-                  ]}
-                />
-              </TouchableOpacity>
-            </View>
-            
-            {/* 🔧 簡化：移除複雜的排程選項UI */}
-          </View>
-        )}
         
         <View style={styles.inputGroup}>
           <View style={styles.subtaskHeader}>
@@ -1349,143 +1163,6 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
-  },
-  dueDateHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Theme.spacing.xs,
-    marginBottom: Theme.spacing.xs,
-  },
-  timeConstraintInfo: {
-    backgroundColor: Colors.light.warning + "15",
-    borderWidth: 1,
-    borderColor: Colors.light.warning + "30",
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.sm,
-    marginTop: Theme.spacing.xs,
-  },
-  timeConstraintText: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.warning,
-    fontWeight: "500",
-    lineHeight: 18,
-  },
-  detectedTypeContainer: {
-    backgroundColor: Colors.light.card,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  detectedTypeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: Theme.spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Theme.radius.sm,
-    marginBottom: Theme.spacing.xs,
-    gap: 4,
-  },
-  detectedTypeIcon: {
-    fontSize: 14,
-  },
-  detectedTypeText: {
-    fontSize: Theme.typography.sizes.sm,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  detectedTypeDescription: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.subtext,
-    lineHeight: 18,
-  },
-  detectedTypeInModal: {
-    backgroundColor: Colors.light.primary + "15",
-    borderRadius: Theme.radius.sm,
-    padding: Theme.spacing.sm,
-    marginTop: Theme.spacing.sm,
-    alignSelf: "flex-start",
-  },
-  detectedTypeInModalText: {
-    fontSize: Theme.typography.sizes.sm,
-    fontWeight: "600",
-    color: Colors.light.primary,
-  },
-  difficultyContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  difficultyButton: {
-    flex: 1,
-    paddingVertical: Theme.spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: Theme.radius.md,
-    alignItems: "center",
-    marginHorizontal: 4,
-    backgroundColor: Colors.light.card,
-  },
-  difficultyButtonActive: {
-    borderColor: "transparent",
-  },
-  difficultyText: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-  },
-  difficultyTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  autoScheduleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: Colors.light.card,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.md,
-  },
-  autoScheduleInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  autoScheduleText: {
-    marginLeft: Theme.spacing.sm,
-    flex: 1,
-  },
-  autoScheduleTitle: {
-    fontSize: Theme.typography.sizes.md,
-    fontWeight: "600",
-    color: Colors.light.text,
-  },
-  autoScheduleDescription: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.subtext,
-    marginTop: 2,
-  },
-  toggleButton: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.light.border,
-    justifyContent: "center",
-    paddingHorizontal: 2,
-  },
-  toggleButtonActive: {
-    backgroundColor: Colors.light.primary,
-  },
-  toggleIndicator: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#FFFFFF",
-    alignSelf: "flex-start",
-  },
-  toggleIndicatorActive: {
-    alignSelf: "flex-end",
   },
   subtaskHeader: {
     flexDirection: "row",
