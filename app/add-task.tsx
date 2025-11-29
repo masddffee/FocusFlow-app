@@ -460,58 +460,61 @@ export default function AddTaskScreen() {
     setTempDuration("");
   };
 
+  // Helper: Calculate total duration from subtasks or estimate
+  const calculateTotalDuration = async (): Promise<number> => {
+    if (subtasks.length > 0) {
+      const total = subtasks.reduce((sum, subtask) => {
+        return sum + (subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60);
+      }, 0);
+      return Math.round(total * 1.1); // Add 10% buffer
+    }
+
+    try {
+      return await estimateTaskDuration(title, description, difficulty as string, subtasks);
+    } catch (error) {
+      log.error("Duration estimation failed:", error);
+      return 60; // Default to 1 hour
+    }
+  };
+
+  // Helper: Prepare task data object
+  const prepareTaskData = (totalDuration: number) => {
+    return {
+      title: title.trim(),
+      description: description.trim(),
+      dueDate: dueDate.trim(),
+      difficulty: difficulty as TaskDifficulty | undefined,
+      priority: priority as "low" | "medium" | "high" | undefined,
+      subtasks: subtasks,
+      duration: totalDuration,
+      learningPlan: learningPlan || undefined,
+      taskType: detectedTaskType || "general",
+      currentProficiency: currentProficiency,
+      targetProficiency: targetProficiency,
+      reviewSchedule: (detectedTaskType === "skill_learning" || detectedTaskType === "exam_preparation") ? {
+        enabled: true,
+        nextReviewDate: dueDate ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined,
+        reviewInterval: 3,
+        reviewCount: 0,
+        masteryLevel: 0,
+      } : undefined,
+    };
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       Alert.alert("Error", "Task title is required");
       return;
     }
-    
-    // Prevent multiple saves
-    if (isEstimatingDuration) {
-      return;
-    }
-    
+
+    if (isEstimatingDuration) return; // Prevent multiple saves
+
     setIsEstimatingDuration(true);
-    
+
     try {
-      // Calculate total duration from subtasks or estimate
-      let totalDuration = 0;
-      if (subtasks.length > 0) {
-        totalDuration = subtasks.reduce((total, subtask) => {
-          return total + (subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60);
-        }, 0);
-        // Add 10% buffer for transitions
-        totalDuration = Math.round(totalDuration * 1.1);
-      } else {
-        try {
-          totalDuration = await estimateTaskDuration(title, description, difficulty as string, subtasks);
-        } catch (error) {
-          log.error("Duration estimation failed:", error);
-          totalDuration = 60; // Default to 1 hour
-        }
-      }
-      
-      const taskData = {
-        title: title.trim(),
-        description: description.trim(),
-        dueDate: dueDate.trim(),
-        difficulty: difficulty as TaskDifficulty | undefined,
-        priority: priority as "low" | "medium" | "high" | undefined,
-        subtasks: subtasks,
-        duration: totalDuration,
-        learningPlan: learningPlan || undefined,
-        taskType: detectedTaskType || "general",
-        currentProficiency: currentProficiency,
-        targetProficiency: targetProficiency,
-        reviewSchedule: (detectedTaskType === "skill_learning" || detectedTaskType === "exam_preparation") ? {
-          enabled: true,
-          nextReviewDate: dueDate ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined,
-          reviewInterval: 3,
-          reviewCount: 0,
-          masteryLevel: 0,
-        } : undefined,
-      };
-      
+      const totalDuration = await calculateTotalDuration();
+      const taskData = prepareTaskData(totalDuration);
+
       if (taskId) {
         updateTask(taskId, taskData);
         Alert.alert("Success", "Task updated successfully", [
