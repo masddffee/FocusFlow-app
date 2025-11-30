@@ -60,7 +60,9 @@ export const getPhaseIcon = (phase?: string): string => {
       return "🤔";
     case "output":
       return "📝";
+    case "review":
+      return "🔄";
     default:
-      return "📋";
+      return "⏱️";
   }
 };
