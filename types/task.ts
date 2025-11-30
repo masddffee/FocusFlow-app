@@ -1,4 +1,4 @@
-export type TaskDifficulty = "easy" | "medium" | "hard";
+export type TaskDifficulty = "easy" | "medium" | "hard" | "expert";
 export type TaskCategory = "work" | "study" | "personal" | "health" | "other";
 export type LearningPhase = "knowledge" | "practice" | "application" | "reflection" | "output" | "review";
 export type ProficiencyLevel = "complete_beginner" | "beginner" | "intermediate" | "advanced" | "expert";
@@ -80,7 +80,7 @@ export interface EnhancedSubtask {
   category?: string;
   completed: boolean;
   completedAt?: string; // ISO date when completed
-  
+
   // 🆕 進度追蹤功能
   timeSpent?: number; // 已投入的時間（分鐘）
   remainingTime?: number; // 剩餘時間（分鐘），若未設定則計算 totalDuration - timeSpent
@@ -108,13 +108,15 @@ export interface EnhancedSubtask {
   }[];
   lastStudiedAt?: string; // 最後學習時間
   studyNotes?: string[]; // 學習筆記記錄
-  
+
   // 🆕 時間切割支援
   canBeSplit?: boolean; // 是否可以被切割成多個時段
   minSessionDuration?: number; // 最小學習時段（分鐘），預設 25 分鐘
   maxSessionDuration?: number; // 最大學習時段（分鐘），預設 120 分鐘
   scheduledSegments?: SubtaskSegment[]; // 已排程的時間片段
-  
+  startDate?: string; // 子任務開始日期（ISO 8601 格式）
+  endDate?: string; // 子任務結束日期（ISO 8601 格式）
+
   // 🆕 學習統計和效率分析
   learningStats?: {
     totalSessions: number;
@@ -122,7 +124,7 @@ export interface EnhancedSubtask {
     learningEfficiency: number; // 0.5-1.2 範圍，1.0 為標準效率
     lastUpdated: string;
   };
-  
+
   skills?: string[]; // Specific skills this subtask develops/requires
   resources?: string[]; // Recommended resources (deprecated, use recommendedResources)
   recommendedResources?: string[]; // Enhanced: specific, high-quality resources like textbook chapters, online courses, tools
