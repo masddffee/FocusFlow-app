@@ -102,11 +102,11 @@ export default function AddTaskScreen() {
 
   // Fix Bug 6: Add useCallback optimization to prevent unnecessary re-renders
   const handlePersonalizationResponse = useCallback((questionId: string, response: string) => {
-    setClarificationResponses(prev => ({
-      ...prev,
+    setClarificationResponses({
+      ...clarificationResponses,
       [questionId]: response
-    }));
-  }, []); // No dependencies needed since we use functional update
+    });
+  }, [clarificationResponses, setClarificationResponses]);
 
   const {
     handleSmartGenerate,
