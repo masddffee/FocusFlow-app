@@ -63,6 +63,70 @@ FocusFlow 是一款基於 AI 的智慧學習計劃與專注管理應用程式，
 - **ESLint** 程式碼品質檢查
 - **統一日誌系統** 開發與產品環境日誌管理
 
+## 🚀 快速開始
+
+### 環境需求
+- **Node.js** 18+
+- **npm** 或 **yarn**
+- **Expo CLI**
+- **Android Studio** (Android 開發)
+- **Xcode** (iOS 開發，僅限 macOS)
+
+### 安裝與啟動
+
+1. **複製專案**
+```bash
+git clone https://github.com/your-username/FocusFlow.git
+cd FocusFlow
+```
+
+2. **安裝依賴**
+```bash
+npm install
+cd focusflow-backend && npm install && cd ..
+```
+
+3. **環境配置**
+```bash
+# 複製環境變數檔案
+cp focusflow-backend/.env.example focusflow-backend/.env
+
+# 編輯 .env 檔案，設定 Gemini API Key
+nano focusflow-backend/.env
+```
+
+4. **啟動開發環境**
+```bash
+# 同時啟動前端和後端
+npm run dev
+
+# 或分別啟動
+npm run backend    # 後端服務 (port 3001)
+npm start         # 前端應用
+```
+
+5. **行動裝置測試**
+```bash
+# Android
+npm run android
+
+# iOS (僅限 macOS)
+npm run ios
+
+# Web 版本
+npm run web
+```
+
+### Gemini API 設定
+
+1. 取得 Google Gemini API Key：[Google AI Studio](https://makersuite.google.com/app/apikey)
+2. 在 `focusflow-backend/.env` 中設定：
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+DEFAULT_MODEL=gemini-2.5-flash
+LOG_LEVEL=DEBUG
+```
+
 ## 📱 主要頁面與功能
 
 ### 🏠 首頁 (app/(tabs)/index.tsx)
@@ -208,7 +272,7 @@ NODE_ENV=development
 
 ## 📄 授權
 
-此專案採用 MIT 授權條款 - 詳見 [LICENSE](LICENSE) 檔案
+此專案採用 MIT 授權條款
 
 ---
 
