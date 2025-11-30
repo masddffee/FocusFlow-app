@@ -193,22 +193,35 @@ export const useTaskSubmission = (taskId?: string) => {
     };
 
     // Helper: Prepare task data object
-    const prepareTaskData = (totalDuration: number) => {
+    // Fixed: All dependencies passed as parameters to avoid closure issues during async operations
+    const prepareTaskData = (
+        totalDuration: number,
+        currentTitle: string,
+        currentDescription: string,
+        currentDueDate: string,
+        currentDifficulty: TaskDifficulty | "",
+        currentPriority: "low" | "medium" | "high" | "",
+        currentSubtasks: any[],
+        currentLearningPlan: any,
+        currentTaskType: any,
+        currentCurrentProficiency: ProficiencyLevel,
+        currentTargetProficiency: ProficiencyLevel
+    ) => {
         return {
-            title: title.trim(),
-            description: description.trim(),
-            dueDate: dueDate.trim(),
-            difficulty: difficulty as TaskDifficulty | undefined,
-            priority: priority as "low" | "medium" | "high" | undefined,
-            subtasks: subtasks,
+            title: currentTitle.trim(),
+            description: currentDescription.trim(),
+            dueDate: currentDueDate.trim(),
+            difficulty: currentDifficulty as TaskDifficulty | undefined,
+            priority: currentPriority as "low" | "medium" | "high" | undefined,
+            subtasks: currentSubtasks,
             duration: totalDuration,
-            learningPlan: learningPlan || undefined,
-            taskType: detectedTaskType || "general",
-            currentProficiency: currentProficiency,
-            targetProficiency: targetProficiency,
-            reviewSchedule: (detectedTaskType === "skill_learning" || detectedTaskType === "exam_preparation") ? {
+            learningPlan: currentLearningPlan || undefined,
+            taskType: currentTaskType || "general",
+            currentProficiency: currentCurrentProficiency,
+            targetProficiency: currentTargetProficiency,
+            reviewSchedule: (currentTaskType === "skill_learning" || currentTaskType === "exam_preparation") ? {
                 enabled: true,
-                nextReviewDate: dueDate ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined,
+                nextReviewDate: currentDueDate ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined,
                 reviewInterval: 3,
                 reviewCount: 0,
                 masteryLevel: 0,
@@ -393,7 +406,20 @@ export const useTaskSubmission = (taskId?: string) => {
 
         try {
             const totalDuration = await calculateTotalDuration();
-            const taskData = prepareTaskData(totalDuration);
+            // Capture current state values before async operations
+            const taskData = prepareTaskData(
+                totalDuration,
+                title,
+                description,
+                dueDate,
+                difficulty,
+                priority,
+                subtasks,
+                learningPlan,
+                detectedTaskType,
+                currentProficiency,
+                targetProficiency
+            );
 
             if (taskId) {
                 updateTask(taskId, taskData);
