@@ -33,6 +33,12 @@ import { useTimerStore } from "@/store/timerStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { formatDuration } from "@/utils/timeUtils";
 import { taskDetailStyles as styles } from "@/styles/task-detail-styles";
+import { getPhaseColor, getPhaseLabel, getPhaseIcon } from "@/utils/phaseUtils";
+import { getPhaseStats } from "@/utils/subtaskUtils";
+import { getDifficultyColor } from "@/utils/colorUtils";
+import { getTaskTypeIcon, getTaskTypeLabel } from "@/utils/taskCreation";
+import { useSubtaskExpansion } from "@/hooks/useSubtaskExpansion";
+import { useDeadlineExtension } from "@/hooks/useDeadlineExtension";
 
 export default function TaskDetailScreen() {
   const { t } = useTranslation();
@@ -43,14 +49,22 @@ export default function TaskDetailScreen() {
   const { tasks, toggleTaskCompletion, deleteTask, toggleSubtaskCompletion, updateTask } = useTaskStore();
   const { startSession, getSessionsByTaskId } = useTimerStore();
   const { language } = useSettingsStore();
-  
+
   const [showSubtasks, setShowSubtasks] = useState(true);
-  const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
-  const [showExtendDeadlineModal, setShowExtendDeadlineModal] = useState(false);
-  const [newDeadline, setNewDeadline] = useState<string>("");
-  
+
   const task = tasks.find(t => t.id === taskId);
   const sessions = getSessionsByTaskId(taskId);
+
+  // Use custom hooks for subtask expansion and deadline extension
+  const { expandedSubtasks, toggleExpansion: toggleSubtaskExpansion } = useSubtaskExpansion();
+  const {
+    showModal: showExtendDeadlineModal,
+    newDeadline,
+    setNewDeadline,
+    openModal: openExtendDeadlineModal,
+    closeModal: closeExtendDeadlineModal,
+    handleConfirm: handleExtendDeadline
+  } = useDeadlineExtension(task || {} as any, language, updateTask);
   
   const totalTimeSpent = sessions.reduce((total, session) => total + session.duration, 0);
   
@@ -64,9 +78,9 @@ export default function TaskDetailScreen() {
   // 檢查是否需要打開延長截止日期對話框
   useEffect(() => {
     if (action === "extendDeadline") {
-      setShowExtendDeadlineModal(true);
+      openExtendDeadlineModal();
     }
-  }, [action, taskId]);
+  }, [action, taskId, openExtendDeadlineModal]);
   
   if (!task) {
     return (
@@ -120,188 +134,6 @@ export default function TaskDetailScreen() {
     toggleSubtaskCompletion(taskId, subtaskId);
   };
 
-  // 處理延長截止日期
-  const handleExtendDeadline = () => {
-    if (!newDeadline) {
-      Alert.alert(
-        language === 'zh' ? "請選擇日期" : "Please Select Date",
-        language === 'zh' ? "請選擇新的截止日期" : "Please select a new deadline"
-      );
-      return;
-    }
-
-    try {
-      // 驗證新日期必須大於當前日期
-      const selectedDate = new Date(newDeadline);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (selectedDate <= today) {
-        Alert.alert(
-          language === 'zh' ? "無效日期" : "Invalid Date",
-          language === 'zh' ? "新截止日期必須大於今天" : "New deadline must be later than today"
-        );
-        return;
-      }
-
-      // 更新任務截止日期
-      updateTask(taskId, {
-        ...task,
-        dueDate: newDeadline
-      });
-
-
-      Alert.alert(
-        language === 'zh' ? "延長成功" : "Extension Successful",
-        language === 'zh' 
-          ? `任務截止日期已延長至 ${selectedDate.toLocaleDateString('zh-CN')}` 
-          : `Task deadline extended to ${selectedDate.toLocaleDateString('en-US')}`,
-        [{ text: language === 'zh' ? "確定" : "OK" }]
-      );
-
-      setShowExtendDeadlineModal(false);
-      setNewDeadline("");
-
-    } catch (error) {
-      console.error("延長截止日期失敗:", error);
-      Alert.alert(
-        language === 'zh' ? "延長失敗" : "Extension Failed",
-        language === 'zh' ? "無法延長截止日期，請稍後再試" : "Unable to extend deadline, please try again later"
-      );
-    }
-  };
-
-  const toggleSubtaskExpansion = (subtaskId: string) => {
-    setExpandedSubtasks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(subtaskId)) {
-        newSet.delete(subtaskId);
-      } else {
-        newSet.add(subtaskId);
-      }
-      return newSet;
-    });
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "easy":
-        return Colors.light.success;
-      case "medium":
-        return Colors.light.warning;
-      case "hard":
-        return Colors.light.error;
-      default:
-        return Colors.light.subtext;
-    }
-  };
-
-  const getPhaseColor = (phase?: string) => {
-    switch (phase) {
-      case "knowledge":
-        return "#3B82F6"; // Blue
-      case "practice":
-        return "#10B981"; // Green
-      case "application":
-        return "#F59E0B"; // Orange
-      case "reflection":
-        return "#8B5CF6"; // Purple
-      case "output":
-        return "#EF4444"; // Red
-      default:
-        return Colors.light.subtext;
-    }
-  };
-
-  const getPhaseLabel = (phase?: string) => {
-    switch (phase) {
-      case "knowledge":
-        return t('phases.knowledge');
-      case "practice":
-        return t('phases.practice');
-      case "application":
-        return t('phases.application');
-      case "reflection":
-        return t('phases.reflection');
-      case "output":
-        return t('phases.output');
-      case "review":
-        return t('phases.review');
-      default:
-        return "";
-    }
-  };
-
-  const getPhaseIcon = (phase?: string) => {
-    switch (phase) {
-      case "knowledge":
-        return "📚";
-      case "practice":
-        return "🛠️";
-      case "application":
-        return "🎯";
-      case "reflection":
-        return "🤔";
-      case "output":
-        return "📝";
-      default:
-        return "📋";
-    }
-  };
-
-  const getPhaseStats = (): Record<string, number> => {
-    if (!task.subtasks) return {};
-    
-    const phaseCount: Record<string, number> = {
-      knowledge: 0,
-      practice: 0,
-      application: 0,
-      reflection: 0,
-      output: 0,
-    };
-
-    task.subtasks.forEach(subtask => {
-      if (subtask.phase && phaseCount.hasOwnProperty(subtask.phase)) {
-        phaseCount[subtask.phase]++;
-      }
-    });
-
-    return phaseCount;
-  };
-
-  const getTaskTypeIcon = (taskType?: string) => {
-    switch (taskType) {
-      case "exam_preparation":
-        return "🎓";
-      case "skill_learning":
-        return "🎯";
-      case "project_completion":
-        return "🚀";
-      case "habit_building":
-        return "🔄";
-      case "challenge":
-        return "⚡";
-      default:
-        return "📋";
-    }
-  };
-
-  const getTaskTypeLabel = (taskType?: string) => {
-    switch (taskType) {
-      case "exam_preparation":
-        return "Exam Prep";
-      case "skill_learning":
-        return "Skill Learning";
-      case "project_completion":
-        return "Project";
-      case "habit_building":
-        return "Habit";
-      case "challenge":
-        return "Challenge";
-      default:
-        return "General";
-    }
-  };
   
   return (
     <View style={styles.container}>
@@ -697,7 +529,7 @@ export default function TaskDetailScreen() {
         visible={showExtendDeadlineModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowExtendDeadlineModal(false)}
+        onRequestClose={() => closeExtendDeadlineModal()}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -705,7 +537,7 @@ export default function TaskDetailScreen() {
               {language === 'zh' ? "延長任務截止日期" : "Extend Task Deadline"}
             </Text>
             <TouchableOpacity 
-              onPress={() => setShowExtendDeadlineModal(false)}
+              onPress={() => closeExtendDeadlineModal()}
               style={styles.modalCloseButton}
             >
               <X size={24} color={Colors.light.text} />
@@ -748,7 +580,7 @@ export default function TaskDetailScreen() {
           <View style={styles.modalFooter}>
             <TouchableOpacity 
               style={styles.cancelButton} 
-              onPress={() => setShowExtendDeadlineModal(false)}
+              onPress={() => closeExtendDeadlineModal()}
             >
               <Text style={styles.cancelButtonText}>
                 {language === 'zh' ? "取消" : "Cancel"}
