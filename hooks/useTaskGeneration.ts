@@ -217,40 +217,11 @@ export function useTaskGeneration() {
     setPhase('generating');
 
     try {
-      // 🔧 從回答中提取熟練度 (保留原有邏輯)
-      let extractedCurrentProficiency = options.currentProficiency;
-      let extractedTargetProficiency = options.targetProficiency;
-
-      Object.entries(clarificationResponses).forEach(([questionId, answer]) => {
-        const question = clarifyingQuestions.find(q => q.id === questionId)?.question.toLowerCase() || '';
-        const answerLower = answer.toLowerCase();
-        
-        if (question.includes('experience') || question.includes('level') || question.includes('current')) {
-          if (answerLower.includes('never') || answerLower.includes('no experience')) {
-            extractedCurrentProficiency = "complete_beginner";
-          } else if (answerLower.includes('beginner') || answerLower.includes('basic')) {
-            extractedCurrentProficiency = "beginner";
-          } else if (answerLower.includes('intermediate') || answerLower.includes('some experience')) {
-            extractedCurrentProficiency = "intermediate";
-          } else if (answerLower.includes('advanced') || answerLower.includes('experienced')) {
-            extractedCurrentProficiency = "advanced";
-          } else if (answerLower.includes('expert') || answerLower.includes('professional')) {
-            extractedCurrentProficiency = "expert";
-          }
-        }
-        
-        if (question.includes('goal') || question.includes('target') || question.includes('achieve')) {
-          if (answerLower.includes('basic') || answerLower.includes('understand basics')) {
-            extractedTargetProficiency = "beginner";
-          } else if (answerLower.includes('intermediate') || answerLower.includes('practical')) {
-            extractedTargetProficiency = "intermediate";
-          } else if (answerLower.includes('advanced') || answerLower.includes('proficient')) {
-            extractedTargetProficiency = "advanced";
-          } else if (answerLower.includes('expert') || answerLower.includes('teach others')) {
-            extractedTargetProficiency = "expert";
-          }
-        }
-      });
+      // Fixed: Trust the parameters or API-returned proficiency levels
+      // Removed unreliable string matching that only worked for English
+      // The backend API should return structured proficiency data in the response
+      const extractedCurrentProficiency = options.currentProficiency;
+      const extractedTargetProficiency = options.targetProficiency;
 
       const currentLanguage = useSettingsStore.getState().language;
       
