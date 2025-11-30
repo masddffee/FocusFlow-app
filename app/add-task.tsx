@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Text,
   View,
@@ -12,13 +12,11 @@ import {
   Modal
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Plus, Trash2, Save, Zap, Brain, HelpCircle, ArrowRight, Clock, Edit3, Lightbulb, AlertCircle, BookOpen, ExternalLink, Calendar } from "lucide-react-native";
+import { Save, Zap, Brain } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import Colors from "@/constants/colors";
-import Theme from "@/constants/theme";
 import Button from "@/components/Button";
 import { addTaskStyles as styles } from "./add-task.styles";
-import DatePicker from "@/components/DatePicker";
 import PersonalizationModal from "@/components/task-creation/PersonalizationModal";
 import LearningPlanModal from "@/components/task-creation/LearningPlanModal";
 import QualityAlert from "@/components/task-creation/QualityAlert";
@@ -26,65 +24,65 @@ import TaskBasicForm from "@/components/task-creation/TaskBasicForm";
 import TaskSettings from "@/components/task-creation/TaskSettings";
 import SubtaskDisplay from "@/components/task-creation/SubtaskDisplay";
 import { useTaskStore } from "@/store/taskStore";
+import { useTaskCreationStore } from "@/store/useTaskCreationStore";
 import { useSettingsStore } from "@/store/settingsStore";
-import { TaskDifficulty, ClarifyingQuestion, EnhancedSubtask, LearningPlan, ProficiencyLevel } from "@/types/task";
-import { 
-  generateEnhancedSubtasks as backendGenerateSubtasks,
-  generateUnifiedLearningPlan,
-  estimateTaskDuration,
-  estimateSubtaskDuration
-} from "@/utils/api";
-import { findAvailableTimeSlot, scheduleSubtasks, convertSubtaskSchedulesToTasks, analyzeSchedulingFeasibility, generateSchedulingSuggestions } from "@/utils/scheduling";
-import { calculateDaysUntil } from "@/utils/timeUtils";
-import { calculateTimeConstraint, getTaskTypeMessage, getTaskTypeLabel, getTaskTypeIcon, getProficiencyLabel } from "@/utils/taskCreation";
+import { getTaskTypeLabel } from "@/utils/taskCreation";
+import { useTaskSubmission } from "@/hooks/useTaskSubmission";
+import { calculateTimeConstraint } from "@/utils/taskCreation";
+import { generateUnifiedLearningPlan } from "@/utils/api";
 import { log } from "@/lib/logger";
-// Remove redundant import - now using getDynamicQuestions from API
 
 export default function AddTaskScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ id?: string }>();
   const taskId = params.id;
-  
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [difficulty, setDifficulty] = useState<TaskDifficulty | "">("");
-  const [priority, setPriority] = useState<"low" | "medium" | "high" | "">("");
-  const [subtasks, setSubtasks] = useState<EnhancedSubtask[]>([]);
-  const [newSubtask, setNewSubtask] = useState("");
-  const [autoSchedule, setAutoSchedule] = useState(true);
-  const [schedulingMode, setSchedulingMode] = useState<"balanced" | "focused" | "flexible">("balanced");
-  const [startNextDay, setStartNextDay] = useState(false);
-  const [showSchedulingOptions, setShowSchedulingOptions] = useState(false);
-  
-  // Enhanced clarification workflow states
-  const [showQualityAlert, setShowQualityAlert] = useState(false);
-  const [qualityIssues] = useState<string[]>([]);
-  const [showPersonalizationModal, setShowPersonalizationModal] = useState(false);
-  const [clarifyingQuestions, setClarifyingQuestions] = useState<ClarifyingQuestion[]>([]);
-  const [clarificationResponses, setClarificationResponses] = useState<Record<string, string>>({});
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
-  const [isEstimatingDuration, setIsEstimatingDuration] = useState(false);
-  const [learningPlan, setLearningPlan] = useState<LearningPlan | null>(null);
-  const [showLearningPlan, setShowLearningPlan] = useState(false);
-  const [detectedTaskType, setDetectedTaskType] = useState<"exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general" | undefined>(undefined);
-  
-  // Proficiency tracking states (internal only, not displayed)
-  const [currentProficiency, setCurrentProficiency] = useState<ProficiencyLevel>("beginner");
-  const [targetProficiency, setTargetProficiency] = useState<ProficiencyLevel>("intermediate");
-  
-  // Time estimation states
-  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
-  const [tempDuration, setTempDuration] = useState("");
-  
+
+  // Use Global Store
+  const {
+    title, setTitle,
+    description, setDescription,
+    dueDate, setDueDate,
+    difficulty, setDifficulty,
+    priority, setPriority,
+    subtasks, setSubtasks,
+    newSubtask, setNewSubtask,
+    autoSchedule, setAutoSchedule,
+    schedulingMode, setSchedulingMode,
+    startNextDay, setStartNextDay,
+
+    // Workflow
+    showQualityAlert, setShowQualityAlert,
+    qualityIssues, setQualityIssues,
+    showPersonalizationModal, setShowPersonalizationModal,
+    clarifyingQuestions, setClarifyingQuestions,
+    clarificationResponses, setClarificationResponses,
+    isAnalyzing, setIsAnalyzing,
+    isGeneratingSubtasks, setIsGeneratingSubtasks,
+    isEstimatingDuration, setIsEstimatingDuration,
+    learningPlan, setLearningPlan,
+    showLearningPlan, setShowLearningPlan,
+    detectedTaskType, setDetectedTaskType,
+
+    // Proficiency
+    currentProficiency, setCurrentProficiency,
+    targetProficiency, setTargetProficiency,
+
+    // UI
+    editingSubtaskId, setEditingSubtaskId,
+    resetForm, resetGenerationState
+  } = useTaskCreationStore();
+
   const { tasks, addTask, updateTask, scheduledTasks, addScheduledTask } = useTaskStore();
   const { availableTimeSlots, autoSchedulingEnabled } = useSettingsStore();
-  
+
+  // Fix Bug 5: Remove tasks dependency to avoid race condition
+  // Only load task data once when taskId changes, not every time tasks array updates
+  const hasLoadedTask = useRef(false);
+
   useEffect(() => {
     if (taskId) {
       const task = tasks.find(t => t.id === taskId);
-      if (task) {
+      if (task && !hasLoadedTask.current) {
         setTitle(task.title);
         setDescription(task.description || "");
         setDueDate(task.dueDate || "");
@@ -94,544 +92,40 @@ export default function AddTaskScreen() {
         setDetectedTaskType(task.taskType || undefined);
         setCurrentProficiency(task.currentProficiency || "beginner");
         setTargetProficiency(task.targetProficiency || "intermediate");
+        hasLoadedTask.current = true;
       }
+    } else {
+      resetForm();
+      hasLoadedTask.current = false;
     }
-  }, [taskId, tasks]);
+  }, [taskId]); // Removed 'tasks' dependency
 
-  const handlePersonalizationResponse = (questionId: string, response: string) => {
+  // Fix Bug 6: Add useCallback optimization to prevent unnecessary re-renders
+  const handlePersonalizationResponse = useCallback((questionId: string, response: string) => {
     setClarificationResponses(prev => ({
       ...prev,
       [questionId]: response
     }));
-  };
+  }, []); // No dependencies needed since we use functional update
 
-  // Helper: Reset all generation states
-  const resetGenerationState = () => {
-    setIsAnalyzing(true);
-    setIsGeneratingSubtasks(true);
-    setShowQualityAlert(false);
-    setShowPersonalizationModal(false);
-    setLearningPlan(null);
-    setSubtasks([]);
-    setClarifyingQuestions([]);
-    setClarificationResponses({});
-  };
-
-  // Helper: Process direct generation result
-  const processDirectGenerationResult = (result: any) => {
-    if (result.learningPlan) {
-      setLearningPlan(result.learningPlan);
-      setShowLearningPlan(true);
-    }
-    if (result.subtasks && result.subtasks.length > 0) {
-      setSubtasks(result.subtasks);
-      const { availableDays } = calculateTimeConstraint(dueDate);
-      const contextMessage = getTaskTypeMessage(
-        'skill_learning',
-        result.subtasks.length,
-        availableDays,
-        currentProficiency,
-        targetProficiency
-      );
-      Alert.alert("🤖 AI 學習計劃已生成", `✅ 已生成 ${result.subtasks.length} 個個人化子任務\n\n${contextMessage}`);
-    } else {
-      Alert.alert("⚠️ 警告", "未能生成子任務，請稍後再試。");
-    }
-  };
-
-  // Helper: Generate unified plan without personalization
-  const generateDirectUnifiedPlan = async () => {
-    const currentLanguage = useSettingsStore.getState().language;
-    const result = await generateUnifiedLearningPlan({
-      title: title.trim(),
-      description: description.trim(),
-      language: currentLanguage,
-      taskType: detectedTaskType || 'skill_learning',
-      currentProficiency: currentProficiency,
-      targetProficiency: targetProficiency,
-      clarificationResponses: {}
-    });
-    processDirectGenerationResult(result);
-  };
-
-  const handleSmartGenerate = async () => {
-    if (!title.trim()) {
-      Alert.alert(t('errors.required'), t('addTask.taskTitlePlaceholder'));
-      return;
-    }
-
-    resetGenerationState();
-
-    try {
-      log.info("🚀 Using unified learning plan generation...");
-      const currentLanguage = useSettingsStore.getState().language;
-
-      const unifiedResponse = await generateUnifiedLearningPlan({
-        title: title.trim(),
-        description: description.trim(),
-        language: currentLanguage,
-        taskType: detectedTaskType || 'skill_learning',
-        currentProficiency: currentProficiency,
-        targetProficiency: targetProficiency
-      });
-
-      const { personalizationQuestions } = unifiedResponse;
-      if (personalizationQuestions && personalizationQuestions.length > 0) {
-        setClarifyingQuestions(personalizationQuestions);
-        setShowPersonalizationModal(true);
-      } else {
-        await generateDirectUnifiedPlan();
-      }
-    } catch (error) {
-      log.error("❌ Unified learning plan generation failed:", error);
-      Alert.alert("❌ 錯誤", "無法生成學習計劃。請檢查網路連接或稍後再試。");
-    } finally {
-      setIsAnalyzing(false);
-      setIsGeneratingSubtasks(false);
-    }
-  };
-
-  const handleQualityAlertContinue = () => {
-    setShowQualityAlert(false);
-    if (clarifyingQuestions.length > 0) {
-      setShowPersonalizationModal(true);
-    } else {
-      generateSubtasksDirectly(detectedTaskType, currentProficiency, targetProficiency);
-    }
-  };
-
-  const handleQualityAlertSkip = () => {
-    setShowQualityAlert(false);
-    generateSubtasksDirectly(detectedTaskType, currentProficiency, targetProficiency);
-  };
-
-  const generateSubtasksDirectly = async (
-    taskType?: "exam_preparation" | "skill_learning" | "project_completion" | "habit_building" | "challenge" | "general",
-    currentProf?: ProficiencyLevel,
-    targetProf?: ProficiencyLevel
-  ) => {
-    setIsGeneratingSubtasks(true);
-    
-    try {
-      // Use detected task type if not explicitly provided
-      const finalTaskType = taskType ?? detectedTaskType ?? "general";
-      const finalCurrentProficiency = currentProf ?? currentProficiency;
-      const finalTargetProficiency = targetProf ?? targetProficiency;
-      
-      // Calculate time constraint based on due date
-      const { availableDays } = calculateTimeConstraint(dueDate);
-      
-      // Generate enhanced subtasks with comprehensive context
-      const currentLanguage = useSettingsStore.getState().language;
-      const subtasksResponse = await backendGenerateSubtasks({
-        title, 
-        description, 
-        clarificationResponses, // Include personalization responses
-        dueDate, // Include deadline context
-        taskType: finalTaskType,
-        currentProficiency: finalCurrentProficiency,
-        targetProficiency: finalTargetProficiency,
-        language: currentLanguage
-      });
-      const enhancedSubtasks = subtasksResponse.subtasks || [];
-      
-      if (enhancedSubtasks.length > 0) {
-        setSubtasks(enhancedSubtasks);
-        const contextMessage = getTaskTypeMessage(finalTaskType, enhancedSubtasks.length, availableDays, finalCurrentProficiency, finalTargetProficiency);
-        Alert.alert("AI-Generated Learning Plan", contextMessage);
-      } else {
-        Alert.alert("Error", "Could not generate subtasks. Please try again or add them manually.");
-      }
-    } catch (error) {
-      log.error("Generate subtasks error:", error);
-      Alert.alert("Error", "Failed to generate subtasks. Please try again later.");
-    } finally {
-      setIsGeneratingSubtasks(false);
-    }
-  };
-
-  const handlePersonalizationComplete = async () => {
-    // 檢查所有必填問題
-    const unansweredRequired = clarifyingQuestions.filter(
-      q => q.required && !clarificationResponses[q.id]?.trim()
-    );
-    if (unansweredRequired.length > 0) {
-      Alert.alert("Missing Information", "Please answer all required questions before proceeding.");
-      return;
-    }
-    setShowPersonalizationModal(false);
-    setIsGeneratingSubtasks(true);
-    try {
-      // 生成個人化子任務與學習計劃
-      const currentLanguage = useSettingsStore.getState().language;
-      const result = await generateUnifiedLearningPlan({
-        title: title.trim(),
-        description: description.trim(),
-        language: currentLanguage,
-        taskType: detectedTaskType || 'skill_learning',
-        currentProficiency: currentProficiency,
-        targetProficiency: targetProficiency,
-        clarificationResponses
-      });
-      if (result.learningPlan) {
-        setLearningPlan(result.learningPlan);
-        setShowLearningPlan(true);
-      }
-      if (result.subtasks && result.subtasks.length > 0) {
-        setSubtasks(result.subtasks);
-        const { availableDays } = calculateTimeConstraint(dueDate);
-        const contextMessage = getTaskTypeMessage(
-          detectedTaskType || 'skill_learning',
-          result.subtasks.length,
-          availableDays,
-          currentProficiency,
-          targetProficiency
-        );
-        Alert.alert("Personalized Learning Plan Created", contextMessage);
-      } else {
-        Alert.alert("Error", "Could not generate personalized subtasks. Please try again or add them manually.");
-      }
-    } catch (error) {
-      log.error("Personalization complete error:", error);
-      Alert.alert("Error", "Failed to create personalized plan. Please try again later.");
-    } finally {
-      setIsGeneratingSubtasks(false);
-    }
-  };
-
-  const handleLearningPlanComplete = () => {
-    setShowLearningPlan(false);
-    const planType = getTaskTypeLabel(learningPlan?.taskType);
-    const { availableDays } = calculateTimeConstraint(dueDate);
-    Alert.alert(
-      `${planType} Plan Applied`,
-      `Generated ${subtasks.length} specific subtasks based on your personalized ${planType.toLowerCase()} plan.${availableDays > 0 ? ` Optimized for your ${availableDays}-day timeline.` : ""} You can edit durations and add more subtasks as needed.`
-    );
-  };
-
-  const handleAddSubtask = async () => {
-    if (newSubtask.trim()) {
-      // Estimate duration for the new subtask
-      let estimatedDuration = 60;
-      try {
-        estimatedDuration = await estimateSubtaskDuration(newSubtask.trim(), difficulty as string);
-      } catch (error) {
-        log.error("Failed to estimate subtask duration:", error);
-      }
-
-      // 🔧 修復：計算安全的順序值，確保不會與現有子任務衝突
-      const getNextSafeOrder = (existingSubtasks: EnhancedSubtask[]): number => {
-        if (existingSubtasks.length === 0) return 1;
-        
-        // 找到當前最大的 order 值
-        const maxOrder = Math.max(...existingSubtasks.map(s => s.order || 0));
-        return maxOrder + 1;
-      };
-
-      const newSubtaskObj: EnhancedSubtask = {
-        id: `subtask_${Date.now()}`,
-        title: `Manual Task ${getNextSafeOrder(subtasks)}`,
-        text: newSubtask.trim(),
-        aiEstimatedDuration: estimatedDuration,
-        difficulty: difficulty as TaskDifficulty || "medium",
-        order: getNextSafeOrder(subtasks), // 🔧 使用安全的順序計算
-        completed: false,
-        skills: [],
-        recommendedResources: [],
-        prerequisites: [],
-        phase: "practice",
-        taskType: detectedTaskType || "general",
-        proficiencyLevel: currentProficiency,
-        targetProficiency: targetProficiency,
-        learningPace: "moderate",
-        reviewStatus: "not_started",
-      };
-      setSubtasks([...subtasks, newSubtaskObj]);
-      setNewSubtask("");
-    }
-  };
-  
-  const handleRemoveSubtask = (id: string) => {
-    setSubtasks(subtasks.filter(subtask => subtask.id !== id));
-  };
-
-  const handleSubtaskDurationEdit = (subtask: EnhancedSubtask) => {
-    setEditingSubtaskId(subtask.id);
-    const duration = subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60;
-    setTempDuration(duration.toString());
-  };
-
-  const handleSubtaskDurationSave = (subtaskId: string) => {
-    const duration = parseInt(tempDuration);
-    if (!isNaN(duration) && duration > 0) {
-      setSubtasks(subtasks.map(subtask => 
-        subtask.id === subtaskId 
-          ? { ...subtask, userEstimatedDuration: duration }
-          : subtask
-      ));
-    }
-    setEditingSubtaskId(null);
-    setTempDuration("");
-  };
-
-  const handleSubtaskDurationCancel = () => {
-    setEditingSubtaskId(null);
-    setTempDuration("");
-  };
-
-  // Helper: Calculate total duration from subtasks or estimate
-  const calculateTotalDuration = async (): Promise<number> => {
-    if (subtasks.length > 0) {
-      const total = subtasks.reduce((sum, subtask) => {
-        return sum + (subtask.userEstimatedDuration || subtask.aiEstimatedDuration || 60);
-      }, 0);
-      return Math.round(total * 1.1); // Add 10% buffer
-    }
-
-    try {
-      return await estimateTaskDuration(title, description, difficulty as string, subtasks);
-    } catch (error) {
-      log.error("Duration estimation failed:", error);
-      return 60; // Default to 1 hour
-    }
-  };
-
-  // Helper: Prepare task data object
-  const prepareTaskData = (totalDuration: number) => {
-    return {
-      title: title.trim(),
-      description: description.trim(),
-      dueDate: dueDate.trim(),
-      difficulty: difficulty as TaskDifficulty | undefined,
-      priority: priority as "low" | "medium" | "high" | undefined,
-      subtasks: subtasks,
-      duration: totalDuration,
-      learningPlan: learningPlan || undefined,
-      taskType: detectedTaskType || "general",
-      currentProficiency: currentProficiency,
-      targetProficiency: targetProficiency,
-      reviewSchedule: (detectedTaskType === "skill_learning" || detectedTaskType === "exam_preparation") ? {
-        enabled: true,
-        nextReviewDate: dueDate ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined,
-        reviewInterval: 3,
-        reviewCount: 0,
-        masteryLevel: 0,
-      } : undefined,
-    };
-  };
-
-  const handleSave = async () => {
-    if (!title.trim()) {
-      Alert.alert("Error", "Task title is required");
-      return;
-    }
-
-    if (isEstimatingDuration) return; // Prevent multiple saves
-
-    setIsEstimatingDuration(true);
-
-    try {
-      const totalDuration = await calculateTotalDuration();
-      const taskData = prepareTaskData(totalDuration);
-
-      if (taskId) {
-        updateTask(taskId, taskData);
-        Alert.alert("Success", "Task updated successfully", [
-          { text: "OK", onPress: () => router.back() }
-        ]);
-      } else {
-        // Create new task
-        const newTaskId = Date.now().toString();
-        const newTask = {
-          id: newTaskId,
-          ...taskData,
-          completed: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        
-        addTask(taskData);
-        
-        // Auto-schedule if enabled
-        if (autoSchedule && autoSchedulingEnabled && availableTimeSlots) {
-          try {
-            // Schedule subtasks instead of the whole task
-            if (subtasks.length > 0) {
-              // 🆕 排程前可行性分析
-              const feasibilityAnalysis = analyzeSchedulingFeasibility(
-                { ...newTask, subtasks },
-                availableTimeSlots,
-                scheduledTasks,
-                [], // Calendar events - could be fetched if calendar sync is enabled
-                {
-                  startDate: new Date(),
-                  maxDaysToSearch: dueDate ? Math.max(30, calculateDaysUntil(dueDate)) : 90,
-                  bufferBetweenSubtasks: 5,
-                  respectPhaseOrder: false,
-                  dailyMaxHours: null,
-                }
-              );
-
-              // 🆕 生成智能建議
-              const suggestions = generateSchedulingSuggestions(feasibilityAnalysis, { ...newTask, subtasks });
-
-              if (!suggestions.shouldProceed) {
-                // 🆕 無法確保百分百排入，顯示詳細建議
-                Alert.alert(
-                  "⚠️ 自動排程分析",
-                  suggestions.userMessage,
-                  [
-                    { 
-                      text: "手動調整後重試", 
-                      style: "cancel" 
-                    },
-                    {
-                      text: "仍要建立任務",
-                      onPress: () => {
-                        Alert.alert(
-                          "任務已建立",
-                          "任務已成功建立，但未啟用自動排程。您可以稍後手動安排時間或調整設置後重新排程。",
-                          [{ text: "了解", onPress: () => router.back() }]
-                        );
-                      }
-                    }
-                  ]
-                );
-                return; // 不執行自動排程
-              }
-
-              // 🔧 修復：使用簡化的排程邏輯
-              const schedulingResult = scheduleSubtasks(
-                subtasks,
-                availableTimeSlots,
-                scheduledTasks,
-                [], // Calendar events - could be fetched if calendar sync is enabled
-                {
-                  startDate: new Date(),
-                  startNextDay: true, // 🔧 修復：確保從隔天開始排程
-                  maxDaysToSearch: dueDate ? Math.max(14, calculateDaysUntil(dueDate)) : 14
-                }
-              );
-              
-              if (schedulingResult.success) {
-                // Convert subtask schedules to scheduled tasks and save them
-                const subtaskScheduledTasks = convertSubtaskSchedulesToTasks(
-                  schedulingResult.scheduledSubtasks,
-                  newTaskId
-                );
-                
-                // Add all scheduled subtasks
-                subtaskScheduledTasks.forEach(scheduledTask => {
-                  addScheduledTask(scheduledTask);
-                });
-                
-                const { availableDays } = calculateTimeConstraint(dueDate);
-                const timeConstraintNote = availableDays > 0 && availableDays <= 7 
-                  ? ` Given your ${availableDays}-day deadline, subtasks have been prioritized for urgent completion.`
-                  : "";
-                
-                let alertMessage = schedulingResult.message + timeConstraintNote;
-                
-                // Add details about the schedule
-                if (schedulingResult.scheduledSubtasks.length > 0) {
-                  const firstSubtask = schedulingResult.scheduledSubtasks[0];
-                  const totalHours = Math.round(schedulingResult.totalScheduledMinutes / 60 * 10) / 10;
-                  alertMessage += `\n\nFirst subtask scheduled for ${firstSubtask.date} at ${firstSubtask.timeSlot.start}.`;
-                  alertMessage += `\nTotal study time: ${totalHours} hours.`;
-                  
-                  if (schedulingResult.completionDate && dueDate) {
-                    const completionDate = new Date(schedulingResult.completionDate);
-                    const dueDateObj = new Date(dueDate);
-                    const daysBeforeDue = Math.ceil((dueDateObj.getTime() - completionDate.getTime()) / (1000 * 60 * 60 * 24));
-                    if (daysBeforeDue > 0) {
-                      alertMessage += `\nAll subtasks will be completed ${daysBeforeDue} days before the due date.`;
-                    }
-                  }
-                }
-                
-                Alert.alert(
-                  "任務已建立並自動排程",
-                  `${alertMessage}`,
-                  [{ text: "太好了！", onPress: () => router.back() }]
-                );
-              } else {
-                // 🔧 簡化：排程失敗處理
-                Alert.alert(
-                  "⚠️ 排程遇到問題",
-                  schedulingResult.message + "\n\n建議：\n• 延長截止日期\n• 減少子任務數量\n• 增加可用學習時間\n• 縮短子任務時長",
-                  [
-                    {
-                      text: "仍要建立任務",
-                      onPress: () => {
-                        Alert.alert(
-                          "任務已建立",
-                          "任務已成功建立，但未完成自動排程。您可以稍後手動安排時間。",
-                          [{ text: "了解", onPress: () => router.back() }]
-                        );
-                      }
-                    }
-                  ]
-                );
-              }
-            } else {
-              // No subtasks, schedule the whole task
-            const scheduledTask = findAvailableTimeSlot(
-              { ...newTask, duration: totalDuration },
-              availableTimeSlots,
-              scheduledTasks
-            );
-            
-            if (scheduledTask) {
-              addScheduledTask(scheduledTask);
-              const { availableDays } = calculateTimeConstraint(dueDate);
-              const timeConstraintNote = availableDays > 0 && availableDays <= 7 
-                ? ` Given your ${availableDays}-day deadline, this scheduling prioritizes urgent completion.`
-                : "";
-              Alert.alert(
-                "Task Created & Scheduled",
-                `Your task has been created and automatically scheduled for ${scheduledTask.date} at ${scheduledTask.timeSlot.start} (${totalDuration} minutes).${timeConstraintNote}`,
-                [{ text: "Great!", onPress: () => router.back() }]
-              );
-            } else {
-              Alert.alert(
-                "Task Created",
-                `Task created successfully with estimated duration of ${totalDuration} minutes. Could not find an available time slot automatically. You can schedule it manually from the tasks screen.`,
-                [{ text: "OK", onPress: () => router.back() }]
-              );
-              }
-            }
-          } catch (schedulingError) {
-            log.error("Auto-scheduling error:", schedulingError);
-            Alert.alert(
-              "Task Created",
-              `Task created successfully with estimated duration of ${totalDuration} minutes. Auto-scheduling failed, but you can schedule it manually from the tasks screen.`,
-              [{ text: "OK", onPress: () => router.back() }]
-            );
-          }
-        } else {
-          Alert.alert(
-            "Task Created",
-            `Task created successfully with estimated duration of ${totalDuration} minutes.`,
-            [{ text: "OK", onPress: () => router.back() }]
-          );
-        }
-      }
-    } catch (error) {
-      log.error("Save task error:", error);
-      Alert.alert("Error", "Failed to save task. Please try again.");
-    } finally {
-      setIsEstimatingDuration(false);
-    }
-  };
+  const {
+    handleSmartGenerate,
+    handleSave,
+    generateSubtasksDirectly,
+    handlePersonalizationComplete,
+    handleLearningPlanComplete,
+    handleQualityAlertContinue,
+    handleQualityAlertSkip
+  } = useTaskSubmission(taskId);
 
   return (
-  <KeyboardAvoidingView
-    style={styles.container}
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-    keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
-  >
-    <Stack.Screen
-      options={{
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+    >
+      <Stack.Screen
+        options={{
           title: taskId ? "Edit Task" : "Add Task",
           headerRight: () => (
             <TouchableOpacity onPress={handleSave} style={styles.saveButton} disabled={isEstimatingDuration}>
@@ -644,43 +138,18 @@ export default function AddTaskScreen() {
           ),
         }}
       />
-      
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        <TaskBasicForm
-          title={title}
-          description={description}
-          onTitleChange={setTitle}
-          onDescriptionChange={setDescription}
-          detectedTaskType={detectedTaskType}
-        />
+        <TaskBasicForm />
 
-        <TaskSettings
-          dueDate={dueDate}
-          onDueDateChange={setDueDate}
-          timeConstraintMessage={dueDate ? calculateTimeConstraint(dueDate).timeContext : undefined}
-          priority={priority}
-          onPriorityChange={setPriority}
-          difficulty={difficulty}
-          onDifficultyChange={setDifficulty}
-          autoSchedule={autoSchedule}
-          schedulingMode={schedulingMode}
-          startNextDay={startNextDay}
-          showSchedulingOptions={showSchedulingOptions}
-          onAutoScheduleChange={setAutoSchedule}
-          onSchedulingModeChange={setSchedulingMode}
-          onStartNextDayChange={setStartNextDay}
-          onToggleSchedulingOptions={() => setShowSchedulingOptions(!showSchedulingOptions)}
-        />
+        <TaskSettings />
 
-        {/* Quality Alert Modal */}
+        {/* Quality Alert */}
         <QualityAlert
-          visible={showQualityAlert}
-          issues={qualityIssues}
-          onClose={() => setShowQualityAlert(false)}
-          onContinue={handleQualityAlertSkip}
-          onImprove={handleQualityAlertContinue}
+          onContinue={handleQualityAlertContinue}
+          onImprove={() => setShowQualityAlert(false)}
         />
-        
+
         <View style={styles.inputGroup}>
           <View style={styles.subtaskHeader}>
             <Text style={styles.label}>Subtasks</Text>
@@ -694,24 +163,10 @@ export default function AddTaskScreen() {
             />
           </View>
 
-          <SubtaskDisplay
-            subtasks={subtasks}
-            newSubtask={newSubtask}
-            onNewSubtaskChange={setNewSubtask}
-            onAddSubtask={handleAddSubtask}
-            onRemoveSubtask={handleRemoveSubtask}
-            editingSubtaskId={editingSubtaskId}
-            tempDuration={tempDuration}
-            onStartEditDuration={handleSubtaskDurationEdit}
-            onDurationChange={setTempDuration}
-            onSaveDuration={handleSubtaskDurationSave}
-            onCancelEditDuration={handleSubtaskDurationCancel}
-            showTimeEstimate={true}
-            showPhaseDistribution={true}
-          />
+          <SubtaskDisplay />
         </View>
       </ScrollView>
-      
+
       <View style={styles.buttonContainer}>
         <Button
           title={taskId ? "Update Task" : "Create & Schedule Task"}
@@ -727,87 +182,16 @@ export default function AddTaskScreen() {
 
       {/* Personalization Modal */}
       <PersonalizationModal
-        visible={showPersonalizationModal}
-        questions={clarifyingQuestions}
-        responses={clarificationResponses}
-        isAnalyzing={isGeneratingSubtasks}
-        onClose={() => setShowPersonalizationModal(false)}
-        onResponseChange={handlePersonalizationResponse}
         onComplete={handlePersonalizationComplete}
       />
 
       {/* Learning Plan Modal */}
       <LearningPlanModal
-        visible={showLearningPlan}
-        plan={learningPlan}
-        onClose={() => setShowLearningPlan(false)}
         onAccept={handleLearningPlanComplete}
       />
     </KeyboardAvoidingView>
   );
 }
 
-function getTaskTypeDescription(taskType: string): string {
-  switch (taskType) {
-    case "exam_preparation":
-      return "AI detected this is exam preparation. Subtasks will focus on practice problems, test strategies, exam simulation, and spaced repetition for retention.";
-    case "skill_learning":
-      return "AI detected this is skill learning. Subtasks will include projects, real-world applications, portfolio development, and spaced repetition for mastery.";
-    case "project_completion":
-      return "AI detected this is a project. Subtasks will cover planning, implementation, testing, and delivery phases.";
-    case "habit_building":
-      return "AI detected this is habit building. Subtasks will focus on consistency, tracking, and long-term sustainability.";
-    case "challenge":
-      return "AI detected this is a challenge. Subtasks will include training, performance optimization, and achievement tracking.";
-    default:
-      return "AI will generate structured subtasks to help you complete this task efficiently.";
-  }
-}
 
-function getPhaseBreakdownText(taskType?: string): string[] {
-  switch (taskType) {
-    case "exam_preparation":
-      return [
-        "📚 Diagnostic Assessment & Knowledge Review",
-        "🛠️ Practice Problems & Skill Building",
-        "🎯 Timed Practice & Test Strategies",
-        "🤔 Error Analysis & Weak Area Review",
-        "📝 Exam Simulation & Final Preparation",
-        "🔄 Spaced Review & Retention"
-      ];
-    case "project_completion":
-      return [
-        "📚 Planning & Requirements Analysis",
-        "🛠️ Implementation & Development",
-        "🎯 Testing & Quality Assurance",
-        "🤔 Review & Optimization",
-        "📝 Delivery & Documentation"
-      ];
-    case "habit_building":
-      return [
-        "📚 Habit Design & Setup",
-        "🛠️ Daily Practice & Consistency",
-        "🎯 Integration & Optimization",
-        "🤔 Progress Review & Adjustment",
-        "📝 Sustainability & Mastery"
-      ];
-    case "challenge":
-      return [
-        "📚 Challenge Analysis & Strategy",
-        "🛠️ Training & Skill Development",
-        "🎯 Performance Testing & Optimization",
-        "🤔 Results Analysis & Improvement",
-        "📝 Achievement & Celebration"
-      ];
-    default:
-      return [
-        "📚 Knowledge Input",
-        "🛠️ Practice & Hands-on",
-        "🎯 Real-world Application",
-        "🤔 Reflection & Review",
-        "📝 Output & Presentation",
-        "🔄 Spaced Repetition Review"
-      ];
-  }
-}
 
