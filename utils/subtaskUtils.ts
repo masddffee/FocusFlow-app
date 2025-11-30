@@ -40,3 +40,11 @@ export const getSubtaskCompletionPercentage = (subtasks?: EnhancedSubtask[]): nu
   const completed = getCompletedSubtasksCount(subtasks);
   return Math.round((completed / subtasks.length) * 100);
 };
+
+/**
+ * Calculate total estimated time for all subtasks
+ */
+export const getTotalEstimatedTime = (subtasks?: EnhancedSubtask[]): number => {
+  if (!subtasks) return 0;
+  return subtasks.reduce((total, subtask) => total + (subtask.estimatedDuration || 30), 0);
+};

@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  ScrollView, 
-  TouchableOpacity, 
-  Switch, 
+import {
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
   Alert,
-  Modal 
+  Modal
 } from "react-native";
 import { Stack } from "expo-router";
 import { 
@@ -38,6 +37,7 @@ import { restartApp, canAutoRestart } from "@/utils/appRestart";
 import TimeSlotPicker from "@/components/TimeSlotPicker";
 import PerformanceMonitor from "@/components/PerformanceMonitor";
 import { TimeSlot } from "@/types/timeSlot";
+import { profileStyles as styles } from "@/styles/profile-styles";
 
 export default function ProfileScreen() {
   const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
@@ -545,108 +545,3 @@ export default function ProfileScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: Theme.spacing.lg,
-  },
-  section: {
-    marginBottom: Theme.spacing.xl,
-    backgroundColor: Colors.light.card,
-    borderRadius: Theme.radius.lg,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  sectionTitle: {
-    fontSize: Theme.typography.sizes.md,
-    fontWeight: "600",
-    color: Colors.light.text,
-    padding: Theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  settingItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  settingInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  settingTextContainer: {
-    marginLeft: Theme.spacing.md,
-    flex: 1,
-  },
-  settingText: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.text,
-    marginLeft: Theme.spacing.md,
-  },
-  settingSubtext: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.subtext,
-    marginTop: 2,
-  },
-  settingValue: {
-    backgroundColor: "#F3F4F6",
-    paddingVertical: Theme.spacing.xs,
-    paddingHorizontal: Theme.spacing.sm,
-    borderRadius: Theme.radius.sm,
-  },
-  settingValueText: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.text,
-  },
-  versionContainer: {
-    alignItems: "center",
-    marginVertical: Theme.spacing.xl,
-  },
-  versionText: {
-    fontSize: Theme.typography.sizes.sm,
-    color: Colors.light.subtext,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-    paddingTop: 60, // Account for status bar
-  },
-  modalTitle: {
-    fontSize: Theme.typography.sizes.xl,
-    fontWeight: "600",
-    color: Colors.light.text,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  modalContent: {
-    flex: 1,
-    padding: Theme.spacing.lg,
-  },
-  modalDescription: {
-    fontSize: Theme.typography.sizes.md,
-    color: Colors.light.subtext,
-    lineHeight: 22,
-    marginBottom: Theme.spacing.lg,
-  },
-});
